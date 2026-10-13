@@ -1,0 +1,76 @@
+# Builds the Nib desktop app for Windows, macOS and Linux on GitHub's own
+# computers (free for public repositories) and attaches the installers to a
+# draft release. Start it from the Actions tab ("Run workflow"), or push a tag
+# like v0.4.0.
+name: Desktop app
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux build tools
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # "Get the latest version" in Settings opens this page in the browser.
+          NIB_WEBSITE: https://github.com/${{ github.repository }}/releases/latest
+        with:
+          tagName: v__VERSION__
+          releaseName: "Nib __VERSION__ (beta)"
+          releaseBody: |
+            **Nib desktop app (beta).** Works fully offline: no account, no uploads, no network access.
+
+            **Which file?**
+            - Windows: `Nib_…_x64-setup.exe` (no admin rights needed) or the `.msi`
+            - macOS (Apple silicon and Intel): `Nib_…_universal.dmg`
+            - Linux: `.AppImage` (any distribution) or `.deb` (Ubuntu, Debian)
+
+            **The installers are not signed yet, so your computer warns you the first time:**
+            - Windows: "Windows protected your PC" → click **More info** → **Run anyway**.
+            - macOS: "Nib cannot be opened" → open **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to Nib, then open Nib again.
+            - Linux: make the AppImage executable (`chmod +x Nib_*.AppImage`), then run it.
+
+            Nib never checks for updates by itself. To update, download the new version here and install it over the old one; settings and study notes are kept.
+          releaseDraft: true
+          prerelease: true
+          args: ${{ matrix.args }}

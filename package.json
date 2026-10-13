@@ -1,0 +1,40 @@
+{
+  "name": "nib",
+  "version": "0.4.0-beta",
+  "description": "Nib - a private PDF reader and editor that runs in the browser (beta)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single && node scripts/to-artifact.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/pen-feel.ts && python3 test/e2e.py",
+    "fixtures": "python3 scripts/make-fixtures.py",
+    "preview": "vite preview",
+    "pages": "npm run build:single && node scripts/build-pages.mjs",
+    "build:desktop": "npm run build:single && node scripts/build-desktop.mjs",
+    "desktop": "tauri build",
+    "desktop:dev": "tauri dev",
+    "test:pen": "tsx test/pen-feel.ts"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@embedpdf/engines": "^2.15.1",
+    "@embedpdf/models": "^2.15.1",
+    "@embedpdf/pdfium": "^2.15.1",
+    "@fontsource/bricolage-grotesque": "^5.3.0",
+    "@fontsource/hanken-grotesk": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "fflate": "^0.8.2",
+    "pdf-lib": "^1.17.1",
+    "perfect-freehand": "^1.2.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.2",
+    "tsx": "^4.23.15",
+    "typescript": "5.9",
+    "vite": "^8.3.4",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "private": true,
+  "type": "module"
+}
