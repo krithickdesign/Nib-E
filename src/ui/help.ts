@@ -20,7 +20,7 @@ const SLIDES: Slide[] = [
     kicker: 'Welcome',
     title: 'Nib-E: a private PDF reader and editor',
     body: `<p>Part of the Desk-E family. Read, fill, sign, draw, comment, organise pages, redact and save. No account, nothing uploaded.</p>
-      <p class="help-beta">This is a test version (beta). Some things will be rough. Your feedback shapes what comes next.</p>`,
+      <p class="help-beta">Nib-E is young and growing. Found something rough? Help → Send feedback shapes what comes next.</p>`,
   },
   {
     icon: 'lock',
@@ -57,14 +57,14 @@ const SLIDES: Slide[] = [
     kicker: 'Forms',
     title: 'Fill forms, even ones without form fields',
     body: `<p>Nib-E looks for empty boxes, lines and tick boxes. When it finds some, a card on the right asks if you want to <strong>make them fillable</strong>. Then click a box and type: text takes the size and font of the question. ${kbd('Tab')} jumps to the next box.</p>
-      <p>Sign with <strong>Fill in &amp; sign → Add signature</strong>. Draw it once and Nib-E can remember it on this device.</p>`,
+      <p>Sign with <strong>Form filling &amp; signature → Add signature</strong>. Draw it once and Nib-E can remember it on this device.</p>`,
   },
   {
     icon: 'pen',
     kicker: 'Draw and comment',
     title: 'Write on any page like on paper',
     body: `<p>The bar at the bottom has the pen, highlighter, text and eraser. A stylus uses pen pressure. <strong>Pen feel</strong> (next to the pen sizes) sets how much writing is smoothed: <em>Precise</em> for handwriting, <em>Smooth</em> for diagrams.</p>
-      <p>The <strong>Toolbox</strong> button (top right) opens every tool: comments, shapes, stamps (design your own or use a PNG), images, header and footer, watermark, pages, compress, password, export.</p>`,
+      <p>The <strong>Toolbox</strong> button (top right) opens every tool, grouped as Write, Pages, Protect and Convert: annotations, shapes, the stamp library (design your own or use a PNG), images, header and footer, watermark, page manager, size reducer, password lock, image export.</p>`,
   },
   {
     icon: 'study',
@@ -80,9 +80,9 @@ const SLIDES: Slide[] = [
   },
   {
     icon: 'redact',
-    kicker: 'Redact',
+    kicker: 'PDF redaction',
     title: 'Remove private details for good',
-    body: `<p><strong>Toolbox → Black out (redact)</strong>: drag over text or pictures, or search for a name and mark every match. Applying removes the text and erases the picture pixels under the boxes, then Nib-E checks that nothing is left.</p>`,
+    body: `<p><strong>Toolbox → PDF redaction</strong>: drag over text or pictures, or search for a name and mark every match. Applying removes the text and erases the picture pixels under the boxes, then Nib-E checks that nothing is left.</p>`,
   },
   {
     icon: 'settings',

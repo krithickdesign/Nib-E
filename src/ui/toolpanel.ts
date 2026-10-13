@@ -26,6 +26,7 @@ import { openHelp } from './help';
 import { SPELL_LANGS } from './spelling';
 import { addPngStamp, deleteStamp, myStamps, openStampMaker, useStamp } from './stamps';
 import { VERSION } from '../version';
+import { buildLabel, EDITION, updateNote } from '../config';
 import { isDesktop, invoke } from '../platform/env';
 import { idbClear } from '../platform/idb';
 import { setKeep } from '../library';
@@ -42,36 +43,72 @@ interface ToolEntry {
   view: PanelView;
   label: string;
   icon: string;
-  hue: number;
   desc: string;
 }
 
-const ALL_TOOLS: ToolEntry[] = [
-  { view: 'edit', label: 'Add text & pictures', icon: 'edit', hue: 340, desc: 'Text, images, header and footer, watermark, links' },
-  { view: 'fill', label: 'Fill in & sign', icon: 'fillSign', hue: 268, desc: 'Type into form boxes, tick boxes, sign' },
-  { view: 'form', label: 'Make a fillable form', icon: 'form', hue: 200, desc: 'Turn found boxes into real form fields' },
-  { view: 'comment', label: 'Comment & mark up', icon: 'comment', hue: 44, desc: 'Notes, highlight text, shapes, drawing' },
-  { view: 'stamp', label: 'Stamps', icon: 'stamp', hue: 286, desc: 'Approved, Draft, Confidential and more' },
-  { view: 'redact', label: 'Black out (redact)', icon: 'redact', hue: 0, desc: 'Remove text and images for good' },
-  { view: 'organize', label: 'Pages', icon: 'organize', hue: 128, desc: 'Insert, rotate, move, delete, extract' },
-  { view: 'combine', label: 'Merge files', icon: 'combine', hue: 236, desc: 'Add PDFs or images as pages' },
-  { view: 'compress', label: 'Make it smaller', icon: 'compress', hue: 356, desc: 'Shrink large photos' },
-  { view: 'protect', label: 'Password', icon: 'protect', hue: 222, desc: 'Password with AES-256' },
-  { view: 'export', label: 'Pages as pictures', icon: 'exportImg', hue: 172, desc: 'PNG or JPEG' },
-  { view: 'create', label: 'Pictures to PDF', icon: 'createPdf', hue: 14, desc: 'Photos and scans into one PDF' },
-  { view: 'study', label: 'Study mode', icon: 'study', hue: 150, desc: 'PDF beside a notebook' },
-  { view: 'check', label: 'Document check', icon: 'shield', hue: 160, desc: 'Safe mode report' },
-  { view: 'settings', label: 'Settings', icon: 'settings', hue: 230, desc: 'Interface size, spelling, saved data' },
+interface ToolGroup {
+  title: string;
+  tools: ToolEntry[];
+}
+
+// Names are deliberately Nib-E's own wording (noun forms), not other apps' menu labels.
+const GROUPS: ToolGroup[] = [
+  {
+    title: 'Write',
+    tools: [
+      { view: 'edit', label: 'Content editor', icon: 'edit', desc: 'Text, images, header and footer, watermark, links' },
+      { view: 'fill', label: 'Form filling & signature', icon: 'fillSign', desc: 'Type into form boxes, tick boxes, sign' },
+      { view: 'form', label: 'Form builder', icon: 'form', desc: 'Turn found boxes into real form fields' },
+      { view: 'comment', label: 'Annotations', icon: 'comment', desc: 'Notes, text highlights, shapes, drawing' },
+      { view: 'stamp', label: 'Stamp library', icon: 'stamp', desc: 'Approved, Draft, Confidential, your own' },
+    ],
+  },
+  {
+    title: 'Pages',
+    tools: [
+      { view: 'organize', label: 'Page manager', icon: 'organize', desc: 'Insert, rotate, move, delete, extract' },
+      { view: 'combine', label: 'File merger', icon: 'combine', desc: 'Add PDFs or images as pages' },
+      { view: 'compress', label: 'Size reducer', icon: 'compress', desc: 'Shrink large photos' },
+    ],
+  },
+  {
+    title: 'Protect',
+    tools: [
+      { view: 'redact', label: 'PDF redaction', icon: 'redact', desc: 'Remove text and images for good' },
+      { view: 'protect', label: 'Password lock', icon: 'protect', desc: 'Password with AES-256' },
+      { view: 'check', label: 'Safety report', icon: 'shield', desc: 'What this file contains (safe mode)' },
+    ],
+  },
+  {
+    title: 'Convert',
+    tools: [
+      { view: 'export', label: 'Image export', icon: 'exportImg', desc: 'Pages as PNG or JPEG' },
+      { view: 'create', label: 'Image to PDF', icon: 'createPdf', desc: 'Photos and scans into one PDF' },
+    ],
+  },
+  {
+    title: 'Study',
+    tools: [{ view: 'study', label: 'Study mode', icon: 'study', desc: 'PDF beside a notebook' }],
+  },
 ];
+
+const SETTINGS_ENTRY: ToolEntry = { view: 'settings', label: 'Settings', icon: 'settings', desc: 'Appearance, pen feel, saving, saved data' };
+
+const ALL_TOOLS: ToolEntry[] = [...GROUPS.flatMap((g) => g.tools), SETTINGS_ENTRY];
+
+/** Panel title for a tool view (used by other modules for consistent wording). */
+export function toolLabel(v: PanelView): string {
+  return ALL_TOOLS.find((t) => t.view === v)?.label ?? '';
+}
 
 export const UI_SIZES = [1, 1.25, 1.5, 1.75, 2];
 
 const LATER: { label: string; icon: string }[] = [
-  { label: 'Read text in scans', icon: 'ocr' },
-  { label: 'Convert to Office files', icon: 'word' },
-  { label: 'Compare two versions', icon: 'compare' },
-  { label: 'Measure distances', icon: 'measure' },
-  { label: 'Sign with a digital ID', icon: 'certificate' },
+  { label: 'Text recognition', icon: 'ocr' },
+  { label: 'Office conversion', icon: 'word' },
+  { label: 'Version diff', icon: 'compare' },
+  { label: 'Measuring tool', icon: 'measure' },
+  { label: 'Certificate signing', icon: 'certificate' },
 ];
 
 const TITLES: Partial<Record<PanelView, string>> = {
@@ -155,11 +192,13 @@ export class ToolPanel {
     const doc = store.doc;
     if (!doc && v !== 'home') return '<p class="muted">Open a PDF first.</p>';
     switch (v) {
-      case 'home':
-        return `<ul class="tool-list">${ALL_TOOLS.map((t) => `<li><button type="button" class="tool-row" data-view="${t.view}" style="--hue:${t.hue}"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span><small>${t.desc}</small></span></button></li>`).join('')}</ul>
-          ${actBtn('help', 'help', 'Help and tour', 'How Nib-E works, privacy, study mode')}
-          <h3 class="panel-sub">Coming later</h3>
-          <ul class="tool-list later">${LATER.map((t) => `<li><span class="tool-row" aria-disabled="true"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span></span><span class="tag">Later</span></span></li>`).join('')}</ul>`;
+      case 'home': {
+        const row = (t: ToolEntry) => `<li><button type="button" class="tool-row" data-view="${t.view}"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span><small>${t.desc}</small></span></button></li>`;
+        return `${GROUPS.map((g) => `<section class="tool-group"><h3 class="tool-group-title">${g.title}</h3><ul class="tool-list">${g.tools.map(row).join('')}</ul></section>`).join('')}
+          <section class="tool-group"><h3 class="tool-group-title">App</h3><ul class="tool-list">${row(SETTINGS_ENTRY)}</ul>
+          ${actBtn('help', 'help', 'Help and tour', 'How Nib-E works, privacy, study mode')}</section>
+          <section class="tool-group later"><h3 class="tool-group-title">Planned</h3><ul class="tool-list">${LATER.map((t) => `<li><span class="tool-row" aria-disabled="true"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span></span><span class="tag">Later</span></span></li>`).join('')}</ul></section>`;
+      }
       case 'edit':
         return (
           section(
@@ -170,7 +209,7 @@ export class ToolPanel {
               <button class="icon-btn" type="button" data-act="insert-blank" title="Insert a blank page">${icon('pageAdd')}</button>
               <button class="icon-btn danger" type="button" data-act="delete" title="Delete page">${icon('trash')}</button>
               <button class="icon-btn" type="button" data-act="extract" title="Save page as a new PDF">${icon('extract')}</button>
-            </div>${actBtn('view:organize', 'organize', 'Pages')}`,
+            </div>${actBtn('view:organize', 'organize', 'Page manager')}`,
           ) +
           section(
             'Add content',
@@ -180,7 +219,7 @@ export class ToolPanel {
               actBtn('view:wm', 'watermark', 'Watermark', store.plan.wm ? 'On' : undefined) +
               toolBtn('link', 'Link', 'Drag a box, enter a web address'),
           ) +
-          section('Other options', actBtn('view:combine', 'combine', 'Merge files') + actBtn('view:redact', 'redact', 'Black out (redact)') + actBtn('view:form', 'form', 'Make a fillable form')) +
+          section('Other options', actBtn('view:combine', 'combine', 'File merger') + actBtn('view:redact', 'redact', 'PDF redaction') + actBtn('view:form', 'form', 'Form builder')) +
           `<p class="muted small">Editing the PDF's existing text is not supported. Cover it with a white box and type on top if needed.</p>`
         );
       case 'hf':
@@ -261,7 +300,7 @@ export class ToolPanel {
             '2 · Options',
             `<label class="check-row"><input type="checkbox" id="pf-sanitize" ${store.prefs.sanitize ? 'checked' : ''}/><span><strong>Remove hidden information</strong><small>Metadata, attachments, scripts, bookmarks. Form fields are flattened.</small></span></label>
              <label class="check-row"><input type="checkbox" id="pf-raster" ${store.prefs.rasterize ? 'checked' : ''}/><span><strong>Turn redacted pages into images</strong><small>Strongest: also removes vector drawings partly under a box. Text on those pages can't be selected afterwards.</small></span></label>
-             ${store.prefs.rasterize ? `<p class="note-warn">${icon('info')}<span><strong>Beta:</strong> a tester got a damaged page picture with this option. Nib-E now checks every page picture and stops if one is damaged, but please open the saved file once to check it before you share it.</span></p>` : ''}`,
+             ${store.prefs.rasterize ? `<p class="note-warn">${icon('info')}<span><strong>Please check:</strong> a tester got a damaged page picture with this option. Nib-E now checks every page picture and stops if one is damaged, but please open the saved file once to check it before you share it.</span></p>` : ''}`,
           ) +
           section(
             '3 · Apply',
@@ -373,7 +412,7 @@ export class ToolPanel {
           section(
             'Notes',
             `<p class="muted small">${notes} note page${notes === 1 ? '' : 's'} in this book.</p>` +
-              `<div class="btn-row">${notes ? `<button class="btn" type="button" data-act="save-notes">${icon('save')}Save notes only</button>` : ''}${doc?.bookId ? `<button class="btn" type="button" data-act="backup-notes">${icon('backup')}Back up (.nib)</button>` : ''}</div>`,
+              `<div class="btn-row">${notes ? `<button class="btn" type="button" data-act="save-notes">${icon('save')}Save notes only</button>` : ''}${doc?.bookId ? `<button class="btn" type="button" data-act="backup-notes">${icon('backup')}Back up (.nibe)</button>` : ''}</div>`,
           )
         );
       }
@@ -445,9 +484,9 @@ export class ToolPanel {
       section('Help', actBtn('help', 'help', 'Open the tour')) +
       section(
         'Version',
-        `<p class="muted small mono">Nib-E ${VERSION}${isDesktop() ? ' · desktop app' : ' · web'}</p>
-         <p class="muted small">Nib-E never checks for updates by itself. Compare this number with the latest one on the website.</p>
-         ${isDesktop() ? `<button class="btn wide" type="button" data-act="latest">${icon('open')}Get the latest version</button><p class="muted small">Opens the website in your normal browser. Nib-E itself stays offline.</p>` : ''}`,
+        `<p class="muted small mono">Nib-E ${VERSION} · ${buildLabel(isDesktop())}</p>
+         <p class="muted small">${updateNote(isDesktop())}</p>
+         ${isDesktop() && EDITION !== 'store' ? `<button class="btn wide" type="button" data-act="latest">${icon('open')}Get the latest version</button><p class="muted small">Opens the website in your normal browser. Nib-E itself stays offline.</p>` : ''}`,
       )
     );
   }

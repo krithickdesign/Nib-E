@@ -1,18 +1,19 @@
-# Nib-E · a private PDF editor (beta)
+# Nib-E · a private PDF editor
 
-Part of the Desk-E family.
+Part of the Desk-E family. Published as Axiomate Technologies.
 
 Read, fill, sign, draw on, redact and organise PDFs in your browser.
 **Your files never leave your device:** no uploads, no account, no tracking, no AI.
 
 ![Nib-E filling in a form](docs/assets/fill.webp)
 
-> **Beta (v0.5.0).** Nib-E is being tested. Things will break; please [report them](TESTING.md).
+> Nib-E is young and growing. Found something odd? Please [report it](TESTING.md).
 
 ## Use it
 
-- **Desktop app (Windows, macOS, Linux):** download from the project's **Releases** page.
-  The installers are not signed yet, so the first start shows a warning:
+- **Windows:** the **Microsoft Store** (no warning, automatic updates; link on the website once live).
+- **Desktop installers (Windows, macOS, Linux):** download from the project's **Releases** page.
+  They are not signed yet, so the first start shows a warning:
   Windows → *More info* → *Run anyway*; macOS → *System Settings → Privacy & Security* → *Open Anyway*.
 - **On the web:** open the project's GitHub Pages site and click **Open Nib-E**
   (`https://<user>.github.io/<repo>/`, once Pages is switched on, see below). Works on phones and tablets too.
@@ -40,7 +41,8 @@ Read, fill, sign, draw on, redact and organise PDFs in your browser.
 | **Fill forms** | Real form fields, *and* forms without fields: Nib-E finds boxes, lines and tick boxes and asks whether to make them fillable. Text uses the form's font and size; `Tab` jumps to the next box. Works alongside real fields in the same file. |
 | **Sign** | Draw once, place anywhere, optionally remembered on this device. |
 | **Draw and write** | Pen and highlighter (stylus pressure, palm rejection, pen feel Precise / Balanced / Smooth), text boxes with font toolbar and spelling check. |
-| **Study mode** | PDF beside a notebook; note pages lined, grid or blank. Notes kept on the device as you write and restored (with the last page) when the book is opened again; or written into the book file. Library on the start screen, `.nib` backup. |
+| **Toolbox** | Grouped into Write (Content editor, Form filling & signature, Form builder, Annotations, Stamp library), Pages (Page manager, File merger, Size reducer), Protect (PDF redaction, Password lock, Safety report), Convert (Image export, Image to PDF) and Study. |
+| **Study mode** | PDF beside a notebook; note pages lined, grid or blank. Notes kept on the device as you write and restored (with the last page) when the book is opened again; or written into the book file. Library on the start screen, `.nibe` backup. |
 | **Comments** | Sticky notes, highlight / underline / strike text, shapes, links, header and footer, watermark. |
 | **Stamps** | Ready-made stamps, your own text, a **stamp designer** (drag-and-drop text, shapes, logo, date), or any PNG. Saved in the browser. |
 | **Redact** | Removes text and erases picture pixels under the marks, optional removal of hidden data, then verifies nothing is left. |
@@ -66,11 +68,16 @@ the website build shows a warning until you do.
 3. Installed apps don't update themselves: people install the new version over the old one
    (settings and study notes are kept). The website updates by itself.
 
-The version lives in one place, `package.json` (`"version"`, plus `"nibChannel": "beta"`
-for the label). `npm run version:set 0.5.1` changes it locally.
+The version lives in one place, `package.json` (`"version"`).
+`npm run version:set 0.5.2` changes it locally (package files, Rust, website footer).
+
+The publisher name also lives in `package.json` (`"nibPublisher"`, now the placeholder
+"Axiomate Technologies"). `npm run publisher:set -- "New Name"` changes it in the app,
+installers and website; change it in Partner Center and the `MSIX_PUBLISHER_NAME` variable too.
 
 **Microsoft Store:** see [STORE.md](STORE.md). Once the Store identity is set up, every
-Release also makes the Store package.
+Release also makes the Store edition package. Listing texts and screenshots: `store/`.
+Retake screenshots after UI changes: `npm run build:single && python3 scripts/screenshots.py`.
 
 Build on your own computer (needs [Rust](https://rustup.rs) and, on Linux, `libwebkit2gtk-4.1-dev`):
 
@@ -89,7 +96,7 @@ npm install
 npm run dev          # local dev server
 npm run typecheck
 npm run pages        # build the single-file app into docs/app/ (done automatically on GitHub)
-npm test             # pen-feel check + 146 browser checks (Python + Playwright + pikepdf + pdfplumber + poppler)
+npm test             # pen-feel check + 150+ browser checks (Python + Playwright + pikepdf + pdfplumber + poppler)
 ```
 
 ```
@@ -119,10 +126,10 @@ Design: edits are kept as a plan on top of the opened file; Save builds a new PD
 - Very large PDFs can stutter while pages render.
 - Saving changes to a digitally signed PDF invalidates its signature (Nib-E warns first).
 - Firefox and Safari have no Save window for web pages: files go to Downloads (or wherever the browser asks). Use Chrome, Edge or the desktop app to save over files.
-- Study notes kept "on this device" live in the browser's or app's storage: back them up (.nib) before clearing site data or changing computers.
+- Study notes kept "on this device" live in the browser's or app's storage: back them up (.nibe) before clearing site data or changing computers.
 - Print sends pages as images (150 dpi): fine for reading, not for professional print jobs.
 - Phone layout is tested in a phone-sized browser only, not yet on real phones.
-- Desktop installers are unsigned (first-start warning). The desktop app was test-run on Linux; Windows and macOS builds come from GitHub Actions and need real-device testing.
+- GitHub installers are unsigned (first-start warning); the Microsoft Store version is signed by Microsoft. The desktop app was test-run on Linux; Windows and macOS builds come from GitHub Actions and need real-device testing.
 
 ## Licences
 

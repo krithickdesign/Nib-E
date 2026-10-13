@@ -22,7 +22,7 @@ New-Item -ItemType Directory -Force (Join-Path $stage 'Assets') | Out-Null
 
 Copy-Item $exe (Join-Path $stage 'Nib-E.exe')
 $icons = Join-Path $root 'src-tauri\icons'
-foreach ($f in 'StoreLogo.png', 'Square44x44Logo.png', 'Square150x150Logo.png', 'Square310x310Logo.png') {
+foreach ($f in 'StoreLogo.png', 'Square44x44Logo.png', 'Square150x150Logo.png') {
   Copy-Item (Join-Path $icons $f) (Join-Path $stage "Assets\$f")
 }
 
@@ -53,4 +53,6 @@ try {
 $msix = Join-Path $out "Nib-E_$($Version)_x64.msix"
 & (Join-Path $tools 'makeappx.exe') pack /d $stage /p $msix /o
 if ($LASTEXITCODE -ne 0) { throw "makeappx failed ($LASTEXITCODE)." }
+# For a test on your own PC before uploading (see test-local.ps1).
+Copy-Item (Join-Path $PSScriptRoot 'test-local.ps1') (Join-Path $out 'test-local.ps1')
 Write-Host "Store package: $msix"

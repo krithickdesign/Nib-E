@@ -150,6 +150,6 @@ const ITEM_LABELS: Record<Item['type'], string> = {
   image: 'Image',
   markup: 'Text markup',
   link: 'Link',
-  redact: 'Redaction mark',
+  redact: 'Area to remove',
   field: 'Form field',
 };

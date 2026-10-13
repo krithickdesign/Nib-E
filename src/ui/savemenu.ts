@@ -79,7 +79,7 @@ export class SaveMenu {
       (notes ? item('notes-only', 'lines', 'Only my notes') : '') +
       item('images', 'exportImg', 'Pages as images…', 'PNG or JPEG') +
       item('text', 'textFile', 'Text (.txt)') +
-      (doc.bookId ? item('backup', 'backup', 'Notes backup (.nib)', 'To move notes to another device') : '') +
+      (doc.bookId ? item('backup', 'backup', 'Notes backup (.nibe)', 'To move notes to another device') : '') +
       `<div class="menu-sep" role="separator"></div>` +
       item('print', 'print', 'Print…', '', `${mod}P`) +
       (backup ? item('restore', 'history', 'Restore earlier version', 'From before your last Save') : '') +

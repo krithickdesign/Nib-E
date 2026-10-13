@@ -24,8 +24,8 @@ writeFileSync('src-tauri/Cargo.toml', cargo);
 const lockToml = readFileSync('src-tauri/Cargo.lock', 'utf8').replace(/(\[\[package\]\]\nname = "nib"\nversion = )"[^"]*"/, `$1"${v}"`);
 writeFileSync('src-tauri/Cargo.lock', lockToml);
 
-// The website footer shows the version too.
-const site = readFileSync('docs/index.html', 'utf8').replace(/Nib-E \d+\.\d+\.\d+ beta/, `Nib-E ${v} beta`);
+// The website footer shows the version too (<span data-nib-version>…</span>).
+const site = readFileSync('docs/index.html', 'utf8').replace(/(<span data-nib-version>)[^<]*(<\/span>)/, `$1${v}$2`);
 writeFileSync('docs/index.html', site);
 
 console.log(`version ${old} -> ${v}`);

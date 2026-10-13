@@ -1,4 +1,4 @@
-# Testing Nib-E v0.4 beta
+# Testing Nib-E
 
 Thanks for helping. Use Nib-E like your normal PDF reader for a while, then tell us what broke,
 what confused you and what you missed.
@@ -37,7 +37,7 @@ The Help tour (top right, **?**) explains the basics in a minute.
       Are the right places found? Any boxes found that shouldn't be (decoration, tables)? Any missed?
 - [ ] A form *with* real fields: do they fill and save?
 - [ ] Type with `Tab` / `Enter` between boxes. Does the text size and font match?
-- [ ] *Toolbox → Make a fillable form → Save as a fillable form*: does the result work in another reader?
+- [ ] *Toolbox → Form builder → Save as a fillable form*: does the result work in another reader?
 
 **Writing and study**
 - [ ] Pen and highlighter with mouse, finger and (if you have one) a stylus. Try each pen feel (Precise / Balanced / Smooth): which suits your handwriting?
@@ -49,7 +49,7 @@ The Help tour (top right, **?**) explains the basics in a minute.
 **Stamps, comments, pages**
 - [ ] Design your own stamp; add a PNG stamp; place and resize them.
 - [ ] Sticky notes, highlights, shapes. Do they show in other PDF readers?
-- [ ] Insert, rotate, reorder, delete, extract pages. Merge files.
+- [ ] Insert, rotate, reorder, delete, extract pages (Page manager). File merger.
 
 **Redaction**
 - [ ] Mark text and images, apply, save. Open the result in another reader and try to copy the text that was under a box.

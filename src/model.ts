@@ -110,7 +110,7 @@ export interface RedactItem extends Base, Rect {
   type: 'redact';
 }
 
-/** A form field added by hand in "Make a fillable form". */
+/** A form field added by hand in the Form builder. */
 export interface FieldItem extends Base, Rect {
   type: 'field';
   kind: 'text' | 'check';

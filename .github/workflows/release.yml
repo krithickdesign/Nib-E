@@ -71,8 +71,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           V: ${{ steps.v.outputs.version }}
           SHA: ${{ steps.v.outputs.sha }}
+          STORE_ID: ${{ vars.MS_STORE_ID }}
         run: |
-          gh release create "v$V" --draft --latest --target "$SHA" --title "Nib-E $V (beta)" --notes-file .github/release-notes.md
+          # Windows: point to the Microsoft Store first once the listing exists.
+          if [[ "$STORE_ID" =~ ^[A-Za-z0-9]{12}$ ]]; then
+            printf '**Windows: get Nib-E from the [Microsoft Store](https://apps.microsoft.com/detail/%s)**: no warning, automatic updates. The installers below are for people who prefer not to use the Store.\n\n' "$STORE_ID" > notes.md
+          else
+            : > notes.md
+          fi
+          cat .github/release-notes.md >> notes.md
+          gh release create "v$V" --draft --latest --target "$SHA" --title "Nib-E $V" --notes-file notes.md
           echo "id=$(gh api "repos/${{ github.repository }}/releases" -q ".[] | select(.tag_name==\"v$V\") | .id" | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Rebuild the website with the new version
@@ -151,9 +159,11 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
       - run: npm ci
-      - name: Build the app (no installer)
+      - name: Build the Store edition (no installer)
         env:
-          NIB_WEBSITE: https://github.com/${{ github.repository }}/releases/latest
+          # Store edition: the Store installs updates, so no "latest version" link.
+          NIB_EDITION: store
+          VITE_NIB_EDITION: store
           VITE_NIB_REPO: https://github.com/${{ github.repository }}
         run: npm run tauri build -- --no-bundle
       - name: Make the Store package
@@ -166,7 +176,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Nib-E-${{ needs.prepare.outputs.version }}-store-msix
-          path: dist-msix/*.msix
+          # The .msix for Partner Center, plus the unpacked files and
+          # test-local.ps1 to try the Store edition on your own PC first.
+          path: dist-msix/
 
   publish:
     needs: [prepare, build]

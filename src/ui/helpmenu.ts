@@ -1,7 +1,7 @@
 // Help menu (top right): tour, shortcuts, what's new, feedback, privacy, about.
 // Feedback is never sent by Nib-E: it opens the project's issue form in the
 // browser (filled in), or copies the text to paste anywhere.
-import { APP_NAME, FORM_URL, REPO_URL } from '../config';
+import { APP_NAME, buildLabel, FORM_URL, PUBLISHER, REPO_URL, updateNote } from '../config';
 import { invoke, isDesktop } from '../platform/env';
 import { VERSION } from '../version';
 import { openHelp } from './help';
@@ -64,21 +64,19 @@ function shortcuts(): void {
 function whatsNew(): void {
   void modal(`<h2>What's new in ${APP_NAME} ${esc(VERSION)}</h2>
     <ul class="help-points compact">
-      <li>${icon('nib')}<span><strong>${APP_NAME}</strong>: Nib-E is now part of the Desk-E family.</span></li>
-      <li>${icon('help')}<span><strong>Help menu</strong> with feedback, shortcuts and this list.</span></li>
-      <li>${icon('settings')}<span><strong>Light / dark</strong> switch in Settings.</span></li>
-      <li>${icon('open')}<span>Click the logo to open the ${isDesktop() ? 'start page in a new window' : 'Nib-E home page in a new tab'}.</span></li>
-      <li>${icon('save')}<span>Save writes over the file you opened; Save menu with Export and Print; earlier version can be restored.</span></li>
-      <li>${icon('book')}<span>Study notes are kept as you write and come back with the book.</span></li>
-      <li>${icon('pen')}<span>Pen feel: Precise, Balanced, Smooth.</span></li>
-      <li>${icon('network')}<span>Network: none. Desktop app for Windows, macOS and Linux.</span></li>
+      <li>${icon('settings')}<span><strong>Toolbox</strong> sorted into Write, Pages, Protect and Convert, with clearer tool names (Content editor, Page manager, PDF redaction…).</span></li>
+      <li>${icon('offline')}<span><strong>Microsoft Store</strong>: install Nib-E without the Windows warning and get updates automatically.</span></li>
+      <li>${icon('book')}<span>Study note backups are now <strong>.nibe</strong> files (older .nib backups still open).</span></li>
+      <li>${icon('help')}<span><strong>Help menu</strong> with feedback, shortcuts and this list. Light / dark switch in Settings.</span></li>
+      <li>${icon('save')}<span>Save writes over the file you opened; earlier version can be restored. Study notes come back with the book.</span></li>
+      <li>${icon('network')}<span>Network: none, on the web and in the desktop app.</span></li>
     </ul>`);
 }
 
 function about(): void {
-  void modal(`<div class="about-head"><span class="brand-mark big">${icon('nib')}</span><div><h2>${APP_NAME}</h2><p class="muted mono">${esc(VERSION)} · ${isDesktop() ? 'desktop app' : 'web'}</p></div></div>
-    <p>A private PDF reader and editor from the Desk-E line. Your files never leave this device.</p>
-    <div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The app has no permission to use the internet.' : 'This page is blocked from connecting anywhere once loaded.'} Nib-E never checks for updates by itself.</small></span></div>
+  void modal(`<div class="about-head"><span class="brand-mark big">${icon('nib')}</span><div><h2>${APP_NAME}</h2><p class="muted mono">${esc(VERSION)} · ${buildLabel(isDesktop())}</p></div></div>
+    <p>A private PDF reader and editor from the Desk-E line, published by ${esc(PUBLISHER)}. Your files never leave this device.</p>
+    <div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The app has no permission to use the internet.' : 'This page is blocked from connecting anywhere once loaded.'} ${updateNote(isDesktop())}</small></span></div>
     <p class="muted small">Nib-E is an independent project, not affiliated with any other PDF software maker. PDF is an open standard (ISO 32000).</p>
     <p class="muted small">MIT licence. Built on PDFium (the PDF engine inside Chrome) via EmbedPDF, pdf-lib, perfect-freehand and fflate.${REPO_URL && !isDesktop() ? ` Source code: <a href="${esc(REPO_URL)}" target="_blank" rel="noopener noreferrer">${esc(REPO_URL.replace(/^https:\/\//, ''))}</a>` : ''}</p>`);
 }
@@ -98,7 +96,7 @@ function systemInfo(): string {
   const os = /Windows/.test(ua) ? 'Windows' : /Mac OS X|Macintosh/.test(ua) ? (navigator.maxTouchPoints > 1 ? 'iPadOS' : 'macOS') : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : 'other';
   const screen = `${window.innerWidth}×${window.innerHeight}`;
   const touch = matchMedia('(pointer: coarse)').matches ? ', touch' : '';
-  return `${APP_NAME} ${VERSION} (${isDesktop() ? 'desktop app' : 'web'}) · ${browser} on ${os} · window ${screen}${touch}`;
+  return `${APP_NAME} ${VERSION} (${buildLabel(isDesktop())}) · ${browser} on ${os} · window ${screen}${touch}`;
 }
 
 function feedback(): void {

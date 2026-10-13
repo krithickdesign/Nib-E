@@ -21,7 +21,29 @@ use tauri::{AppHandle, DragDropEvent, Emitter, Manager, State, WebviewWindow, Wi
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
-/// Where "Get the latest version" points (set at build time; see .github/workflows/desktop.yml).
+/// Microsoft Store edition (NIB_EDITION=store at build time): the Store installs
+/// updates, so the "latest version" website link is switched off.
+const STORE_EDITION: bool = match option_env!("NIB_EDITION") {
+    Some(v) => const_eq(v.as_bytes(), b"store"),
+    None => false,
+};
+
+/// Byte comparison usable at compile time (str == is not const yet).
+const fn const_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut i = 0;
+    while i < a.len() {
+        if a[i] != b[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+/// Where "Get the latest version" points (set at build time; see .github/workflows/release.yml).
 const WEBSITE: &str = match option_env!("NIB_WEBSITE") {
     Some(url) => url,
     None => "https://github.com/",
@@ -249,6 +271,9 @@ fn print_page(window: WebviewWindow) -> Result<(), String> {
 /// Opens the project website in the person's normal browser. Nib-E itself does not connect.
 #[tauri::command]
 fn open_website(app: AppHandle) -> Result<(), String> {
+    if STORE_EDITION {
+        return Err("The Microsoft Store keeps this edition up to date.".into());
+    }
     app.opener().open_url(WEBSITE, None::<&str>).map_err(|e| e.to_string())
 }
 

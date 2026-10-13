@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.1
+
+**Microsoft Store**
+- Store edition: built with each release (once the Store identity is set up). It has no "Get the latest version" link, because the Store installs updates; Settings and About say "Microsoft Store edition".
+- Store package fixes: no wide-tile requirement (310×310 tile removed), artifact contains the unpacked files and `test-local.ps1` to try the Store edition on your own PC before uploading.
+- Store listing texts (English, German), age-rating answers and runFullTrust explanation in `store/STORE-LISTING.md`; five 1920×1080 screenshots in `store/screenshots/` (made by `scripts/screenshots.py` from the real app with made-up files).
+- Website: "Get Nib-E from the Microsoft Store" becomes the main Windows button once the GitHub variable `MS_STORE_ID` is set; the GitHub installer moves below it. Release notes link the Store too.
+- Privacy page: Microsoft Store section and publisher note.
+
+**Changed**
+- Toolbox is a plain list grouped into Write, Pages, Protect, Convert, Study and App, with one-colour icons instead of coloured tiles.
+- Tool names: Content editor, Form filling & signature, Form builder, Annotations, Stamp library, PDF redaction, Page manager, File merger, Size reducer, Password lock, Image export, Image to PDF, Safety report. Planned tools: Text recognition, Office conversion, Version diff, Measuring tool, Certificate signing.
+- Study note backups are `.nibe` files (`.nib` is an Apple developer file type). Older `.nib` backups still open.
+- "Beta" removed from the app, the website headings and release titles. Version numbers are plain (0.5.1).
+- Published as "Axiomate Technologies" (placeholder name, one command to change: `npm run publisher:set -- "Name"`). Shown in About, the website footer, installer details and the legal page.
+- Website pictures retaken with the new names.
+
+**Fixed**
+- Releases are published as "latest", so the website's download links (`/releases/latest`) work. GitHub leaves pre-releases out of that link.
+
 ## 0.5.0-beta
 
 **Publishing**

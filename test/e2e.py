@@ -31,6 +31,7 @@ if not (FIX / "photo.pdf").exists() or not (FIX / "mixed.pdf").exists() or not (
     subprocess.run([sys.executable, str(ROOT / "scripts" / "make-fixtures.py")], check=True)
 
 results = []
+VERSION = json.loads((ROOT / "package.json").read_text())["version"]
 
 
 def check(name, ok, info=""):
@@ -388,7 +389,7 @@ def main():
         check("boxes stay hidden until asked", page.locator("#pages .hot").count() == 0 and page.locator("#ask-fields").is_visible() and "9" in page.locator("#ask-fields").inner_text())
         page.screenshot(path=str(OUT / "04a-ask-fillable.png"))
         make_fillable(page)
-        check("Make fillable shows the boxes, opens Fill in & sign, hand tool", page.locator("#pages .hot").count() == 9 and page.evaluate("window.__nib.store.panel") == "fill" and page.evaluate("window.__nib.store.tool") == "hand" and page.locator("#ask-fields").is_hidden())
+        check("Make fillable shows the boxes, opens Form filling & signature, hand tool", page.locator("#pages .hot").count() == 9 and page.evaluate("window.__nib.store.panel") == "fill" and page.evaluate("window.__nib.store.tool") == "hand" and page.locator("#ask-fields").is_hidden())
         hot = page.locator("#pages .sheet").nth(0).locator(".hot-text")
         hot.nth(0).click()
         page.keyboard.type("Rao")
@@ -796,6 +797,13 @@ def main():
         for v in ["edit", "fill", "form", "comment", "stamp", "redact", "organize", "combine", "compress", "protect", "export", "create", "study", "check", "hf", "wm", "settings", "home"]:
             page.evaluate(f"window.__nib.store.setPanel('{v}')")
         page.evaluate("window.__nib.store.setPanel('home')")
+        groups = page.evaluate("[...document.querySelectorAll('#panel-body .tool-group-title')].map(h => h.textContent)")
+        names = page.evaluate("[...document.querySelectorAll('#panel-body .tool-row .row-text > span:first-child')].map(s => s.textContent)")
+        old = {"Edit PDF", "Fill & Sign", "Organize pages", "Combine files", "Compress a PDF", "Protect a PDF", "Redact a PDF", "Export PDF", "Scan & OCR", "Black out (redact)", "Merge files"}
+        tile = page.evaluate("getComputedStyle(document.querySelector('#panel-body .tool-ico')).backgroundColor")
+        check("Toolbox: grouped list in Nib-E's own words, plain icons", groups == ["Write", "Pages", "Protect", "Convert", "Study", "App", "Planned"] and "PDF redaction" in names and "Page manager" in names and not (old & set(names)) and tile in ("rgba(0, 0, 0, 0)", "transparent"), f"{groups} {names[:4]} {tile}")
+        sv = page.evaluate("window.__nib.store.setPanel('settings'), document.querySelector('#panel-body').innerText")
+        check("web build: Settings shows the plain version, no beta label", f"Nib-E {VERSION} · web" in sv and "beta" not in page.locator("header").inner_text().lower(), sv[-160:].replace("\n", " "))
 
         # ---- damaged pictures: detected; a file that was already damaged stays saveable ----
         def jpeg_pdf(path, damage):
@@ -932,7 +940,7 @@ def main():
         hp.locator("#fb-text").fill("Text lands on the wrong line")
         sys_info = hp.locator("#fb-sys-text").inner_text()
         hp.screenshot(path=str(OUT / "20-feedback.png"))
-        check("feedback: pick a kind, describe it, technical details shown (no file data)", "Nib-E 0.5.0-beta" in sys_info and hp.locator("#modal [data-fb='copy']").is_visible() and hp.locator("#modal [data-fb='send']").is_visible(), sys_info)
+        check("feedback: pick a kind, describe it, technical details shown (no file data)", f"Nib-E {VERSION} (web)" in sys_info and hp.locator("#modal [data-fb='copy']").is_visible() and hp.locator("#modal [data-fb='send']").is_visible(), sys_info)
         hp.evaluate("() => { window.__opened = null; window.__realOpen = window.open; window.open = (u) => { window.__opened = u; return null; }; }")
         hp.locator("#modal [data-fb='send']").click()
         hp.wait_for_timeout(300)

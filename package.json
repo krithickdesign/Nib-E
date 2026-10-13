@@ -1,7 +1,7 @@
 {
   "name": "nib",
-  "version": "0.5.0",
-  "description": "Nib - a private PDF reader and editor that runs in the browser (beta)",
+  "version": "0.5.1",
+  "description": "Nib-E - a private PDF reader and editor that works offline",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -16,7 +16,8 @@
     "desktop:dev": "tauri dev",
     "test:pen": "tsx test/pen-feel.ts",
     "tauri": "tauri",
-    "version:set": "node scripts/set-version.mjs"
+    "version:set": "node scripts/set-version.mjs",
+    "publisher:set": "node scripts/set-publisher.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -39,5 +40,5 @@
   },
   "private": true,
   "type": "module",
-  "nibChannel": "beta"
+  "nibPublisher": "Axiomate Technologies"
 }

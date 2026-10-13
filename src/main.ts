@@ -604,7 +604,7 @@ function setupFieldsAsk(): void {
       toast('Click a box to type. Tab moves to the next one.', 'ok', 5000);
     } else {
       store.setFieldsOn(false);
-      toast('You can turn them on any time in Toolbox → Fill in & sign.', 'info', 5000);
+      toast('You can turn them on any time in Toolbox → Form filling & signature.', 'info', 5000);
     }
     render();
   });
@@ -795,7 +795,7 @@ function setupDrop(): void {
     const isPdf = (f: File) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
     const files = all.filter(isPdf);
     if (!files.length) {
-      toast('Only PDF files can be opened. To add pictures, use Toolbox → Merge files.', 'error');
+      toast('Only PDF files can be opened. To add pictures, use Toolbox → File merger.', 'error');
       return;
     }
     // Each file opens in its own tab; with Shift held, pages go into this file.

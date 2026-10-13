@@ -39,7 +39,7 @@ export class LibraryView {
     }
     const books = await listBooks();
     if (!books.length) {
-      this.el.innerHTML = `<button class="link-btn" type="button" data-lib="import">${icon('backup')}Restore notes from a backup (.nib)</button>`;
+      this.el.innerHTML = `<button class="link-btn" type="button" data-lib="import">${icon('backup')}Restore notes from a backup (.nibe)</button>`;
       return;
     }
     this.el.innerHTML = `
@@ -48,7 +48,7 @@ export class LibraryView {
         .slice(0, 8)
         .map((b) => this.row(b))
         .join('')}</ul>
-      <button class="link-btn" type="button" data-lib="import">${icon('backup')}Restore notes from a backup (.nib)</button>`;
+      <button class="link-btn" type="button" data-lib="import">${icon('backup')}Restore notes from a backup (.nibe)</button>`;
   }
 
   private row(b: BookRecord): string {
@@ -61,7 +61,7 @@ export class LibraryView {
         <span class="lib-bar" aria-hidden="true"><span style="width:${pct}%"></span></span>
         <span class="lib-where">${where}</span>
       </button>
-      <button type="button" class="icon-btn sm" data-lib="backup" data-id="${b.id}" title="Back up these notes (.nib)" aria-label="Back up notes of ${esc(b.name)}">${icon('backup')}</button>
+      <button type="button" class="icon-btn sm" data-lib="backup" data-id="${b.id}" title="Back up these notes (.nibe)" aria-label="Back up notes of ${esc(b.name)}">${icon('backup')}</button>
       <button type="button" class="icon-btn sm danger" data-lib="forget" data-id="${b.id}" title="Forget these notes" aria-label="Forget notes of ${esc(b.name)}">${icon('trash')}</button>
     </li>`;
   }
@@ -103,7 +103,7 @@ export class LibraryView {
       case 'import': {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.nib,application/json';
+        input.accept = '.nibe,.nib,application/json';
         input.onchange = async () => {
           const f = input.files?.[0];
           if (!f) return;

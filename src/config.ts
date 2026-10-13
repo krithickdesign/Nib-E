@@ -3,7 +3,12 @@
 // address. Nib-E never contacts these addresses itself: they open in the
 // browser only when the person clicks.
 
+import pkg from '../package.json';
+
 export const APP_NAME = 'Nib-E';
+
+/** Name Nib-E is published under (placeholder brand; change with `npm run publisher:set`). */
+export const PUBLISHER: string = (pkg as { nibPublisher?: string }).nibPublisher ?? 'Nib-E contributors';
 
 function guessRepo(): string {
   try {
@@ -20,6 +25,25 @@ function guessRepo(): string {
 }
 
 const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+
+/**
+ * Which build this is. "store" = Microsoft Store edition: the Store installs
+ * updates, so Nib-E shows no link to download versions from elsewhere.
+ */
+export const EDITION: 'store' | 'standard' = env.VITE_NIB_EDITION === 'store' ? 'store' : 'standard';
+
+/** How this build is named in Settings, About and feedback. */
+export function buildLabel(desktop: boolean): string {
+  if (!desktop) return 'web';
+  return EDITION === 'store' ? 'Microsoft Store edition' : 'desktop app';
+}
+
+/** One sentence on how this build gets new versions (Nib-E itself never checks). */
+export function updateNote(desktop: boolean): string {
+  if (desktop && EDITION === 'store') return 'Updates are installed by the Microsoft Store, not by Nib-E. Nib-E itself stays offline.';
+  if (desktop) return 'Nib-E never checks for updates by itself. Compare this number with the latest one on the website.';
+  return 'The website always has the latest version. Nib-E never checks for updates by itself.';
+}
 
 /** The project page (source code, releases, issues). Empty when unknown. */
 export const REPO_URL: string = (env.VITE_NIB_REPO ?? '').replace(/\/$/, '') || guessRepo();

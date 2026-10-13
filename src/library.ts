@@ -247,7 +247,7 @@ export async function reopenBook(rec: BookRecord): Promise<boolean> {
   }
 }
 
-// ---------- backup file (.nib) ----------
+// ---------- backup file (.nibe; older backups used .nib and still import) ----------
 
 export interface NibBackup {
   app: 'nib-notes';
@@ -260,10 +260,10 @@ export async function backupJson(id: string): Promise<{ name: string; bytes: Uin
   if (!rec) return null;
   const { ref: _ref, plan, ...rest } = rec;
   const out: NibBackup = { app: 'nib-notes', v: 1, book: { ...rest, plan: { ...plan, images: imagesToB64(plan.images) } } };
-  return { name: `${rec.name.replace(/\.pdf$/i, '')} (notes).nib`, bytes: new TextEncoder().encode(JSON.stringify(out)) };
+  return { name: `${rec.name.replace(/\.pdf$/i, '')} (notes).nibe`, bytes: new TextEncoder().encode(JSON.stringify(out)) };
 }
 
-/** Restores a .nib backup into the library. Returns the book name. */
+/** Restores a .nibe (or older .nib) backup into the library. Returns the book name. */
 export async function importBackup(bytes: Uint8Array): Promise<string> {
   let data: NibBackup;
   try {

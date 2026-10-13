@@ -40,8 +40,8 @@
       "appimage",
       "deb"
     ],
-    "publisher": "Nib-E contributors",
-    "copyright": "MIT License, Nib-E contributors",
+    "publisher": "Axiomate Technologies",
+    "copyright": "© Axiomate Technologies · MIT License",
     "category": "Productivity",
     "shortDescription": "Private PDF reader and editor",
     "longDescription": "Read, fill, sign, draw on, redact and organise PDFs. Works fully offline: no account, no uploads, no network access.",
