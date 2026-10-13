@@ -2,6 +2,20 @@
 
 ## 0.5.0-beta
 
+**Publishing**
+- Website builds and publishes itself on every push (GitHub Actions); the built app is no longer stored in the repository.
+- One-button releases: Actions → Release → enter a version → installers for Windows, macOS and Linux with SHA-256 fingerprints, published when all builds succeed. The version lives only in `package.json`.
+- Microsoft Store package (MSIX) built with each release once the Store identity is set (see STORE.md).
+- SECURITY.md (private security reports), legal notice and privacy page template (`docs/legal.html`).
+- Download page: illustrated two-click guide for the Windows first-start warning.
+
+**Changed**
+- Tool names in Nib-E's own words (Toolbox, Fill in & sign, Make a fillable form, Black out (redact), Pages, Merge files…); "not affiliated" note in About and on the website.
+- Warning next to "Turn redacted pages into images" while that option is being investigated.
+
+**Fixed (safety)**
+- A redacted page could be saved with a damaged picture (reported: the page showed garbage or nothing in other readers). Nib-E now checks every JPEG picture it writes (structure and decoding) during redaction and before every Save; a damaged result is never written, the original stays unchanged, and a clear message appears. A redaction picture that comes out damaged is encoded again, or stored as PNG. Files that were already damaged when opened can still be saved.
+
 **New**
 - **Nib-E**: new name, part of the Desk-E family (file names, app name, website). Saved data from 0.4 is kept.
 - **Help menu** (top right): Help and tour, Keyboard shortcuts, What's new, Send feedback, Privacy and safe mode, About.

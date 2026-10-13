@@ -1415,7 +1415,7 @@ export class Viewer {
       const id = store.pendingImage;
       const img = id ? images.get(id) : null;
       if (!id || !img) {
-        toast('Choose an image first: Edit a PDF → Image.');
+        toast('Choose a picture first: Add text & pictures → Image.');
         return;
       }
       // Natural size at 96 pixels per inch, capped so large photos stay manageable.

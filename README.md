@@ -27,7 +27,7 @@ Read, fill, sign, draw on, redact and organise PDFs in your browser.
 - No AI features. A separate, opt-in AI editor may come later as its own product; Nib-E itself stays offline.
 - Kept on this device only: settings, a signature you chose to remember, stamps, study notes,
   unsaved-work copies (crash recovery) and the previous version of files you saved over.
-  *Tools → Settings → Forget everything* removes them.
+  *Toolbox → Settings → Forget everything* removes them.
 - The desktop app can read and write only files you picked (Open/Save window, drag and drop, "Open with").
 - **Safe mode:** scripts inside PDFs never run; links, launch actions and attachments can't open anything by themselves.
 
@@ -47,35 +47,38 @@ Read, fill, sign, draw on, redact and organise PDFs in your browser.
 | **Pages and files** | Insert, rotate, reorder, delete, extract; combine PDFs and images; compress; password (AES-256); export pages as images. |
 | **Comfort** | Interface size 100–200 % (default 150 %; phones 100 %), light/dark theme, full-page reading, keyboard shortcuts, Help tour. Phone layout: bottom tool bar, tools sheet, PDF/Notes tabs, two-finger scroll while writing. |
 
-## Put it on GitHub Pages (maintainers)
+## Website: published automatically (maintainers)
 
-1. Create a repository on GitHub and upload this folder (everything except `node_modules/`).
-2. In the repository: **Settings → Pages → Build and deployment → Deploy from a branch**, branch `main`, folder **`/docs`** → Save.
-3. After a minute the site is at `https://<user>.github.io/<repo>/`. The app is at `…/app/`.
-4. Optional: **About** (top right of the repo page) → set *Website* to that address.
+Every push to `main` rebuilds the web app from the source and publishes the site
+(`.github/workflows/pages.yml`). Nothing to build by hand.
 
-When you change the code: `npm run pages`, then commit the updated `docs/app/index.html`.
+One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+The site is at `https://<user>.github.io/<repo>/`, the app at `…/app/`.
+Before sharing the site publicly, fill in your details in `docs/legal.html` (Impressum);
+the website build shows a warning until you do.
 
-## Build the desktop app (maintainers)
+## Release a new desktop version (maintainers)
 
-The easy way: **Actions → Desktop app → Run workflow** on GitHub. It builds Windows, macOS and Linux
-installers on GitHub's computers (free for public repositories) and puts them in a draft release;
-publish the release to make them downloadable. Pushing a tag like `v0.4.0` does the same.
+1. **Actions → Release → Run workflow**, type the new version (three numbers, e.g. `0.5.1`).
+2. Wait 15–25 minutes. The workflow sets the version everywhere, builds Windows, macOS and
+   Linux installers, adds `SHA256SUMS.txt` (fingerprints) and **publishes the release** once
+   every build succeeded. If one build fails, nothing is published: fix it and run again with the same number.
+3. Installed apps don't update themselves: people install the new version over the old one
+   (settings and study notes are kept). The website updates by itself.
 
-On your own computer (needs [Rust](https://rustup.rs) and, on Linux, `libwebkit2gtk-4.1-dev`):
+The version lives in one place, `package.json` (`"version"`, plus `"nibChannel": "beta"`
+for the label). `npm run version:set 0.5.1` changes it locally.
+
+**Microsoft Store:** see [STORE.md](STORE.md). Once the Store identity is set up, every
+Release also makes the Store package.
+
+Build on your own computer (needs [Rust](https://rustup.rs) and, on Linux, `libwebkit2gtk-4.1-dev`):
 
 ```
 npm install
 npm run desktop        # installers in src-tauri/target/release/bundle/
 npm run desktop:dev    # app window with live reload
 ```
-
-The version for installers is in `src-tauri/tauri.conf.json` (`0.5.0`) and `src/version.ts`.
-
-**If the Releases page is empty:** the installers are only made when the workflow runs.
-1. Check that `.github/workflows/desktop.yml` is in the repository (uploading in the browser can skip folders that start with a dot).
-2. **Actions → Desktop app → Run workflow**. Wait until all three jobs have a green tick (15–25 min).
-3. **Releases**: a *draft* release appears. Open it → **Publish release**. Only then do the download links work.
 
 ## Develop
 
@@ -85,7 +88,7 @@ Needs Node.js 20+.
 npm install
 npm run dev          # local dev server
 npm run typecheck
-npm run pages        # build the single-file app into docs/app/
+npm run pages        # build the single-file app into docs/app/ (done automatically on GitHub)
 npm test             # pen-feel check + 146 browser checks (Python + Playwright + pikepdf + pdfplumber + poppler)
 ```
 

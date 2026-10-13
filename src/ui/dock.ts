@@ -46,7 +46,7 @@ export class Dock {
         <button class="icon-btn" type="button" data-act="undo" title="Undo (Ctrl+Z)" aria-label="Undo">${icon('undo')}</button>
         <button class="icon-btn" type="button" data-act="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">${icon('redo')}</button>
       </div>
-      <button class="tool dock-more" type="button" data-act="more" title="All tools" aria-label="All tools">${icon('tools')}</button>
+      <button class="tool dock-more" type="button" data-act="more" title="Toolbox" aria-label="Toolbox">${icon('tools')}</button>
       <span class="dock-sep dock-zoom-sep" aria-hidden="true"></span>
       <div class="dock-group dock-zoom">
         <button class="icon-btn" type="button" data-act="zout" title="Zoom out (Ctrl −)" aria-label="Zoom out">${icon('minus')}</button>

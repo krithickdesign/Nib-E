@@ -32,7 +32,7 @@ const SLIDES: Slide[] = [
         <li>${icon('shield')}<span><strong>No AI.</strong> Nib-E never sends your text to an AI service. (A separate AI editor may come later, only if you switch it on.)</span></li>
         <li>${icon('network')}<span><strong>Network: none.</strong> The desktop app has no internet permission at all; the web version is blocked from connecting anywhere once loaded.</span></li>
       </ul>
-      <p class="muted small">Nib-E keeps only your settings, a signature you chose to remember, stamps, study notes, unsaved-work copies and earlier versions of saved files, all on this device. Tools → Settings → Forget everything removes them.</p>`,
+      <p class="muted small">Nib-E keeps only your settings, a signature you chose to remember, stamps, study notes, unsaved-work copies and earlier versions of saved files, all on this device. Toolbox → Settings → Forget everything removes them.</p>`,
   },
   {
     icon: 'shield',
@@ -57,14 +57,14 @@ const SLIDES: Slide[] = [
     kicker: 'Forms',
     title: 'Fill forms, even ones without form fields',
     body: `<p>Nib-E looks for empty boxes, lines and tick boxes. When it finds some, a card on the right asks if you want to <strong>make them fillable</strong>. Then click a box and type: text takes the size and font of the question. ${kbd('Tab')} jumps to the next box.</p>
-      <p>Sign with <strong>Fill &amp; Sign → Add signature</strong>. Draw it once and Nib-E can remember it on this device.</p>`,
+      <p>Sign with <strong>Fill in &amp; sign → Add signature</strong>. Draw it once and Nib-E can remember it on this device.</p>`,
   },
   {
     icon: 'pen',
     kicker: 'Draw and comment',
     title: 'Write on any page like on paper',
     body: `<p>The bar at the bottom has the pen, highlighter, text and eraser. A stylus uses pen pressure. <strong>Pen feel</strong> (next to the pen sizes) sets how much writing is smoothed: <em>Precise</em> for handwriting, <em>Smooth</em> for diagrams.</p>
-      <p>The <strong>Tools</strong> button (top right) opens every tool: comments, shapes, stamps (design your own or use a PNG), images, header and footer, watermark, pages, compress, password, export.</p>`,
+      <p>The <strong>Toolbox</strong> button (top right) opens every tool: comments, shapes, stamps (design your own or use a PNG), images, header and footer, watermark, pages, compress, password, export.</p>`,
   },
   {
     icon: 'study',
@@ -75,21 +75,21 @@ const SLIDES: Slide[] = [
         <li>${icon('study')}<span>Click <strong>Study</strong> at the top. Read the PDF on one side and write notes on the other; drag the middle bar to resize.</span></li>
         <li>${icon('lines')}<span>Note pages start <strong>lined</strong>. Switch a page to <strong>grid</strong> or <strong>blank</strong> in the notebook bar. <strong>+ Page</strong> adds one.</span></li>
         <li>${icon('pen')}<span>Draw with the pen on either side, e.g. highlight in the PDF and work out the answer in your notes.</span></li>
-        <li>${icon('book')}<span>Notes are <strong>kept automatically</strong> on this device and the book file stays untouched. Open the same book later and you are back at your page with all notes. Prefer them inside the file? Tools → Study mode → <em>Write notes into the book</em>.</span></li>
+        <li>${icon('book')}<span>Notes are <strong>kept automatically</strong> on this device and the book file stays untouched. Open the same book later and you are back at your page with all notes. Prefer them inside the file? Toolbox → Study mode → <em>Write notes into the book</em>.</span></li>
       </ul>`,
   },
   {
     icon: 'redact',
     kicker: 'Redact',
     title: 'Remove private details for good',
-    body: `<p><strong>Tools → Redact</strong>: drag over text or pictures, or search for a name and mark every match. Applying removes the text and erases the picture pixels under the boxes, then Nib-E checks that nothing is left.</p>`,
+    body: `<p><strong>Toolbox → Black out (redact)</strong>: drag over text or pictures, or search for a name and mark every match. Applying removes the text and erases the picture pixels under the boxes, then Nib-E checks that nothing is left.</p>`,
   },
   {
     icon: 'settings',
     kicker: 'Good to know',
     title: 'Tips',
     body: `<ul class="help-points compact">
-        <li>${icon('settings')}<span><strong>Text too small or too big?</strong> Tools → Settings → Interface size.</span></li>
+        <li>${icon('settings')}<span><strong>Text too small or too big?</strong> Toolbox → Settings → Interface size.</span></li>
         <li>${icon('text')}<span><strong>Spelling:</strong> words you type are checked. Right-click a word underlined in red for suggestions.</span></li>
         <li>${icon('undo')}<span>${kbd('Ctrl')} ${kbd('Z')} undo · ${kbd('Ctrl')} ${kbd('S')} save · ${kbd('Ctrl')} ${kbd('P')} print · ${kbd('F')} full page · ${kbd('P')} pen · ${kbd('T')} text · ${kbd('H')} hand</span></li>
         <li>${icon('help')}<span>This tour is always under <strong>Help</strong> at the top.</span></li>

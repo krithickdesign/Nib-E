@@ -12,3 +12,4 @@ __pycache__/
 dist-desktop/
 src-tauri/target/
 src-tauri/gen/
+docs/app/

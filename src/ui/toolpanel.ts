@@ -1,4 +1,4 @@
-// The right-hand panel: "All tools" home and one view per tool.
+// The right-hand panel: "Toolbox" home and one view per tool.
 import {
   compressAndSave,
   exportImages,
@@ -47,18 +47,18 @@ interface ToolEntry {
 }
 
 const ALL_TOOLS: ToolEntry[] = [
-  { view: 'edit', label: 'Edit a PDF', icon: 'edit', hue: 340, desc: 'Text, images, header and footer, watermark, links' },
-  { view: 'fill', label: 'Fill & Sign', icon: 'fillSign', hue: 268, desc: 'Type into form boxes, tick boxes, sign' },
-  { view: 'form', label: 'Prepare a form', icon: 'form', hue: 200, desc: 'Turn found boxes into real form fields' },
-  { view: 'comment', label: 'Add comments', icon: 'comment', hue: 44, desc: 'Notes, highlight text, shapes, drawing' },
-  { view: 'stamp', label: 'Add a stamp', icon: 'stamp', hue: 286, desc: 'Approved, Draft, Confidential and more' },
-  { view: 'redact', label: 'Redact a PDF', icon: 'redact', hue: 0, desc: 'Remove text and images for good' },
-  { view: 'organize', label: 'Organize pages', icon: 'organize', hue: 128, desc: 'Insert, rotate, move, delete, extract' },
-  { view: 'combine', label: 'Combine files', icon: 'combine', hue: 236, desc: 'Add PDFs or images as pages' },
-  { view: 'compress', label: 'Compress a PDF', icon: 'compress', hue: 356, desc: 'Shrink large photos' },
-  { view: 'protect', label: 'Protect a PDF', icon: 'protect', hue: 222, desc: 'Password with AES-256' },
-  { view: 'export', label: 'Export pages as images', icon: 'exportImg', hue: 172, desc: 'PNG or JPEG' },
-  { view: 'create', label: 'Create PDF from images', icon: 'createPdf', hue: 14, desc: 'Photos and scans into one PDF' },
+  { view: 'edit', label: 'Add text & pictures', icon: 'edit', hue: 340, desc: 'Text, images, header and footer, watermark, links' },
+  { view: 'fill', label: 'Fill in & sign', icon: 'fillSign', hue: 268, desc: 'Type into form boxes, tick boxes, sign' },
+  { view: 'form', label: 'Make a fillable form', icon: 'form', hue: 200, desc: 'Turn found boxes into real form fields' },
+  { view: 'comment', label: 'Comment & mark up', icon: 'comment', hue: 44, desc: 'Notes, highlight text, shapes, drawing' },
+  { view: 'stamp', label: 'Stamps', icon: 'stamp', hue: 286, desc: 'Approved, Draft, Confidential and more' },
+  { view: 'redact', label: 'Black out (redact)', icon: 'redact', hue: 0, desc: 'Remove text and images for good' },
+  { view: 'organize', label: 'Pages', icon: 'organize', hue: 128, desc: 'Insert, rotate, move, delete, extract' },
+  { view: 'combine', label: 'Merge files', icon: 'combine', hue: 236, desc: 'Add PDFs or images as pages' },
+  { view: 'compress', label: 'Make it smaller', icon: 'compress', hue: 356, desc: 'Shrink large photos' },
+  { view: 'protect', label: 'Password', icon: 'protect', hue: 222, desc: 'Password with AES-256' },
+  { view: 'export', label: 'Pages as pictures', icon: 'exportImg', hue: 172, desc: 'PNG or JPEG' },
+  { view: 'create', label: 'Pictures to PDF', icon: 'createPdf', hue: 14, desc: 'Photos and scans into one PDF' },
   { view: 'study', label: 'Study mode', icon: 'study', hue: 150, desc: 'PDF beside a notebook' },
   { view: 'check', label: 'Document check', icon: 'shield', hue: 160, desc: 'Safe mode report' },
   { view: 'settings', label: 'Settings', icon: 'settings', hue: 230, desc: 'Interface size, spelling, saved data' },
@@ -67,11 +67,11 @@ const ALL_TOOLS: ToolEntry[] = [
 export const UI_SIZES = [1, 1.25, 1.5, 1.75, 2];
 
 const LATER: { label: string; icon: string }[] = [
-  { label: 'Scan & OCR', icon: 'ocr' },
-  { label: 'Export to Word, Excel, PowerPoint', icon: 'word' },
-  { label: 'Compare files', icon: 'compare' },
-  { label: 'Measure objects', icon: 'measure' },
-  { label: 'Use a certificate', icon: 'certificate' },
+  { label: 'Read text in scans', icon: 'ocr' },
+  { label: 'Convert to Office files', icon: 'word' },
+  { label: 'Compare two versions', icon: 'compare' },
+  { label: 'Measure distances', icon: 'measure' },
+  { label: 'Sign with a digital ID', icon: 'certificate' },
 ];
 
 const TITLES: Partial<Record<PanelView, string>> = {
@@ -143,7 +143,7 @@ export class ToolPanel {
   render(): void {
     const v = store.panel;
     const entry = ALL_TOOLS.find((t) => t.view === v);
-    this.title.textContent = v === 'home' ? 'All tools' : TITLES[v] ?? entry?.label ?? '';
+    this.title.textContent = v === 'home' ? 'Toolbox' : TITLES[v] ?? entry?.label ?? '';
     this.back.hidden = v === 'home';
     const active = document.activeElement;
     const keepFocus = active instanceof HTMLInputElement && this.body.contains(active) ? active.id : '';
@@ -170,7 +170,7 @@ export class ToolPanel {
               <button class="icon-btn" type="button" data-act="insert-blank" title="Insert a blank page">${icon('pageAdd')}</button>
               <button class="icon-btn danger" type="button" data-act="delete" title="Delete page">${icon('trash')}</button>
               <button class="icon-btn" type="button" data-act="extract" title="Save page as a new PDF">${icon('extract')}</button>
-            </div>${actBtn('view:organize', 'organize', 'Organize pages')}`,
+            </div>${actBtn('view:organize', 'organize', 'Pages')}`,
           ) +
           section(
             'Add content',
@@ -180,7 +180,7 @@ export class ToolPanel {
               actBtn('view:wm', 'watermark', 'Watermark', store.plan.wm ? 'On' : undefined) +
               toolBtn('link', 'Link', 'Drag a box, enter a web address'),
           ) +
-          section('Other options', actBtn('view:combine', 'combine', 'Combine files') + actBtn('view:redact', 'redact', 'Redact a PDF') + actBtn('view:form', 'form', 'Prepare a form')) +
+          section('Other options', actBtn('view:combine', 'combine', 'Merge files') + actBtn('view:redact', 'redact', 'Black out (redact)') + actBtn('view:form', 'form', 'Make a fillable form')) +
           `<p class="muted small">Editing the PDF's existing text is not supported. Cover it with a white box and type on top if needed.</p>`
         );
       case 'hf':
@@ -260,7 +260,8 @@ export class ToolPanel {
           section(
             '2 · Options',
             `<label class="check-row"><input type="checkbox" id="pf-sanitize" ${store.prefs.sanitize ? 'checked' : ''}/><span><strong>Remove hidden information</strong><small>Metadata, attachments, scripts, bookmarks. Form fields are flattened.</small></span></label>
-             <label class="check-row"><input type="checkbox" id="pf-raster" ${store.prefs.rasterize ? 'checked' : ''}/><span><strong>Turn redacted pages into images</strong><small>Strongest: also removes vector drawings partly under a box. Text on those pages can't be selected afterwards.</small></span></label>`,
+             <label class="check-row"><input type="checkbox" id="pf-raster" ${store.prefs.rasterize ? 'checked' : ''}/><span><strong>Turn redacted pages into images</strong><small>Strongest: also removes vector drawings partly under a box. Text on those pages can't be selected afterwards.</small></span></label>
+             ${store.prefs.rasterize ? `<p class="note-warn">${icon('info')}<span><strong>Beta:</strong> a tester got a damaged page picture with this option. Nib-E now checks every page picture and stops if one is damaged, but please open the saved file once to check it before you share it.</span></p>` : ''}`,
           ) +
           section(
             '3 · Apply',

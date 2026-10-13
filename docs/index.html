@@ -385,6 +385,71 @@
       .beta ol strong {
         color: var(--fg);
       }
+      footer .disclaimer {
+        flex-basis: 100%;
+        font-size: 13px;
+      }
+      .ss-steps {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .ss {
+        background: #0b5cad;
+        color: #fff;
+        border-radius: 8px;
+        padding: 12px 12px 10px;
+        font-size: 12.5px;
+        line-height: 1.35;
+        position: relative;
+        min-height: 118px;
+        display: flex;
+        flex-direction: column;
+      }
+      .ss b {
+        font-size: 14px;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .ss .ss-link {
+        text-decoration: underline;
+        outline: 3px solid #ffd84a;
+        outline-offset: 2px;
+        border-radius: 2px;
+        align-self: flex-start;
+        margin-top: 6px;
+      }
+      .ss .ss-btns {
+        margin-top: auto;
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+      .ss .ss-btn {
+        border: 1px solid #fff;
+        padding: 3px 9px;
+        font-size: 12px;
+        border-radius: 2px;
+      }
+      .ss .ss-btn.hl {
+        outline: 3px solid #ffd84a;
+        outline-offset: 2px;
+      }
+      .ss .ss-n {
+        position: absolute;
+        top: -9px;
+        left: -9px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffd84a;
+        color: #3a2a00;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+      }
       footer {
         padding-block: 36px 48px;
         color: var(--faint);
@@ -497,7 +562,12 @@
             <div class="card">
               <h3>Windows</h3>
               <p><a data-gh-releases href="#">Download</a> <code>Nib-E_…_x64-setup.exe</code> (no admin rights needed).</p>
-              <p class="warn"><strong>First start:</strong> Windows shows “Windows protected your PC”. Click <strong>More info</strong>, then <strong>Run anyway</strong>.</p>
+              <p class="warn"><strong>First start:</strong> a blue window “Windows protected your PC” appears. That is normal for new programs that are not signed yet. Two clicks:</p>
+              <div class="ss-steps" aria-hidden="true">
+                <div class="ss"><span class="ss-n">1</span><b>Windows protected your PC</b>Microsoft Defender SmartScreen prevented an unrecognised app from starting…<span class="ss-link">More info</span><span class="ss-btns"><span class="ss-btn">Don't run</span></span></div>
+                <div class="ss"><span class="ss-n">2</span><b>Windows protected your PC</b>App: Nib-E_…_x64-setup.exe<br/>Publisher: Unknown publisher<span class="ss-btns"><span class="ss-btn hl">Run anyway</span><span class="ss-btn">Don't run</span></span></div>
+              </div>
+              <p class="fine" style="margin-top:8px">Coming soon: Nib-E in the Microsoft Store, without this warning and with automatic updates.</p>
             </div>
             <div class="card">
               <h3>macOS</h3>
@@ -534,6 +604,8 @@
         <span>Built on PDFium (the engine inside Chrome) via EmbedPDF</span>
         <a data-gh href="#">Source on GitHub</a>
         <span>This site uses no cookies and no analytics.</span>
+        <a href="legal.html">Legal notice &amp; privacy</a>
+        <span class="disclaimer">Nib-E is an independent project and not affiliated with Adobe Inc. or any other PDF software maker. Adobe and Acrobat are trademarks of Adobe Inc. PDF is an open standard (ISO 32000).</span>
       </footer>
     </div>
     <script>

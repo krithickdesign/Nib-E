@@ -3306,3 +3306,20 @@ kbd {
   font-size: inherit;
   text-decoration: underline;
 }
+.note-warn {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--note-soft);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.note-warn .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--note);
+}

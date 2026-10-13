@@ -1,0 +1,187 @@
+# One button for a new desktop version:
+#   Actions → Release → Run workflow → enter the new version (e.g. 0.5.1)
+# It sets the version everywhere, builds Windows, macOS and Linux installers on
+# GitHub's computers (free for public repositories), adds fingerprints
+# (SHA256SUMS.txt) and publishes the release once every build has succeeded.
+# Leave the version empty to rebuild the current version (only if it was never released).
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version, three numbers (e.g. 0.5.1). Empty = current version."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      sha: ${{ steps.v.outputs.sha }}
+      release_id: ${{ steps.rel.outputs.id }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Set the new version
+        if: inputs.version != ''
+        env:
+          V: ${{ inputs.version }}
+        run: |
+          node scripts/set-version.mjs "$V"
+          if git diff --quiet; then echo "Version is already $V"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Version $V"
+          git push
+
+      - id: v
+        run: |
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if this version was released already
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          if gh release view "v$V" --json isDraft -q '.isDraft' 2>/dev/null | grep -q false; then
+            echo "::error::Version $V is already published. Run again with a new version number (e.g. one higher)."
+            exit 1
+          fi
+          gh release delete "v$V" --yes --cleanup-tag 2>/dev/null || true
+
+      - name: Create the release (hidden until all builds succeed)
+        id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
+          SHA: ${{ steps.v.outputs.sha }}
+        run: |
+          gh release create "v$V" --draft --latest --target "$SHA" --title "Nib-E $V (beta)" --notes-file .github/release-notes.md
+          echo "id=$(gh api "repos/${{ github.repository }}/releases" -q ".[] | select(.tag_name==\"v$V\") | .id" | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild the website with the new version
+        if: inputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main || echo "Website workflow not found; it updates on the next push."
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Linux build tools
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # "Get the latest version" in Settings opens this page in the browser.
+          NIB_WEBSITE: https://github.com/${{ github.repository }}/releases/latest
+          VITE_NIB_REPO: https://github.com/${{ github.repository }}
+        with:
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          args: ${{ matrix.args }}
+
+  # Microsoft Store package (MSIX). Runs only once the Store identity is set up
+  # (repository variables MSIX_IDENTITY_NAME, MSIX_PUBLISHER, MSIX_PUBLISHER_NAME;
+  # see STORE.md). The package is not added to the public release: download it
+  # from this run's "Artifacts" and upload it in Partner Center.
+  msix:
+    needs: prepare
+    if: vars.MSIX_IDENTITY_NAME != ''
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+      - run: npm ci
+      - name: Build the app (no installer)
+        env:
+          NIB_WEBSITE: https://github.com/${{ github.repository }}/releases/latest
+          VITE_NIB_REPO: https://github.com/${{ github.repository }}
+        run: npm run tauri build -- --no-bundle
+      - name: Make the Store package
+        shell: pwsh
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_NAME: ${{ vars.MSIX_PUBLISHER_NAME }}
+        run: ./scripts/msix/build-msix.ps1 -Version "${{ needs.prepare.outputs.version }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nib-E-${{ needs.prepare.outputs.version }}-store-msix
+          path: dist-msix/*.msix
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add fingerprints and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.prepare.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir assets && cd assets
+          gh release download "v$V" --repo "$REPO" --pattern '*'
+          rm -f SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release upload "v$V" SHA256SUMS.txt --repo "$REPO" --clobber
+          gh release edit "v$V" --repo "$REPO" --draft=false --latest

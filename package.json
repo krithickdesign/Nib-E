@@ -1,6 +1,6 @@
 {
   "name": "nib",
-  "version": "0.5.0-beta",
+  "version": "0.5.0",
   "description": "Nib - a private PDF reader and editor that runs in the browser (beta)",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,8 @@
     "desktop": "tauri build",
     "desktop:dev": "tauri dev",
     "test:pen": "tsx test/pen-feel.ts",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "version:set": "node scripts/set-version.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -37,5 +38,6 @@
     "vite-plugin-singlefile": "^2.3.3"
   },
   "private": true,
-  "type": "module"
+  "type": "module",
+  "nibChannel": "beta"
 }

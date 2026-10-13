@@ -388,7 +388,7 @@ def main():
         check("boxes stay hidden until asked", page.locator("#pages .hot").count() == 0 and page.locator("#ask-fields").is_visible() and "9" in page.locator("#ask-fields").inner_text())
         page.screenshot(path=str(OUT / "04a-ask-fillable.png"))
         make_fillable(page)
-        check("Make fillable shows the boxes, opens Fill & Sign, hand tool", page.locator("#pages .hot").count() == 9 and page.evaluate("window.__nib.store.panel") == "fill" and page.evaluate("window.__nib.store.tool") == "hand" and page.locator("#ask-fields").is_hidden())
+        check("Make fillable shows the boxes, opens Fill in & sign, hand tool", page.locator("#pages .hot").count() == 9 and page.evaluate("window.__nib.store.panel") == "fill" and page.evaluate("window.__nib.store.tool") == "hand" and page.locator("#ask-fields").is_hidden())
         hot = page.locator("#pages .sheet").nth(0).locator(".hot-text")
         hot.nth(0).click()
         page.keyboard.type("Rao")
@@ -796,6 +796,37 @@ def main():
         for v in ["edit", "fill", "form", "comment", "stamp", "redact", "organize", "combine", "compress", "protect", "export", "create", "study", "check", "hf", "wm", "settings", "home"]:
             page.evaluate(f"window.__nib.store.setPanel('{v}')")
         page.evaluate("window.__nib.store.setPanel('home')")
+
+        # ---- damaged pictures: detected; a file that was already damaged stays saveable ----
+        def jpeg_pdf(path, damage):
+            jpg = bytearray((FIX / "photo.jpg").read_bytes())
+            if damage:
+                i = jpg.index(b"\xff\xc4")
+                jpg[i + 5] = 0x20  # Huffman count for length 1 becomes 32: impossible
+            pdf = pikepdf.new()
+            img = pikepdf.Stream(pdf, bytes(jpg))
+            im = Image.open(io.BytesIO((FIX / "photo.jpg").read_bytes()))
+            img.Type, img.Subtype, img.Width, img.Height = pikepdf.Name.XObject, pikepdf.Name.Image, im.width, im.height
+            img.ColorSpace, img.BitsPerComponent, img.Filter = pikepdf.Name.DeviceRGB, 8, pikepdf.Name.DCTDecode
+            pg = pikepdf.Dictionary(Type=pikepdf.Name.Page, MediaBox=[0, 0, 400, 300], Resources=pikepdf.Dictionary(XObject=pikepdf.Dictionary(Im0=img)))
+            pg.Contents = pikepdf.Stream(pdf, b"q 400 0 0 300 0 0 cm /Im0 Do Q")
+            pdf.pages.append(pikepdf.Page(pg))
+            pdf.save(path)
+        jpeg_pdf(OUT / "jpeg-ok.pdf", False)
+        jpeg_pdf(OUT / "jpeg-damaged.pdf", True)
+        res = page.evaluate(
+            """async ([a, b]) => { const dec = (d) => { const bin = atob(d); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+                const ok = await window.__nib.checkImages(dec(a)); const bad = await window.__nib.checkImages(dec(b));
+                return [ok.badPages, ok.checked, bad.badPages]; }""",
+            [b64(OUT / "jpeg-ok.pdf"), b64(OUT / "jpeg-damaged.pdf")],
+        )
+        check("picture check: a good JPEG passes, a damaged one is found", res == [[], 1, [1]], str(res))
+        open_fixture(page, OUT / "jpeg-damaged.pdf", "already-damaged.pdf")
+        tool(page, "pen")
+        drag(page, 0, [(0.2, 0.3), (0.5, 0.35)])
+        out = download(page, lambda: page.locator("#btn-save").click(), OUT / "already-damaged-saved.pdf")
+        check("a file that was already damaged can still be saved (only new damage stops Save)", out.exists() and out.stat().st_size > 1000)
+        close_tab(page)
 
         # ---- Save writes over the opened file; the earlier version can be restored ----
         page.evaluate(

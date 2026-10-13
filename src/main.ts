@@ -23,6 +23,7 @@ import {
 import { afterOpen, discardRecovery, dropRecovery, flush, flushAll, listBooks, pendingRecovery, restoreRecovery, setRecoveryIdle, setRestoreNotice, startAutosave } from './library';
 import { uid, type Template } from './model';
 import { startPdfium } from './pdf/pdfium';
+import { checkImages } from './pdf/verify';
 import { invoke, isDesktop, listen } from './platform/env';
 import { droppedRefs, hasSaveWindow, pickPdfs, prepareSaving, readPath, setDownloadNotice, type FileRef } from './platform/files';
 import { exportBackup, exportFlattened, exportNotesOnly, exportText, exportWithNotes, printDoc, restoreBackup, saveDoc, saveDocAs } from './saving';
@@ -98,7 +99,7 @@ function setupChrome(): void {
   label('btn-save', 'save', 'Save', 'Save as PDF (Ctrl+S)');
   label('btn-study', 'study', 'Study', 'Study mode: PDF beside a notebook');
   label('btn-full', 'fullscreen', 'Full page', 'Full page (F)');
-  label('btn-tools', 'tools', 'Tools', 'Show or hide all tools');
+  label('btn-tools', 'tools', 'Toolbox', 'Show or hide the toolbox');
   label('btn-help', 'help', 'Help', 'Help, shortcuts and feedback');
   $('exit-full').innerHTML = `${icon('exitFull')}<span>Exit full page</span>`;
   $('full-study').innerHTML = `${icon('study')}<span>Notes</span>`;
@@ -603,7 +604,7 @@ function setupFieldsAsk(): void {
       toast('Click a box to type. Tab moves to the next one.', 'ok', 5000);
     } else {
       store.setFieldsOn(false);
-      toast('You can turn them on any time in Tools → Fill & Sign.', 'info', 5000);
+      toast('You can turn them on any time in Toolbox → Fill in & sign.', 'info', 5000);
     }
     render();
   });
@@ -794,7 +795,7 @@ function setupDrop(): void {
     const isPdf = (f: File) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
     const files = all.filter(isPdf);
     if (!files.length) {
-      toast('Only PDF files can be opened. To add images, use Combine files.', 'error');
+      toast('Only PDF files can be opened. To add pictures, use Toolbox → Merge files.', 'error');
       return;
     }
     // Each file opens in its own tab; with Shift held, pages go into this file.
@@ -1022,7 +1023,7 @@ async function boot(): Promise<void> {
   await setupDesktop();
 
   // Test hook, used by the automated checks in test/.
-  (window as unknown as { __nib: unknown }).__nib = { store, viewer, notebook, exportPdf, openBytes, mergeFile, mergeBytes, fieldCount, closeDoc, closeTab, openHelp, myStamps, useStamp, save, saveAsNew, menuAction, flushAll, offerRecovery, setRecoveryIdle, listBooks, landingUrl };
+  (window as unknown as { __nib: unknown }).__nib = { store, viewer, notebook, exportPdf, openBytes, mergeFile, mergeBytes, fieldCount, closeDoc, closeTab, openHelp, myStamps, useStamp, save, saveAsNew, menuAction, flushAll, offerRecovery, setRecoveryIdle, listBooks, landingUrl, redactNow, checkImages };
 }
 
 void boot();

@@ -1,0 +1,56 @@
+# Builds the website and the web app from the source and publishes them on
+# GitHub Pages, on every push to main. One-time setup: Settings → Pages →
+# Build and deployment → Source: "GitHub Actions".
+name: Website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the code
+        run: |
+          npm run typecheck
+          npm run test:pen
+      - name: Remind about the legal page
+        run: |
+          if grep -q '\[Vor- und Nachname\]' docs/legal.html; then
+            echo "::warning title=Legal page not filled in::Fill in your details in docs/legal.html (Impressum) before sharing the site publicly."
+          fi
+      - name: Build the web app into docs/app
+        env:
+          VITE_NIB_REPO: https://github.com/${{ github.repository }}
+        run: npm run pages
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

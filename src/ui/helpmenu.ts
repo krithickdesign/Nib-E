@@ -79,6 +79,7 @@ function about(): void {
   void modal(`<div class="about-head"><span class="brand-mark big">${icon('nib')}</span><div><h2>${APP_NAME}</h2><p class="muted mono">${esc(VERSION)} · ${isDesktop() ? 'desktop app' : 'web'}</p></div></div>
     <p>A private PDF reader and editor from the Desk-E line. Your files never leave this device.</p>
     <div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The app has no permission to use the internet.' : 'This page is blocked from connecting anywhere once loaded.'} Nib-E never checks for updates by itself.</small></span></div>
+    <p class="muted small">Nib-E is an independent project, not affiliated with any other PDF software maker. PDF is an open standard (ISO 32000).</p>
     <p class="muted small">MIT licence. Built on PDFium (the PDF engine inside Chrome) via EmbedPDF, pdf-lib, perfect-freehand and fflate.${REPO_URL && !isDesktop() ? ` Source code: <a href="${esc(REPO_URL)}" target="_blank" rel="noopener noreferrer">${esc(REPO_URL.replace(/^https:\/\//, ''))}</a>` : ''}</p>`);
 }
 

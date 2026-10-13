@@ -8,6 +8,7 @@
 import { baseName, exportPdf, plainText, saveNotes } from './doc';
 import { backupJson, bookData, dropRecovery, flush, writeBook } from './library';
 import { embedBookData } from './pdf/nibdata';
+import { assertImagesOk } from './pdf/verify';
 import { pagesToImages } from './pdf/images';
 import { openRaw, pdfium } from './pdf/pdfium';
 import { invoke, isDesktop } from './platform/env';
@@ -19,13 +20,19 @@ import { toast } from './ui/toast';
 
 export type SaveOutcome = 'saved' | 'cancelled' | 'kept';
 
-/** What Save writes for this tab. */
+/** What Save writes for this tab. Pictures are checked before anything is written. */
 async function buildFor(state: DocState): Promise<Uint8Array> {
+  let out: Uint8Array;
   if (state.bookId && state.keep === 'file') {
     const pdf = await exportPdf({ state, includeNotes: true, fillable: false });
-    return embedBookData(pdf, bookData(state));
-  }
-  return exportPdf({ state, includeNotes: false });
+    out = embedBookData(pdf, bookData(state));
+  } else out = await exportPdf({ state, includeNotes: false });
+  await assertImagesOk(
+    out,
+    undefined,
+    [...state.sources.values()].map((src) => src.bytes),
+  );
+  return out;
 }
 
 /** Opens the new file once before it replaces anything. */

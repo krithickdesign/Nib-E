@@ -10,6 +10,7 @@
 import { PdfAnnotationSubtype } from '@embedpdf/models';
 import type { Rect } from '../model';
 import { newRawDoc, openRaw, pdfium, saveRaw, withBytes, withInts } from './core';
+import { assertImagesOk, decodes, jpegProblems } from './verify';
 import { engine } from './pdfium';
 import { encode, renderPage } from './raster';
 import { charsIn, readPageChars } from './text';
@@ -122,14 +123,24 @@ async function rasterize(bytes: Uint8Array, pages: number[]): Promise<Uint8Array
       const rotation = old ? m.FPDFPage_GetRotation(old) : 0;
       if (old) m.FPDF_ClosePage(old);
       const img = renderPage(raw.doc, i, RASTER_SCALE);
-      const jpeg = await encode(img, 'image/jpeg', 0.9);
+      // Check the picture before it goes into the file; encode again, or use
+      // PNG, if the JPEG came out damaged.
+      let pic = await encode(img, 'image/jpeg', 0.9);
+      let png = false;
+      if (jpegProblems(pic).length || !(await decodes(pic, 'image/jpeg'))) {
+        pic = await encode(img, 'image/jpeg', 0.9);
+        if (jpegProblems(pic).length || !(await decodes(pic, 'image/jpeg'))) {
+          pic = await encode(img, 'image/png');
+          png = true;
+        }
+      }
       const w = img.w / RASTER_SCALE;
       const h = img.h / RASTER_SCALE;
       m.FPDFPage_Delete(raw.doc, i);
       const page = m.FPDFPage_New(raw.doc, i, w, h);
       try {
         const obj = m.FPDFPageObj_NewImageObj(raw.doc);
-        const ok = withBytes(jpeg, (ptr, len) => m.EPDFImageObj_SetJpeg(page, 0, obj, ptr, len));
+        const ok = withBytes(pic, (ptr, len) => (png ? m.EPDFImageObj_SetPng(page, 0, obj, ptr, len) : m.EPDFImageObj_SetJpeg(page, 0, obj, ptr, len)));
         if (!ok) throw new Error(`Could not turn page ${i + 1} into an image.`);
         m.FPDFImageObj_SetMatrix(obj, w, 0, 0, h, 0, 0);
         m.FPDFPage_InsertObject(page, obj);
@@ -175,6 +186,9 @@ export async function applyRedactions(bytes: Uint8Array, marks: RedactMark[], op
   out = await redactWithEngine(out, list);
   if (opts.rasterize) out = await rasterize(out, pages);
   if (opts.sanitize) out = sanitize(out);
+
+  // The redacted pages must still show correctly before this replaces the open file.
+  await assertImagesOk(out, opts.sanitize ? undefined : pages, [bytes]);
 
   const leftovers = countUnder(out, list);
   if (leftovers) throw new Error(`Redaction check failed: ${leftovers} characters are still under the boxes. The file was not changed.`);
