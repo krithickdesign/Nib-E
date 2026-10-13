@@ -14,7 +14,8 @@
     "build:desktop": "npm run build:single && node scripts/build-desktop.mjs",
     "desktop": "tauri build",
     "desktop:dev": "tauri dev",
-    "test:pen": "tsx test/pen-feel.ts"
+    "test:pen": "tsx test/pen-feel.ts",
+    "tauri": "tauri"
   },
   "license": "MIT",
   "dependencies": {
