@@ -1,4 +1,4 @@
-// Where Nib runs: the desktop app (Tauri) or a browser.
+// Where Nib-E runs: the desktop app (Tauri) or a browser.
 // The desktop app exposes a small, fixed set of commands (src-tauri/src/lib.rs).
 // Nothing here reaches the network.
 

@@ -1,6 +1,6 @@
 [package]
 name = "nib"
-version = "0.4.0"
+version = "0.5.0"
 description = "Nib: a private PDF reader and editor that works offline"
 authors = ["Nib contributors"]
 license = "MIT"

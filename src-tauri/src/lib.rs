@@ -1,10 +1,10 @@
-//! Nib desktop app.
+//! Nib-E desktop app.
 //!
-//! The window shows Nib's web app from inside the app bundle. There is no
+//! The window shows Nib-E's web app from inside the app bundle. There is no
 //! network code here and the web view's security rules (tauri.conf.json, CSP)
 //! allow no connections. Files are read and written only through the commands
 //! below, and only files the person chose: in an Open or Save window, by
-//! dropping them on Nib, or by opening them with Nib from the system. That list
+//! dropping them on Nib-E, or by opening them with Nib-E from the system. That list
 //! is remembered (recent files) so the study library can reopen books.
 
 use std::collections::{HashSet, VecDeque};
@@ -27,7 +27,13 @@ const WEBSITE: &str = match option_env!("NIB_WEBSITE") {
     None => "https://github.com/",
 };
 
-/// Largest file Nib reads into memory.
+/// Feedback and survey form (Google Form), opened in the browser on request.
+const FORM: &str = match option_env!("NIB_FORM") {
+    Some(url) => url,
+    None => "https://docs.google.com/forms/d/e/1FAIpQLSfy3FUAR3hxknKPvrZi9NFxmflDDaBQQIV0PNaT5af3yO8xDA/viewform",
+};
+
+/// Largest file Nib-E reads into memory.
 const MAX_FILE: u64 = 2 * 1024 * 1024 * 1024;
 /// How many recent files keep their permission across restarts.
 const MAX_RECENT: usize = 400;
@@ -44,8 +50,12 @@ struct Files {
 /// The page has started and listens for files (set by `startup_files`).
 static PAGE_READY: AtomicBool = AtomicBool::new(false);
 
-/// Last time the window was asked to close (see the close handling in `run`).
-static CLOSE_ASKED: AtomicU64 = AtomicU64::new(0);
+/// Last time each window was asked to close (see the close handling in `run`).
+static CLOSE_ASKED: Mutex<Vec<(String, u64)>> = Mutex::new(Vec::new());
+/// Windows that may close without asking again (the page already asked).
+static CLOSE_OK: Mutex<Vec<String>> = Mutex::new(Vec::new());
+/// Numbering for extra windows ("Nib-E" logo → new window).
+static WINDOW_NO: AtomicU64 = AtomicU64::new(1);
 
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
@@ -107,7 +117,7 @@ impl Files {
         if self.allowed.lock().unwrap().contains(&n) {
             Ok(n)
         } else {
-            Err("Nib may only open files you chose. Open it with the Open button.".into())
+            Err("Nib-E may only open files you chose. Open it with the Open button.".into())
         }
     }
 }
@@ -116,26 +126,36 @@ fn is_pdf(p: &Path) -> bool {
     p.extension().map(|e| e.eq_ignore_ascii_case("pdf")).unwrap_or(false)
 }
 
-/// PDF paths from a command line (`Nib.exe file.pdf`, "Open with…").
+/// PDF paths from a command line (`Nib-E.exe file.pdf`, "Open with…").
 fn pdf_args<I: IntoIterator<Item = String>>(args: I) -> Vec<PathBuf> {
     args.into_iter().map(PathBuf::from).filter(|p| is_pdf(p) && p.is_file()).collect()
 }
 
-fn hand_over(app: &AppHandle, paths: Vec<PathBuf>) {
+/// Gives files to one window: the one they were dropped on, else the main
+/// window, else any open window.
+fn hand_over(app: &AppHandle, target: Option<&str>, paths: Vec<PathBuf>) {
     if paths.is_empty() {
         return;
     }
     let files = app.state::<Files>();
     files.allow(&paths);
     let list: Vec<String> = paths.iter().map(|p| normal(p).to_string_lossy().into_owned()).collect();
-    if PAGE_READY.load(Ordering::SeqCst) {
-        if let Some(w) = app.get_webview_window("main") {
+    if !PAGE_READY.load(Ordering::SeqCst) {
+        files.pending.lock().unwrap().extend(list);
+        return;
+    }
+    let windows = app.webview_windows();
+    let label = target
+        .filter(|l| windows.contains_key(*l))
+        .map(|l| l.to_string())
+        .or_else(|| windows.contains_key("main").then(|| "main".to_string()))
+        .or_else(|| windows.keys().next().cloned());
+    if let Some(label) = label {
+        if let Some(w) = windows.get(&label) {
             let _ = w.unminimize();
             let _ = w.set_focus();
         }
-        let _ = app.emit("nib://open-paths", list);
-    } else {
-        files.pending.lock().unwrap().extend(list);
+        let _ = app.emit_to(label.as_str(), "nib://open-paths", list);
     }
 }
 
@@ -213,7 +233,7 @@ fn write_file(files: State<'_, Files>, request: Request<'_>) -> Result<(), Strin
     Ok(())
 }
 
-/// Files Nib was started with (double-click on a PDF, Open with…).
+/// Files Nib-E was started with (double-click on a PDF, Open with…).
 #[tauri::command]
 fn startup_files(files: State<'_, Files>) -> Vec<String> {
     let mut pending = files.pending.lock().unwrap();
@@ -226,16 +246,37 @@ fn print_page(window: WebviewWindow) -> Result<(), String> {
     window.print().map_err(|e| e.to_string())
 }
 
-/// Opens the project website in the person's normal browser. Nib itself does not connect.
+/// Opens the project website in the person's normal browser. Nib-E itself does not connect.
 #[tauri::command]
 fn open_website(app: AppHandle) -> Result<(), String> {
     app.opener().open_url(WEBSITE, None::<&str>).map_err(|e| e.to_string())
 }
 
+/// Opens the feedback / survey form in the person's normal browser. Only this
+/// one address can be opened.
 #[tauri::command]
-fn close_app(app: AppHandle) {
-    CLOSE_ASKED.store(u64::MAX, Ordering::SeqCst);
-    app.exit(0);
+fn open_form(app: AppHandle) -> Result<(), String> {
+    app.opener().open_url(FORM, None::<&str>).map_err(|e| e.to_string())
+}
+
+/// Closes the window that asked (after the page dealt with unsaved work).
+#[tauri::command]
+fn close_app(window: WebviewWindow) {
+    CLOSE_OK.lock().unwrap().push(window.label().to_string());
+    let _ = window.close();
+}
+
+/// Opens another Nib-E window on the start page.
+#[tauri::command]
+async fn new_window(app: AppHandle) -> Result<(), String> {
+    let label = format!("w{}", WINDOW_NO.fetch_add(1, Ordering::SeqCst));
+    tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::App("index.html".into()))
+        .title("Nib-E")
+        .inner_size(1320.0, 860.0)
+        .min_inner_size(420.0, 420.0)
+        .build()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 // ---------- app ----------
@@ -244,11 +285,11 @@ fn close_app(app: AppHandle) {
 pub fn run() {
     let mut builder = tauri::Builder::default();
 
-    // A second start (double-click on another PDF) hands its files to the running Nib.
+    // A second start (double-click on another PDF) hands its files to the running Nib-E.
     #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            hand_over(app, pdf_args(argv.into_iter().skip(1)));
+            hand_over(app, None, pdf_args(argv.into_iter().skip(1)));
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.unminimize();
                 let _ = w.set_focus();
@@ -274,29 +315,42 @@ pub fn run() {
         .on_window_event(|window, event| match event {
             WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
                 let pdfs: Vec<PathBuf> = paths.iter().filter(|p| is_pdf(p) && p.is_file()).cloned().collect();
-                hand_over(window.app_handle(), pdfs);
+                hand_over(window.app_handle(), Some(window.label()), pdfs);
             }
             WindowEvent::CloseRequested { api, .. } => {
                 // Ask the page first (unsaved changes). A second close within 4 s
-                // always closes, so Nib can never get stuck open.
-                let last = CLOSE_ASKED.swap(now_ms(), Ordering::SeqCst);
-                if last == u64::MAX || now_ms().saturating_sub(last) < 4000 {
+                // always closes, so Nib-E can never get stuck open.
+                let label = window.label().to_string();
+                {
+                    let mut ok = CLOSE_OK.lock().unwrap();
+                    if let Some(i) = ok.iter().position(|l| l == &label) {
+                        ok.remove(i);
+                        return;
+                    }
+                }
+                let now = now_ms();
+                let mut asked = CLOSE_ASKED.lock().unwrap();
+                let last = asked.iter().find(|(l, _)| l == &label).map(|(_, t)| *t).unwrap_or(0);
+                asked.retain(|(l, _)| l != &label);
+                if now.saturating_sub(last) < 4000 {
                     return;
                 }
+                asked.push((label.clone(), now));
+                drop(asked);
                 api.prevent_close();
-                let _ = window.emit("nib://close-requested", ());
+                let _ = window.emit_to(label.as_str(), "nib://close-requested", ());
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, startup_files, print_page, open_website, close_app])
+        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, startup_files, print_page, open_website, open_form, close_app, new_window])
         .build(tauri::generate_context!())
-        .expect("error while starting Nib")
+        .expect("error while starting Nib-E")
         .run(|app, event| {
             // macOS hands files over as an event, not on the command line.
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Opened { urls } = &event {
                 let paths: Vec<PathBuf> = urls.iter().filter_map(|u| u.to_file_path().ok()).filter(|p| is_pdf(p)).collect();
-                hand_over(app, paths);
+                hand_over(app, None, paths);
             }
             let _ = (app, &event);
         });

@@ -140,6 +140,8 @@ export interface Prefs {
   keepBackup: boolean;
   /** Default for new study books: notes on this device, or inside the book file. */
   studyKeep: 'device' | 'file';
+  /** Colour theme: follow the system, or always light / dark. */
+  theme: 'system' | 'light' | 'dark';
 }
 
 export type Change =
@@ -203,6 +205,7 @@ const BASE_PREFS: Prefs = {
   spellLang: '',
   keepBackup: true,
   studyKeep: 'device',
+  theme: 'system',
 };
 
 function loadPrefs(): Prefs {

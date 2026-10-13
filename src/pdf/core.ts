@@ -153,7 +153,7 @@ export function saveRaw(doc: number): Uint8Array {
 }
 
 /**
- * Visible page area (crop box) in PDF user space. Nib's page points have
+ * Visible page area (crop box) in PDF user space. Nib-E's page points have
  * their origin at the top-left of this box and grow downwards:
  *   userX = left + x,   userY = top - y
  */

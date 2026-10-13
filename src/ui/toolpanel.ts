@@ -157,7 +157,7 @@ export class ToolPanel {
     switch (v) {
       case 'home':
         return `<ul class="tool-list">${ALL_TOOLS.map((t) => `<li><button type="button" class="tool-row" data-view="${t.view}" style="--hue:${t.hue}"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span><small>${t.desc}</small></span></button></li>`).join('')}</ul>
-          ${actBtn('help', 'help', 'Help and tour', 'How Nib works, privacy, study mode')}
+          ${actBtn('help', 'help', 'Help and tour', 'How Nib-E works, privacy, study mode')}
           <h3 class="panel-sub">Coming later</h3>
           <ul class="tool-list later">${LATER.map((t) => `<li><span class="tool-row" aria-disabled="true"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span></span><span class="tag">Later</span></span></li>`).join('')}</ul>`;
       case 'edit':
@@ -266,7 +266,7 @@ export class ToolPanel {
             '3 · Apply',
             `<button class="btn btn-danger wide" type="button" data-act="redact-apply" ${n ? '' : 'disabled'}>Apply ${n || ''} redaction${n === 1 ? '' : 's'}</button>
              ${n ? `<button class="btn btn-quiet wide" type="button" data-act="redact-clear">Remove all marks</button>` : ''}
-             <p class="muted small">Your ink, text and stamps are flattened into the pages at the same time. Afterwards Nib checks that no text is left under any box.</p>`,
+             <p class="muted small">Your ink, text and stamps are flattened into the pages at the same time. Afterwards Nib-E checks that no text is left under any box.</p>`,
           ) +
           (this.lastResult ? `<div class="callout ok">${icon('check')}<p>${this.lastResult}</p></div>` : '')
         );
@@ -404,7 +404,20 @@ export class ToolPanel {
       section(
         'Interface size',
         `<div class="seg">${UI_SIZES.map((v) => `<label class="seg-opt"><input type="radio" name="pf-ui" value="${v}" ${Math.abs(p.uiScale - v) < 0.01 ? 'checked' : ''}/><span>${Math.round(v * 100)}%</span></label>`).join('')}</div>
-         <p class="muted small">Makes Nib's buttons and text bigger or smaller. Pages have their own zoom at the bottom.</p>`,
+         <p class="muted small">Makes Nib-E's buttons and text bigger or smaller. Pages have their own zoom at the bottom.</p>`,
+      ) +
+      section(
+        'Appearance',
+        `<div class="seg">${(
+          [
+            ['system', 'Automatic'],
+            ['light', 'Light'],
+            ['dark', 'Dark'],
+          ] as const
+        )
+          .map(([v, l]) => `<label class="seg-opt"><input type="radio" name="pf-theme" value="${v}" ${p.theme === v ? 'checked' : ''}/><span>${l}</span></label>`)
+          .join('')}</div>
+         <p class="muted small">Automatic follows your system's light or dark setting.</p>`,
       ) +
       section(
         'Pen feel',
@@ -424,16 +437,16 @@ export class ToolPanel {
       ) +
       section(
         'Privacy',
-        `<div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The Nib app has no permission to use the internet. It cannot send or receive anything.' : 'Once loaded, this page is blocked from connecting anywhere (its security rules allow no network requests). Your files never leave this device.'}</small></span></div>
+        `<div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The Nib-E app has no permission to use the internet. It cannot send or receive anything.' : 'Once loaded, this page is blocked from connecting anywhere (its security rules allow no network requests). Your files never leave this device.'}</small></span></div>
          <p class="muted small">${isDesktop() ? 'This app' : 'This browser'} keeps only your settings, a signature you chose to remember, your stamps, study notes, unsaved-work copies and earlier versions of saved files.</p>
          <button class="btn btn-quiet wide" type="button" data-act="forget">${icon('trash')}Forget everything saved ${isDesktop() ? 'in this app' : 'in this browser'}</button>`,
       ) +
       section('Help', actBtn('help', 'help', 'Open the tour')) +
       section(
         'Version',
-        `<p class="muted small mono">Nib ${VERSION}${isDesktop() ? ' · desktop app' : ' · web'}</p>
-         <p class="muted small">Nib never checks for updates by itself. Compare this number with the latest one on the website.</p>
-         ${isDesktop() ? `<button class="btn wide" type="button" data-act="latest">${icon('open')}Get the latest version</button><p class="muted small">Opens the website in your normal browser. Nib itself stays offline.</p>` : ''}`,
+        `<p class="muted small mono">Nib-E ${VERSION}${isDesktop() ? ' · desktop app' : ' · web'}</p>
+         <p class="muted small">Nib-E never checks for updates by itself. Compare this number with the latest one on the website.</p>
+         ${isDesktop() ? `<button class="btn wide" type="button" data-act="latest">${icon('open')}Get the latest version</button><p class="muted small">Opens the website in your normal browser. Nib-E itself stays offline.</p>` : ''}`,
       )
     );
   }
@@ -477,11 +490,11 @@ export class ToolPanel {
       })
       .join('');
     const promises = [
-      ['shield', 'Scripts never run', 'The PDF engine in Nib has no JavaScript runtime.'],
+      ['shield', 'Scripts never run', 'The PDF engine in Nib-E has no JavaScript runtime.'],
       ['link', 'Links stay inert', 'Nothing opens a website, program or other file.'],
       ['lock', 'Files stay on this device', 'Opening and saving happen locally. Nothing is uploaded.'],
     ];
-    return `${verdict}${files}<h3 class="panel-sub">Always on</h3><ul class="guarantees">${promises.map(([i, t, d]) => `<li>${icon(i)}<div><strong>${t}</strong><p>${d}</p></div></li>`).join('')}</ul><p class="muted small">The keyword scan can miss items hidden inside compressed parts of a file. Nib blocks these features either way.</p>`;
+    return `${verdict}${files}<h3 class="panel-sub">Always on</h3><ul class="guarantees">${promises.map(([i, t, d]) => `<li>${icon(i)}<div><strong>${t}</strong><p>${d}</p></div></li>`).join('')}</ul><p class="muted small">The keyword scan can miss items hidden inside compressed parts of a file. Nib-E blocks these features either way.</p>`;
   }
 
   // ---------- events ----------
@@ -550,6 +563,7 @@ export class ToolPanel {
       store.setPrefs({ studyKeep: v });
       if (store.doc) void setKeep(store.doc, v).then(() => toast(v === 'device' ? 'Notes are kept on this device. The book file stays as it was.' : 'Notes go into the book file when you save (Ctrl+S).', 'ok', 5000));
     }
+    if (el.name === 'pf-theme') store.setPrefs({ theme: el.value as 'system' | 'light' | 'dark' });
     if (el.name === 'pf-feel') store.setPrefs({ penFeel: el.value as 'precise' | 'balanced' | 'smooth' });
   }
 

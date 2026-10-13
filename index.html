@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>Nib PDF Editor</title>
+    <title>Nib-E PDF Editor</title>
   </head>
   <body>
     <div class="app" id="app">
       <header class="topbar">
-        <div class="brand" aria-label="Nib">
-          <span class="brand-mark" id="brand-mark"></span><span class="brand-word">nib</span><span class="beta-tag" title="Test version">beta</span>
+        <div class="brand" aria-label="Nib-E">
+          <span class="brand-mark" id="brand-mark"></span><span class="brand-word">nib-e</span><span class="beta-tag" title="Test version">beta</span>
         </div>
         <div class="docinfo">
           <span class="docname" id="docname" tabindex="0">Starting…</span>
@@ -94,6 +94,7 @@
       </div>
 
       <div class="save-menu" id="save-menu" hidden></div>
+      <div class="save-menu" id="help-menu" hidden></div>
       <div class="toasts" id="toasts" aria-live="polite"></div>
       <div class="dropzone" id="dropzone" hidden><div>Drop PDFs to open them<small>Hold Shift to add the pages to this file instead</small></div></div>
 
@@ -131,7 +132,7 @@
     </div>
     <script>
       // Start-up watchdog. If the app code never runs (most often because this
-      // source file was double-clicked instead of the built Nib.html), show
+      // source file was double-clicked instead of the built Nib-E.html), show
       // clear instructions instead of an endless "Starting…" screen.
       setTimeout(function () {
         if (window.__nibStarted) return;
@@ -142,9 +143,9 @@
           'position:fixed;inset:0;z-index:99;display:grid;place-items:center;padding:16px;background:#e7eaf2;color:#171a26;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif';
         box.innerHTML =
           '<div style="max-width:520px;background:#fff;border:1px solid #d6dae5;border-radius:14px;padding:24px">' +
-          '<h1 style="margin:0 0 8px;font-size:20px">Nib did not start</h1>' +
-          '<p style="margin:0 0 12px">This is the source-code version of Nib. A browser cannot run it by double-click.</p>' +
-          '<p style="margin:0 0 6px"><strong>To use Nib:</strong> double-click <code>Nib.html</code> in the main folder of the download.</p>' +
+          '<h1 style="margin:0 0 8px;font-size:20px">Nib-E did not start</h1>' +
+          '<p style="margin:0 0 12px">This is the source-code version of Nib-E. A browser cannot run it by double-click.</p>' +
+          '<p style="margin:0 0 6px"><strong>To use Nib-E:</strong> double-click <code>Nib-E.html</code> in the main folder of the download.</p>' +
           '<p style="margin:0;color:#5a6075">Developers: run <code>npm install</code> then <code>npm run dev</code> in this folder.</p>' +
           '</div>';
         document.body.appendChild(box);

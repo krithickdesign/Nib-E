@@ -76,7 +76,7 @@ export class LibraryView {
         if (!rec) return;
         const ok = await this.busy('Opening…', () => reopenBook(rec));
         if (!ok) {
-          toast(`Open “${rec.name}” again: Nib will find your notes and the page where you stopped.`, 'info', 7000);
+          toast(`Open “${rec.name}” again: Nib-E will find your notes and the page where you stopped.`, 'info', 7000);
           this.openPicker();
         }
         break;

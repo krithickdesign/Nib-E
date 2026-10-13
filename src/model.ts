@@ -131,7 +131,7 @@ export interface Source {
 
 export interface PageEntry {
   key: string;
-  /** null = page inserted by Nib. */
+  /** null = page inserted by Nib-E. */
   src: string | null;
   index: number;
   w: number;
@@ -273,7 +273,7 @@ export function contentToPage(r: Rect & { rot: Rot }, u: number, v: number): [nu
   }
 }
 
-/** Ruling for pages inserted by Nib, as line segments in page points. */
+/** Ruling for pages inserted by Nib-E, as line segments in page points. */
 export function templateLines(t: Template, w: number, h: number): [number, number, number, number][] {
   const lines: [number, number, number, number][] = [];
   if (t === 'lined') {

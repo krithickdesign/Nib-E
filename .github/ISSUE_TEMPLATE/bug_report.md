@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in Nib doesn't work as expected
+about: Something in Nib-E doesn't work as expected
 title: "[Bug] "
 labels: bug
 ---

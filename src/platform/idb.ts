@@ -1,6 +1,6 @@
 // A small IndexedDB wrapper. Everything stays in this browser (or in the
 // desktop app's own storage). Failures are swallowed by callers: storage can be
-// unavailable (private windows) and Nib must keep working without it.
+// unavailable (private windows) and Nib-E must keep working without it.
 
 const DB_NAME = 'nib';
 const DB_VERSION = 1;
@@ -24,7 +24,7 @@ function open(): Promise<IDBDatabase> {
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(new Error('Storage is blocked by another Nib window.'));
+    req.onblocked = () => reject(new Error('Storage is blocked by another Nib-E window.'));
   });
   dbp.catch(() => {
     dbp = null;
@@ -72,7 +72,7 @@ export async function idbClear(): Promise<void> {
   for (const s of ['books', 'recovery', 'backups'] as StoreName[]) await done(db.transaction(s, 'readwrite').objectStore(s).clear());
 }
 
-/** Asks the browser not to clear Nib's storage when space runs low. */
+/** Asks the browser not to clear Nib-E's storage when space runs low. */
 export async function askPersistence(): Promise<boolean> {
   try {
     if (await navigator.storage?.persisted?.()) return true;

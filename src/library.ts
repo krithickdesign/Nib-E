@@ -7,7 +7,7 @@
 //   Opening the same book again restores them and jumps to the last page.
 //
 // Study option B ("write notes into the book file"): Save writes the marks and
-//   note pages into the PDF itself, plus Nib's editable copy (pdf/nibdata.ts).
+//   note pages into the PDF itself, plus Nib-E's editable copy (pdf/nibdata.ts).
 //   The library keeps a mirror so nothing is lost before you save.
 //
 // Crash recovery: other files with unsaved changes are copied here every few
@@ -152,7 +152,7 @@ export async function setKeep(state: DocState, keep: 'device' | 'file'): Promise
   store.emit('tabs');
 }
 
-/** Nib's editable copy of a book, written into the PDF with option B. */
+/** Nib-E's editable copy of a book, written into the PDF with option B. */
 export function bookData(state: DocState): BookData {
   const snap = snapshot(state);
   return {
@@ -223,7 +223,7 @@ function notify(state: DocState, how: 'device' | 'file', plan: Plan, dropped = 0
 // ---------- reopening a book from the library ----------
 
 /**
- * Opens a library book's file again. Returns false when Nib cannot reach the
+ * Opens a library book's file again. Returns false when Nib-E cannot reach the
  * file by itself (the caller then asks the person to open it).
  */
 export async function reopenBook(rec: BookRecord): Promise<boolean> {
@@ -269,9 +269,9 @@ export async function importBackup(bytes: Uint8Array): Promise<string> {
   try {
     data = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
-    throw new Error('This is not a Nib notes file.');
+    throw new Error('This is not a Nib-E notes file.');
   }
-  if (data?.app !== 'nib-notes' || data.v !== 1 || !data.book?.plan) throw new Error('This is not a Nib notes file.');
+  if (data?.app !== 'nib-notes' || data.v !== 1 || !data.book?.plan) throw new Error('This is not a Nib-E notes file.');
   const b = data.book;
   const rec: BookRecord = { ...b, keep: 'device', ref: null, plan: { ...b.plan, images: imagesFromB64(b.plan.images) }, updated: Date.now() };
   await idbPut('books', rec.id, rec);
@@ -330,7 +330,7 @@ interface RecoveryRecord {
   current: number;
   ref: FileRef | null;
   updated: number;
-  /** Last sign of life of the window that owns it (other open Nib windows are not offered). */
+  /** Last sign of life of the window that owns it (other open Nib-E windows are not offered). */
   alive: number;
 }
 
@@ -458,7 +458,7 @@ export function startAutosave(): void {
       void makeBook(doc);
     }
   });
-  // Keep this window's recovery records marked as alive, so another Nib window does not offer them.
+  // Keep this window's recovery records marked as alive, so another Nib-E window does not offer them.
   clearInterval(heartbeat);
   heartbeat = window.setInterval(() => {
     for (const t of store.tabs) {

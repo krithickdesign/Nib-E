@@ -9,4 +9,4 @@ labels: feedback
 
 **What made it hard, or what would help?**
 
-**How important is this for you?** (nice to have / would use it often / can't use Nib without it)
+**How important is this for you?** (nice to have / would use it often / can't use Nib-E without it)

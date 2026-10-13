@@ -3181,3 +3181,128 @@ input[type="range"] {
   column-gap: 2px;
   padding-inline: 6px;
 }
+
+/* ---------- logo: new window ---------- */
+.brand[role="button"] {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.brand[role="button"]:hover .brand-mark,
+.brand[role="button"]:focus-visible .brand-mark {
+  color: var(--accent);
+  filter: brightness(1.15);
+}
+
+/* ---------- help menu dialogs ---------- */
+.info-dialog h2 {
+  margin-top: 0;
+}
+.keys {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-md);
+}
+.keys td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.keys td:first-child {
+  white-space: nowrap;
+  width: 40%;
+}
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  font: 500 var(--text-xs) var(--font-mono);
+  text-align: center;
+}
+.about-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.about-head h2 {
+  margin: 0;
+}
+.about-head p {
+  margin: 2px 0 0;
+}
+.feedback .fb-kinds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.fb-kind {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--fg);
+  cursor: pointer;
+}
+.fb-kind:hover,
+.fb-kind:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
+}
+.fb-kind > .icon {
+  color: var(--accent);
+  flex: none;
+  margin-top: 1px;
+}
+.fb-kind span {
+  display: grid;
+  gap: 2px;
+}
+.fb-kind small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.fb-text {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font: inherit;
+  padding: 10px;
+  box-sizing: border-box;
+  margin: 6px 0 8px;
+}
+.fb-privacy {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--note-soft);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.fb-privacy .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--note);
+}
+@media (max-width: 520px) {
+  .feedback .fb-kinds {
+    grid-template-columns: 1fr;
+  }
+}
+.link-btn.inline {
+  display: inline;
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline;
+}

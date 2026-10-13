@@ -1,4 +1,4 @@
-// Spelling check for everything typed in Nib. It is the browser's own checker:
+// Spelling check for everything typed in Nib-E. It is the browser's own checker:
 // it runs on this device and never sends text anywhere (unless the person
 // turned on "Enhanced spell check" in Chrome's settings, which is Google's).
 import { store } from '../store';

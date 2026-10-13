@@ -1,20 +1,22 @@
-# Nib · a private PDF editor (beta)
+# Nib-E · a private PDF editor (beta)
+
+Part of the Desk-E family.
 
 Read, fill, sign, draw on, redact and organise PDFs in your browser.
 **Your files never leave your device:** no uploads, no account, no tracking, no AI.
 
-![Nib filling in a form](docs/assets/fill.webp)
+![Nib-E filling in a form](docs/assets/fill.webp)
 
-> **Beta (v0.4.0).** Nib is being tested. Things will break; please [report them](TESTING.md).
+> **Beta (v0.5.0).** Nib-E is being tested. Things will break; please [report them](TESTING.md).
 
 ## Use it
 
 - **Desktop app (Windows, macOS, Linux):** download from the project's **Releases** page.
   The installers are not signed yet, so the first start shows a warning:
   Windows → *More info* → *Run anyway*; macOS → *System Settings → Privacy & Security* → *Open Anyway*.
-- **On the web:** open the project's GitHub Pages site and click **Open Nib**
+- **On the web:** open the project's GitHub Pages site and click **Open Nib-E**
   (`https://<user>.github.io/<repo>/`, once Pages is switched on, see below). Works on phones and tablets too.
-- **Single file, no install:** download `docs/app/index.html`, rename it `Nib.html` if you like, and double-click it.
+- **Single file, no install:** download `docs/app/index.html`, rename it `Nib-E.html` if you like, and double-click it.
 
 ## Privacy
 
@@ -22,7 +24,7 @@ Read, fill, sign, draw on, redact and organise PDFs in your browser.
   The web version's security rules (CSP) block every connection once the page is loaded.
 - Opening, editing and saving all run on your device (PDFium as WebAssembly). Nothing is sent anywhere.
 - No account, no analytics, no cookies, no third-party requests (fonts are bundled). No update checks.
-- No AI features. A separate, opt-in AI editor may come later as its own product; Nib itself stays offline.
+- No AI features. A separate, opt-in AI editor may come later as its own product; Nib-E itself stays offline.
 - Kept on this device only: settings, a signature you chose to remember, stamps, study notes,
   unsaved-work copies (crash recovery) and the previous version of files you saved over.
   *Tools → Settings → Forget everything* removes them.
@@ -35,7 +37,7 @@ Read, fill, sign, draw on, redact and organise PDFs in your browser.
 |---|---|
 | **Tabs** | Several PDFs open at once (up to 8). Double-click the file name to rename. Asks before closing unsaved work; offers unsaved work back after a crash. |
 | **Save** | Save writes over the opened file (desktop app, Chrome, Edge), keeps the earlier version (restorable). Save menu: Save as, Export (with notes, flattened, notes only, images, text), Print. |
-| **Fill forms** | Real form fields, *and* forms without fields: Nib finds boxes, lines and tick boxes and asks whether to make them fillable. Text uses the form's font and size; `Tab` jumps to the next box. Works alongside real fields in the same file. |
+| **Fill forms** | Real form fields, *and* forms without fields: Nib-E finds boxes, lines and tick boxes and asks whether to make them fillable. Text uses the form's font and size; `Tab` jumps to the next box. Works alongside real fields in the same file. |
 | **Sign** | Draw once, place anywhere, optionally remembered on this device. |
 | **Draw and write** | Pen and highlighter (stylus pressure, palm rejection, pen feel Precise / Balanced / Smooth), text boxes with font toolbar and spelling check. |
 | **Study mode** | PDF beside a notebook; note pages lined, grid or blank. Notes kept on the device as you write and restored (with the last page) when the book is opened again; or written into the book file. Library on the start screen, `.nib` backup. |
@@ -68,7 +70,12 @@ npm run desktop        # installers in src-tauri/target/release/bundle/
 npm run desktop:dev    # app window with live reload
 ```
 
-The version for installers is in `src-tauri/tauri.conf.json` (`0.4.0`) and `src/version.ts`.
+The version for installers is in `src-tauri/tauri.conf.json` (`0.5.0`) and `src/version.ts`.
+
+**If the Releases page is empty:** the installers are only made when the workflow runs.
+1. Check that `.github/workflows/desktop.yml` is in the repository (uploading in the browser can skip folders that start with a dot).
+2. **Actions → Desktop app → Run workflow**. Wait until all three jobs have a green tick (15–25 min).
+3. **Releases**: a *draft* release appears. Open it → **Publish release**. Only then do the download links work.
 
 ## Develop
 
@@ -107,7 +114,7 @@ Design: edits are kept as a plan on top of the opened file; Save builds a new PD
 - Scanned forms (pictures of paper) need OCR, not built yet.
 - Spelling uses the browser's own checker and only for text you type.
 - Very large PDFs can stutter while pages render.
-- Saving changes to a digitally signed PDF invalidates its signature (Nib warns first).
+- Saving changes to a digitally signed PDF invalidates its signature (Nib-E warns first).
 - Firefox and Safari have no Save window for web pages: files go to Downloads (or wherever the browser asks). Use Chrome, Edge or the desktop app to save over files.
 - Study notes kept "on this device" live in the browser's or app's storage: back them up (.nib) before clearing site data or changing computers.
 - Print sends pages as images (150 dpi): fine for reading, not for professional print jobs.
@@ -116,6 +123,6 @@ Design: edits are kept as a plan on top of the opened file; Save builds a new PD
 
 ## Licences
 
-Nib is **MIT licensed** (see [LICENSE](LICENSE)). Desktop app: Tauri (MIT / Apache-2.0).
+Nib-E is **MIT licensed** (see [LICENSE](LICENSE)). Desktop app: Tauri (MIT / Apache-2.0).
 Third-party parts: PDFium (BSD-3 / Apache-2.0), EmbedPDF (MIT), pdf-lib (MIT), fflate (MIT),
 perfect-freehand (MIT), fonts via Fontsource (SIL OFL 1.1).

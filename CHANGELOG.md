@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0-beta
+
+**New**
+- **Nib-E**: new name, part of the Desk-E family (file names, app name, website). Saved data from 0.4 is kept.
+- **Help menu** (top right): Help and tour, Keyboard shortcuts, What's new, Send feedback, Privacy and safe mode, About.
+- **Send feedback**: choose Something broke / Confusing / Idea / General opinion, describe it, optionally add technical details (version, browser, system; never files). Opens the project's GitHub issue form filled in, or copies the text. Nib-E itself sends nothing.
+- **Light / dark switch**: Settings → Appearance (Automatic, Light, Dark).
+- **Logo opens the start page** in a new tab (web) or a new window (desktop app).
+
+- **Feedback and survey** go to the Google feedback form (Help → Send feedback copies your text and opens the form; Help → Take the survey). No account needed.
+
+**Changed**
+- Website: download warnings in a clearly visible box.
+- Desktop app: closing one window no longer closes the others; dropped files open in the window they were dropped on.
+
+
 ## 0.4.0-beta
 
 **New**

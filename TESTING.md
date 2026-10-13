@@ -1,6 +1,6 @@
-# Testing Nib v0.4 beta
+# Testing Nib-E v0.4 beta
 
-Thanks for helping. Use Nib like your normal PDF reader for a while, then tell us what broke,
+Thanks for helping. Use Nib-E like your normal PDF reader for a while, then tell us what broke,
 what confused you and what you missed.
 
 **Privacy:** please don't attach private documents to reports. A screenshot (with personal details
@@ -16,7 +16,7 @@ The Help tour (top right, **?**) explains the basics in a minute.
 
 **Desktop app**
 - [ ] Install it. Was the first-start warning clear? (Windows: More info → Run anyway; macOS: Privacy & Security → Open Anyway)
-- [ ] Double-click a PDF in your file manager / "Open with Nib". Drag a PDF onto the window.
+- [ ] Double-click a PDF in your file manager / "Open with Nib-E". Drag a PDF onto the window.
 - [ ] Save over a file, then Save ▾ → Restore earlier version.
 - [ ] Close the window with unsaved changes: are you asked?
 
@@ -24,7 +24,7 @@ The Help tour (top right, **?**) explains the basics in a minute.
 - [ ] Save writes over the opened file (Chrome, Edge, desktop app). Save as asks where.
 - [ ] Firefox / Safari: Save downloads; is the tip about choosing a folder clear?
 - [ ] Export: PDF with my notes, flattened PDF, text. Print a page range.
-- [ ] Close the browser tab with unsaved work, reopen Nib: is the work offered back?
+- [ ] Close the browser tab with unsaved work, reopen Nib-E: is the work offered back?
 
 **Opening and tabs**
 - [ ] Open several PDFs (button, drag and drop, Ctrl+O). Switch between tabs.
@@ -61,7 +61,7 @@ The Help tour (top right, **?**) explains the basics in a minute.
 
 ## How to report
 
-Open an issue on GitHub (**Issues → New issue**) and pick *Bug report* or *Feedback*. Include:
+In Nib-E: **Help → Send feedback** (it copies your text and opens the [feedback form](https://docs.google.com/forms/d/e/1FAIpQLSfy3FUAR3hxknKPvrZi9NFxmflDDaBQQIV0PNaT5af3yO8xDA/viewform); paste it into the last question). No account needed. Include:
 
 1. What you did, step by step.
 2. What you expected and what happened instead.

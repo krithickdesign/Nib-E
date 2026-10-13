@@ -1285,7 +1285,7 @@ export class Viewer {
       void import('./dialog').then(async ({ ask }) => {
         const res = await ask({
           title: 'Add a link',
-          body: 'People who open the saved PDF in another reader can click this area. Nib keeps links inactive in safe mode.',
+          body: 'People who open the saved PDF in another reader can click this area. Nib-E keeps links inactive in safe mode.',
           input: { label: 'Web address', placeholder: 'https://example.com', type: 'url' },
           actions: [
             { label: 'Cancel', value: false, kind: 'quiet' },

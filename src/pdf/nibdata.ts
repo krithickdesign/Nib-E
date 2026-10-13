@@ -2,11 +2,11 @@
 //
 // The saved PDF is a normal PDF: marks show as annotations and page content,
 // note pages are appended at the end, so any reader shows them. In addition it
-// carries a small attachment, nib-notes.json, with Nib's editable copy of the
-// marks and notes. Everything Nib wrote is tagged (page objects with the marked
+// carries a small attachment, nib-notes.json, with Nib-E's editable copy of the
+// marks and notes. Everything Nib-E wrote is tagged (page objects with the marked
 // content tag /NibItem, annotations with a /NibItem key).
 //
-// When Nib opens such a file, it removes its own tagged content and the note
+// When Nib-E opens such a file, it removes its own tagged content and the note
 // pages again, so the marks are editable instead of baked in, and restores them
 // from the attachment.
 import type { HeaderFooter, Item, PageEntry, Template, Watermark } from '../model';
@@ -62,7 +62,7 @@ function readUtf16(ptr: number, bytes: number): string {
   return s;
 }
 
-/** Adds Nib's data to a PDF as an attachment (replacing an older one). */
+/** Adds Nib-E's data to a PDF as an attachment (replacing an older one). */
 export function embedBookData(bytes: Uint8Array, data: BookData): Uint8Array {
   const m = pdfium();
   const raw = openRaw(bytes);
@@ -151,8 +151,8 @@ function objTagged(obj: number): boolean {
 }
 
 /**
- * If the PDF carries Nib's notes, returns them together with the book as it
- * was before Nib wrote into it. Returns null for every other PDF (and for
+ * If the PDF carries Nib-E's notes, returns them together with the book as it
+ * was before Nib-E wrote into it. Returns null for every other PDF (and for
  * password-protected files, which are opened as they are).
  */
 export function readBookData(bytes: Uint8Array): { data: BookData; clean: Uint8Array } | null {
@@ -181,7 +181,7 @@ export function readBookData(bytes: Uint8Array): { data: BookData; clean: Uint8A
     // Drop the note pages at the end.
     const count = m.FPDF_GetPageCount(raw.doc);
     for (let p = count - 1; p >= data.bookPages; p--) m.FPDFPage_Delete(raw.doc, p);
-    // Remove what Nib drew on the book pages.
+    // Remove what Nib-E drew on the book pages.
     const n = Math.min(data.bookPages, m.FPDF_GetPageCount(raw.doc));
     for (let p = 0; p < n; p++) {
       const page = m.FPDF_LoadPage(raw.doc, p);

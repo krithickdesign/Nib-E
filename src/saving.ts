@@ -3,7 +3,7 @@
 // Save writes over the file that was opened (desktop app, Chrome, Edge). The
 // new version is built and checked first, the old one is kept as a backup
 // (one per file, can be turned off), and only then the file is replaced.
-// Where Nib cannot write back (Firefox, Safari, files from a plain upload),
+// Where Nib-E cannot write back (Firefox, Safari, files from a plain upload),
 // Save behaves like Save as.
 import { baseName, exportPdf, plainText, saveNotes } from './doc';
 import { backupJson, bookData, dropRecovery, flush, writeBook } from './library';
@@ -34,7 +34,7 @@ function verify(bytes: Uint8Array, pages: number): void {
   try {
     raw = openRaw(bytes);
   } catch {
-    throw new Error('Nib could not check the new version, so the file was not changed.');
+    throw new Error('Nib-E could not check the new version, so the file was not changed.');
   }
   try {
     const n = pdfium().FPDF_GetPageCount(raw.doc);

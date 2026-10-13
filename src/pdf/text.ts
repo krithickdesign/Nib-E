@@ -2,7 +2,7 @@
 // labels, to snap highlights to text, and for find-and-redact.
 import { free, heap, malloc, pageBox, pdfium, readFloats, type Box, type FontFamily } from './core';
 
-/** One character, in Nib page points (origin top-left of the visible page). */
+/** One character, in Nib-E page points (origin top-left of the visible page). */
 export interface PChar {
   i: number;
   ch: string;

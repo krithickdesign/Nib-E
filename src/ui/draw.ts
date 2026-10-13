@@ -1,4 +1,4 @@
-// Draws Nib's items onto a canvas. The context must already map page points
+// Draws Nib-E's items onto a canvas. The context must already map page points
 // to pixels (see model.pageMatrix). Text layout here is also used by the PDF
 // writer, so line breaks on screen and in the saved file are the same.
 import { drawInk } from '../ink/stroke';

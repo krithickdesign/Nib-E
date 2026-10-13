@@ -1,4 +1,4 @@
-// "Help": a short slideshow about Nib. Opens by itself the first time.
+// "Help": a short slideshow about Nib-E. Opens by itself the first time.
 import { icon } from './icons';
 
 const SEEN_KEY = 'nib.help.v1';
@@ -18,8 +18,8 @@ const SLIDES: Slide[] = [
   {
     icon: 'nib',
     kicker: 'Welcome',
-    title: 'Nib is a private PDF reader and editor',
-    body: `<p>Read, fill, sign, draw, comment, organise pages, redact and save. No account, nothing uploaded.</p>
+    title: 'Nib-E: a private PDF reader and editor',
+    body: `<p>Part of the Desk-E family. Read, fill, sign, draw, comment, organise pages, redact and save. No account, nothing uploaded.</p>
       <p class="help-beta">This is a test version (beta). Some things will be rough. Your feedback shapes what comes next.</p>`,
   },
   {
@@ -27,18 +27,18 @@ const SLIDES: Slide[] = [
     kicker: 'Privacy first',
     title: 'Your files never leave this device',
     body: `<ul class="help-points">
-        <li>${icon('offline')}<span><strong>Nothing is uploaded.</strong> Opening, editing and saving all happen on your computer. Nib works with the internet switched off.</span></li>
-        <li>${icon('eye')}<span><strong>No account, no tracking, no ads.</strong> Nib does not collect anything about you or your files.</span></li>
-        <li>${icon('shield')}<span><strong>No AI.</strong> Nib never sends your text to an AI service. (A separate AI editor may come later, only if you switch it on.)</span></li>
+        <li>${icon('offline')}<span><strong>Nothing is uploaded.</strong> Opening, editing and saving all happen on your computer. Nib-E works with the internet switched off.</span></li>
+        <li>${icon('eye')}<span><strong>No account, no tracking, no ads.</strong> Nib-E does not collect anything about you or your files.</span></li>
+        <li>${icon('shield')}<span><strong>No AI.</strong> Nib-E never sends your text to an AI service. (A separate AI editor may come later, only if you switch it on.)</span></li>
         <li>${icon('network')}<span><strong>Network: none.</strong> The desktop app has no internet permission at all; the web version is blocked from connecting anywhere once loaded.</span></li>
       </ul>
-      <p class="muted small">Nib keeps only your settings, a signature you chose to remember, stamps, study notes, unsaved-work copies and earlier versions of saved files, all on this device. Tools → Settings → Forget everything removes them.</p>`,
+      <p class="muted small">Nib-E keeps only your settings, a signature you chose to remember, stamps, study notes, unsaved-work copies and earlier versions of saved files, all on this device. Tools → Settings → Forget everything removes them.</p>`,
   },
   {
     icon: 'shield',
     kicker: 'Safe mode',
     title: 'Risky PDFs are opened safely',
-    body: `<p>Scripts inside a PDF never run, links and attachments can't open anything by themselves. The green <strong>Safe mode</strong> chip at the top shows what Nib found and blocked in a file.</p>`,
+    body: `<p>Scripts inside a PDF never run, links and attachments can't open anything by themselves. The green <strong>Safe mode</strong> chip at the top shows what Nib-E found and blocked in a file.</p>`,
   },
   {
     icon: 'open',
@@ -48,7 +48,7 @@ const SLIDES: Slide[] = [
         <li>${icon('open')}<span><strong>Open</strong> or drop a PDF on the window. Each file gets its own tab.</span></li>
         <li>${icon('rename')}<span><strong>Rename:</strong> double-click the file name at the top.</span></li>
         <li>${icon('save')}<span><strong>Save</strong> writes over the file you opened (desktop app, Chrome, Edge). The arrow next to Save has <strong>Save as</strong>, <strong>Export</strong> and <strong>Print</strong>, and can restore the version from before your last save.</span></li>
-        <li>${icon('close')}<span>Closing a tab with changes asks whether to save first. If Nib closes unexpectedly, it offers your unsaved work the next time.</span></li>
+        <li>${icon('close')}<span>Closing a tab with changes asks whether to save first. If Nib-E closes unexpectedly, it offers your unsaved work the next time.</span></li>
         <li>${icon('addfile')}<span><strong>Add PDF</strong> puts another file's pages at the end of this one.</span></li>
       </ul>`,
   },
@@ -56,8 +56,8 @@ const SLIDES: Slide[] = [
     icon: 'fillSign',
     kicker: 'Forms',
     title: 'Fill forms, even ones without form fields',
-    body: `<p>Nib looks for empty boxes, lines and tick boxes. When it finds some, a card on the right asks if you want to <strong>make them fillable</strong>. Then click a box and type: text takes the size and font of the question. ${kbd('Tab')} jumps to the next box.</p>
-      <p>Sign with <strong>Fill &amp; Sign → Add signature</strong>. Draw it once and Nib can remember it on this device.</p>`,
+    body: `<p>Nib-E looks for empty boxes, lines and tick boxes. When it finds some, a card on the right asks if you want to <strong>make them fillable</strong>. Then click a box and type: text takes the size and font of the question. ${kbd('Tab')} jumps to the next box.</p>
+      <p>Sign with <strong>Fill &amp; Sign → Add signature</strong>. Draw it once and Nib-E can remember it on this device.</p>`,
   },
   {
     icon: 'pen',
@@ -82,7 +82,7 @@ const SLIDES: Slide[] = [
     icon: 'redact',
     kicker: 'Redact',
     title: 'Remove private details for good',
-    body: `<p><strong>Tools → Redact</strong>: drag over text or pictures, or search for a name and mark every match. Applying removes the text and erases the picture pixels under the boxes, then Nib checks that nothing is left.</p>`,
+    body: `<p><strong>Tools → Redact</strong>: drag over text or pictures, or search for a name and mark every match. Applying removes the text and erases the picture pixels under the boxes, then Nib-E checks that nothing is left.</p>`,
   },
   {
     icon: 'settings',
@@ -138,7 +138,7 @@ export function openHelp(start = 0): void {
         <div class="help-dots" role="tablist" aria-label="Slides">${SLIDES.map((x, i) => `<button type="button" role="tab" class="help-dot" data-go="${i}" aria-selected="${i === at}" aria-label="${x.kicker}"></button>`).join('')}</div>
         <span class="grow"></span>
         ${at > 0 ? `<button class="btn btn-quiet" type="button" data-a="prev">Back</button>` : `<button class="btn btn-quiet" type="button" data-a="close">Skip</button>`}
-        <button class="btn btn-primary" type="button" data-a="${last ? 'close' : 'next'}">${last ? 'Start using Nib' : 'Next'}</button>
+        <button class="btn btn-primary" type="button" data-a="${last ? 'close' : 'next'}">${last ? 'Start using Nib-E' : 'Next'}</button>
       </div>`;
     if (dlg.open) (dlg.querySelector('.help-foot .btn-primary') as HTMLElement | null)?.focus();
   };

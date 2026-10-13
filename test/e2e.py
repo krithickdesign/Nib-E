@@ -1,4 +1,4 @@
-"""End-to-end checks for Nib v0.3, run in headless Chromium against the single-file build.
+"""End-to-end checks for Nib-E v0.3, run in headless Chromium against the single-file build.
 
 Run:  npm run build:single && python3 test/e2e.py
 Needs: playwright (Python), pikepdf, pdfplumber, poppler (pdftoppm), Pillow, numpy
@@ -175,7 +175,7 @@ def main():
         open_fixture(cp, SAMPLE, SAMPLE_NAME)
         net = cp.evaluate("fetch('https://example.com/x').then(() => 'reached', () => 'blocked')")
         ok_csp = cp.evaluate("window.__nib.store.pages.length") == 3 and cp.locator("#pages canvas").count() > 0
-        check("Network: none — with its security rules on, Nib works and cannot connect anywhere", net == "blocked" and ok_csp and cp.locator("meta[data-nib-csp]").count() == 1)
+        check("Network: none — with its security rules on, Nib-E works and cannot connect anywhere", net == "blocked" and ok_csp and cp.locator("meta[data-nib-csp]").count() == 1)
         cctx.close()
 
         # The rest runs with the rules relaxed so the test robot can drive the page.
@@ -463,10 +463,10 @@ def main():
         rp.goto(url)
         rp.wait_for_selector(".app.ready", timeout=20000)
         rp.wait_for_timeout(600)
-        check("another open Nib window does not offer live work", rp.locator("#modal[open]").count() == 0)
+        check("another open Nib-E window does not offer live work", rp.locator("#modal[open]").count() == 0)
         rp.evaluate("() => { window.__nib.setRecoveryIdle(0); window.__nib.offerRecovery(); }")
         rp.wait_for_selector("#modal[open]", timeout=10000)
-        check("after a crash, Nib offers the unsaved file", rec_name in rp.locator("#modal").inner_text())
+        check("after a crash, Nib-E offers the unsaved file", rec_name in rp.locator("#modal").inner_text())
         rp.locator("#modal .btn-primary").click()
         rp.wait_for_function("window.__nib.store.tabs.length > 0", timeout=15000)
         rp.wait_for_timeout(500)
@@ -686,8 +686,8 @@ def main():
             names = d.Root.get("/Names")
             emb = names.get("/EmbeddedFiles") if names is not None else None
             tagged = [a for a in (d.pages[0].obj.get("/Annots") or []) if a.get("/NibItem") is not None]
-            check("book file holds note pages + Nib's notes attachment", len(d.pages) == 4 and emb is not None, f"{len(d.pages)} pages")
-            check("Nib's own content is tagged in the file", len(tagged) >= 1 or b"NibItem" in d.pages[0].Contents.read_bytes() if hasattr(d.pages[0].Contents, 'read_bytes') else True)
+            check("book file holds note pages + Nib-E's notes attachment", len(d.pages) == 4 and emb is not None, f"{len(d.pages)} pages")
+            check("Nib-E's own content is tagged in the file", len(tagged) >= 1 or b"NibItem" in d.pages[0].Contents.read_bytes() if hasattr(d.pages[0].Contents, 'read_bytes') else True)
         page.evaluate(
             """async ([name, data]) => { const bin = atob(data); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); await window.__nib.openBytes(name, u); }""",
             ["study-in-file.pdf", base64.b64encode(out.read_bytes()).decode()],
@@ -695,11 +695,11 @@ def main():
         page.wait_for_timeout(800)
         b2 = page.evaluate("({ pages: window.__nib.store.pages.length, notes: window.__nib.store.notes.length, ink: window.__nib.store.notes[0]?.items.length, keep: window.__nib.store.doc.keep, imgs: window.__nib.store.pages[0].items.filter(i => i.type === 'image').length, blocked: window.__nib.store.doc.reports.some(r => r.report.findings.some(f => f.id === 'attachments')) })")
         check("opening that file gives back the book, editable notes and marks", b2["pages"] == 2 and b2["notes"] == 2 and b2["ink"] == 1 and b2["keep"] == "file" and b2["imgs"] == 1, str(b2))
-        check("Nib's own attachment is not reported as a risk", b2["blocked"] is False)
+        check("Nib-E's own attachment is not reported as a risk", b2["blocked"] is False)
         plain = export(page, {"plain": True})
         with pikepdf.open(io.BytesIO(plain)) as d:
             imgs = [x for x in d.pages[0].Resources.XObject.values() if x.get("/Subtype") == "/Image"]
-            check("...and Nib's marks were lifted off the page (not baked in)", len(d.pages) == 2 and len(imgs) == 1 and not (d.pages[0].obj.get("/Annots") or []), f"{len(imgs)} images")
+            check("...and Nib-E's marks were lifted off the page (not baked in)", len(d.pages) == 2 and len(imgs) == 1 and not (d.pages[0].obj.get("/Annots") or []), f"{len(imgs)} images")
         page.evaluate("window.__nib.store.setPrefs({ studyKeep: 'device' })")
         page.locator("#btn-study").click()
 
@@ -886,7 +886,41 @@ def main():
         hp.wait_for_timeout(500)
         check("tour does not come back after closing it", hp.locator("#help-dialog").count() == 0)
         hp.locator("#btn-help").click()
-        check("Help button opens the tour", hp.locator("#help-dialog[open]").count() == 1)
+        hp.wait_for_selector("#help-menu:not([hidden])")
+        hm = hp.locator("#help-menu").inner_text()
+        check("Help opens a menu with tour, shortcuts, feedback, survey and about", all(w in hm for w in ["Help and tour", "Keyboard shortcuts", "Send feedback", "Take the survey", "About Nib-E"]), hm.replace("\n", " | ")[:200])
+        hp.screenshot(path=str(OUT / "19-help-menu.png"))
+        hp.locator('#help-menu [data-help="tour"]').click()
+        check("...and the tour from there", hp.locator("#help-dialog[open]").count() == 1)
+        hp.keyboard.press("Escape")
+        hp.wait_for_timeout(200)
+        hp.locator("#btn-help").click()
+        hp.locator('#help-menu [data-help="feedback"]').click()
+        hp.wait_for_selector("#modal[open] .feedback")
+        hp.locator('#modal [data-kind="bug"]').click()
+        hp.locator("#fb-text").fill("Text lands on the wrong line")
+        sys_info = hp.locator("#fb-sys-text").inner_text()
+        hp.screenshot(path=str(OUT / "20-feedback.png"))
+        check("feedback: pick a kind, describe it, technical details shown (no file data)", "Nib-E 0.5.0-beta" in sys_info and hp.locator("#modal [data-fb='copy']").is_visible() and hp.locator("#modal [data-fb='send']").is_visible(), sys_info)
+        hp.evaluate("() => { window.__opened = null; window.__realOpen = window.open; window.open = (u) => { window.__opened = u; return null; }; }")
+        hp.locator("#modal [data-fb='send']").click()
+        hp.wait_for_timeout(300)
+        opened = hp.evaluate("window.__opened") or ""
+        hp.evaluate("() => { window.open = window.__realOpen; }")
+        check("feedback opens the Google feedback form", "docs.google.com/forms" in opened, opened[:80])
+        # Theme switch
+        hp.evaluate("window.__nib.store.setPrefs({ theme: 'dark' })")
+        dark = hp.evaluate("[document.documentElement.dataset.theme, getComputedStyle(document.documentElement).getPropertyValue('--desk').trim()]")
+        hp.evaluate("window.__nib.store.setPrefs({ theme: 'light' })")
+        light = hp.evaluate("[document.documentElement.dataset.theme, getComputedStyle(document.documentElement).getPropertyValue('--desk').trim()]")
+        hp.evaluate("window.__nib.store.setPrefs({ theme: 'system' })")
+        check("Settings: light / dark switch", dark == ["dark", "#0d0f15"] and light == ["light", "#e7eaf2"] and hp.evaluate("document.documentElement.dataset.theme") is None, f"{dark} {light}")
+        # Logo opens the start page in a new tab
+        with hctx.expect_page() as newp:
+            hp.locator(".brand").click()
+        np_ = newp.value
+        np_.wait_for_selector(".app.ready", timeout=20000)
+        check("logo opens the start page in a new tab", np_.locator("#empty").is_visible() and "nib-e" in (hp.locator(".brand-word").text_content() or ""))
         hctx.close()
 
         # ---- phone + dark ----
@@ -950,9 +984,9 @@ def main():
         fctx = browser.new_context(bypass_csp=True, viewport={"width": 1280, "height": 820}, accept_downloads=True)
         fctx.add_init_script("try { localStorage.setItem('nib.help.v1', '1'); } catch (e) {}")
         f = fctx.new_page()
-        f.goto((ROOT / "dist-single" / "Nib.html").as_uri())
+        f.goto((ROOT / "dist-single" / "Nib-E.html").as_uri())
         f.wait_for_selector(".app.ready", timeout=20000)
-        check("Nib.html starts when opened from disk", True)
+        check("Nib-E.html starts when opened from disk", True)
         f.set_input_files("#file-open", str(FIX / "second.pdf"))
         f.wait_for_function("window.__nib.store.doc && window.__nib.store.doc.name === 'second.pdf'", timeout=10000)
         check("opening a file from the empty start gives one tab", f.evaluate("window.__nib.store.tabs.length") == 1)
@@ -1031,7 +1065,7 @@ def main():
         s = sctx.new_page()
         s.goto((ROOT / "index.html").as_uri())
         s.wait_for_selector("#nib-not-started", timeout=15000)
-        check("source index.html explains itself instead of hanging", "Nib.html" in s.locator("#nib-not-started").inner_text())
+        check("source index.html explains itself instead of hanging", "Nib-E.html" in s.locator("#nib-not-started").inner_text())
         sctx.close()
         browser.close()
 

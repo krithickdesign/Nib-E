@@ -113,7 +113,7 @@ function inkSpans(page: number, r: { x: number; y: number; w: number; h: number 
   const clip = malloc(16);
   try {
     m.FPDFBitmap_FillRect(bmp, 0, 0, W, Hh, 0xffffffff);
-    // Pages are loaded without /Rotate, so render space = Nib page points.
+    // Pages are loaded without /Rotate, so render space = Nib-E page points.
     new Float32Array(heap().buffer, mat, 6).set([s, 0, 0, s, -r.x * s, -r.y * s]);
     new Float32Array(heap().buffer, clip, 4).set([0, 0, W, Hh]);
     m.FPDF_RenderPageBitmapWithMatrix(bmp, page, mat, clip, 0);

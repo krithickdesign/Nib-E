@@ -1,4 +1,4 @@
-# Builds the Nib desktop app for Windows, macOS and Linux on GitHub's own
+# Builds the Nib-E desktop app for Windows, macOS and Linux on GitHub's own
 # computers (free for public repositories) and attaches the installers to a
 # draft release. Start it from the Actions tab ("Run workflow"), or push a tag
 # like v0.4.0.
@@ -54,23 +54,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # "Get the latest version" in Settings opens this page in the browser.
           NIB_WEBSITE: https://github.com/${{ github.repository }}/releases/latest
+          VITE_NIB_REPO: https://github.com/${{ github.repository }}
         with:
           tagName: v__VERSION__
-          releaseName: "Nib __VERSION__ (beta)"
+          releaseName: "Nib-E __VERSION__ (beta)"
           releaseBody: |
-            **Nib desktop app (beta).** Works fully offline: no account, no uploads, no network access.
+            **Nib-E desktop app (beta).** Works fully offline: no account, no uploads, no network access.
 
             **Which file?**
-            - Windows: `Nib_…_x64-setup.exe` (no admin rights needed) or the `.msi`
-            - macOS (Apple silicon and Intel): `Nib_…_universal.dmg`
+            - Windows: `Nib-E_…_x64-setup.exe` (no admin rights needed) or the `.msi`
+            - macOS (Apple silicon and Intel): `Nib-E_…_universal.dmg`
             - Linux: `.AppImage` (any distribution) or `.deb` (Ubuntu, Debian)
 
             **The installers are not signed yet, so your computer warns you the first time:**
             - Windows: "Windows protected your PC" → click **More info** → **Run anyway**.
-            - macOS: "Nib cannot be opened" → open **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to Nib, then open Nib again.
-            - Linux: make the AppImage executable (`chmod +x Nib_*.AppImage`), then run it.
+            - macOS: "Nib-E cannot be opened" → open **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to Nib-E, then open Nib-E again.
+            - Linux: make the AppImage executable (`chmod +x Nib-E_*.AppImage`), then run it.
 
-            Nib never checks for updates by itself. To update, download the new version here and install it over the old one; settings and study notes are kept.
+            Nib-E never checks for updates by itself. To update, download the new version here and install it over the old one; settings and study notes are kept.
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.args }}

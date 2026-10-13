@@ -1,4 +1,4 @@
-// Safe-mode document check. Nib never runs scripts (its PDF engine is built
+// Safe-mode document check. Nib-E never runs scripts (its PDF engine is built
 // without a JavaScript runtime), never opens attachments and never follows
 // links. This report tells the reader what the file contains anyway.
 import { malloc, free, openRaw, pdfium } from './pdfium';
@@ -92,24 +92,24 @@ export function checkDocument(bytes: Uint8Array, password = ''): CheckReport {
     if (scripts) {
       findings.push({
         id: 'scripts', level: 'blocked', count: scripts, title: 'Scripts',
-        detail: kw['/OpenAction'] ? 'This file tries to run code. Some of it may start when the file opens. Nib cannot run scripts, so none of it ran.' : 'This file contains code. Nib cannot run scripts, so none of it ran.',
+        detail: kw['/OpenAction'] ? 'This file tries to run code. Some of it may start when the file opens. Nib-E cannot run scripts, so none of it ran.' : 'This file contains code. Nib-E cannot run scripts, so none of it ran.',
       });
     }
     const launches = Math.max(launch, kw['/Launch']);
     if (launches) {
-      findings.push({ id: 'launch', level: 'blocked', count: launches, title: 'Program launchers', detail: 'Links that try to open programs or files on your computer. Nib ignores them.' });
+      findings.push({ id: 'launch', level: 'blocked', count: launches, title: 'Program launchers', detail: 'Links that try to open programs or files on your computer. Nib-E ignores them.' });
     }
     if (kw['/SubmitForm'] || kw['/ImportData']) {
-      findings.push({ id: 'submit', level: 'blocked', count: kw['/SubmitForm'] + kw['/ImportData'], title: 'Form submission', detail: 'Buttons that send form data to a server. Nib never sends anything.' });
+      findings.push({ id: 'submit', level: 'blocked', count: kw['/SubmitForm'] + kw['/ImportData'], title: 'Form submission', detail: 'Buttons that send form data to a server. Nib-E never sends anything.' });
     }
     if (attachments || kw['/EmbeddedFile']) {
-      findings.push({ id: 'attachments', level: 'blocked', count: Math.max(attachments, kw['/EmbeddedFile'] ? 1 : 0), title: 'Attached files', detail: 'Files hidden inside this PDF. Nib does not open or extract them.' });
+      findings.push({ id: 'attachments', level: 'blocked', count: Math.max(attachments, kw['/EmbeddedFile'] ? 1 : 0), title: 'Attached files', detail: 'Files hidden inside this PDF. Nib-E does not open or extract them.' });
     }
     if (kw['/RichMedia']) {
-      findings.push({ id: 'media', level: 'blocked', count: kw['/RichMedia'], title: 'Embedded media', detail: 'Video, audio or Flash content. Nib does not play it.' });
+      findings.push({ id: 'media', level: 'blocked', count: kw['/RichMedia'], title: 'Embedded media', detail: 'Video, audio or Flash content. Nib-E does not play it.' });
     }
     if (remote || kw['/GoToR'] || kw['/GoToE']) {
-      findings.push({ id: 'remote', level: 'blocked', count: Math.max(remote, kw['/GoToR'] + kw['/GoToE']), title: 'Links to other files', detail: 'Jumps into other documents. Nib does not follow them.' });
+      findings.push({ id: 'remote', level: 'blocked', count: Math.max(remote, kw['/GoToR'] + kw['/GoToE']), title: 'Links to other files', detail: 'Jumps into other documents. Nib-E does not follow them.' });
     }
     if (web) {
       findings.push({ id: 'web', level: 'note', count: web, title: 'Web links', detail: 'Links to websites. They are not clickable in safe mode.' });
@@ -117,10 +117,10 @@ export function checkDocument(bytes: Uint8Array, password = ''): CheckReport {
     if (formType === 1) {
       findings.push({ id: 'form', level: 'note', count: 1, title: 'Fillable form', detail: 'Text fields and checkboxes you can fill with the hand tool.' });
     } else if (formType === 2 || formType === 3 || kw['/XFA']) {
-      findings.push({ id: 'xfa', level: 'note', count: 1, title: 'XFA form', detail: 'An older dynamic form type. Nib shows it but cannot fill it yet.' });
+      findings.push({ id: 'xfa', level: 'note', count: 1, title: 'XFA form', detail: 'An older dynamic form type. Nib-E shows it but cannot fill it yet.' });
     }
     if (signatures) {
-      findings.push({ id: 'signatures', level: 'note', count: signatures, title: 'Digital signatures', detail: 'Nib shows signed files but does not verify signatures yet. Saving changes breaks an existing signature.' });
+      findings.push({ id: 'signatures', level: 'note', count: signatures, title: 'Digital signatures', detail: 'Nib-E shows signed files but does not verify signatures yet. Saving changes breaks an existing signature.' });
     }
     return { findings, encrypted: false, pagesScanned, pageCount };
   } finally {

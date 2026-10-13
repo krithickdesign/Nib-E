@@ -92,7 +92,7 @@ function rawFor(srcId: string): RawDoc | null {
   return r;
 }
 
-/** Characters of a document page (cached). Pages added by Nib have none. */
+/** Characters of a document page (cached). Pages added by Nib-E have none. */
 export function pageChars(p: PageEntry): PChar[] {
   if (p.src === null) return [];
   const key = `${p.src}:${p.index}`;
@@ -172,7 +172,7 @@ function newState(name: string, source: Source, report: DocState['reports'][numb
 
 export interface OpenOptions {
   isSample?: boolean;
-  /** Where the file is on disk, when Nib may save back to it. */
+  /** Where the file is on disk, when Nib-E may save back to it. */
   ref?: FileRef | null;
 }
 
@@ -199,7 +199,7 @@ export async function openBytes(name: string, bytes: Uint8Array, opts: OpenOptio
       content = found.clean;
     }
   } catch (e) {
-    console.warn('could not read Nib notes in this file', e);
+    console.warn('could not read Nib-E notes in this file', e);
   }
   const { source, report } = await load(name, content);
   const state = newState(name, source, report, isSample);
@@ -305,7 +305,7 @@ export interface ExportOptions {
   keys?: string[];
   includeNotes?: boolean;
   fillable?: boolean;
-  /** Leave out everything Nib added (the pages as they are, in the current order). */
+  /** Leave out everything Nib-E added (the pages as they are, in the current order). */
   plain?: boolean;
   /** Turn annotations and form fields into fixed page content. */
   flatten?: boolean;

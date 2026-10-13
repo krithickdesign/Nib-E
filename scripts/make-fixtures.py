@@ -51,11 +51,11 @@ def working_space(c, x, y, w, rows, gap=22):
 def make_sample():
     w, h = A4
     c = canvas.Canvas(str(SAMPLE), pagesize=A4)
-    c.setTitle("Heat Transfer - Worksheet 3 (Nib sample)")
-    c.setAuthor("Nib sample document")
+    c.setTitle("Heat Transfer - Worksheet 3 (Nib-E sample)")
+    c.setAuthor("Nib-E sample document")
 
     # Page 1: worksheet with a fillable form
-    header(c, w, h, "Heat Transfer · Worksheet 3", "Conduction through plane walls  ·  Sample document bundled with Nib")
+    header(c, w, h, "Heat Transfer · Worksheet 3", "Conduction through plane walls  ·  Sample document bundled with Nib-E")
     form = c.acroForm
     c.setFont("Helvetica", 10)
     c.setFillColor(MUTED)

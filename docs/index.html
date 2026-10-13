@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Nib · a private PDF editor</title>
+    <title>Nib-E · a private PDF editor</title>
     <meta name="description" content="Read, fill, sign, draw on and redact PDFs in your browser. Your files never leave your device. No account, no uploads, no AI." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.5 5.5 12 8 4.5h8l2.5 7.5z' fill='%232f3fd6'/%3E%3Cpath d='M12 21.5V13' stroke='%23fff' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='11.6' r='1.6' fill='%23fff'/%3E%3C/svg%3E" />
     <!-- Everything on this page is served from this site: no trackers, no outside fonts. -->
@@ -291,7 +291,51 @@
         font-size: 14.5px;
         padding: 10px 12px;
         border-radius: 10px;
-        background: color-mix(in srgb, var(--accent) 7%, transparent);
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-line);
+        color: var(--warn-fg);
+      }
+      .callout {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        margin-top: 22px;
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-line);
+        border-left: 6px solid var(--warn-strong);
+        color: var(--warn-fg);
+        font-size: 16px;
+        line-height: 1.55;
+      }
+      .callout svg {
+        flex: none;
+        width: 26px;
+        height: 26px;
+        color: var(--warn-strong);
+        margin-top: 1px;
+      }
+      .callout p {
+        margin: 0;
+      }
+      .callout a {
+        color: inherit;
+        font-weight: 600;
+      }
+      :root {
+        --warn-bg: #fff4d6;
+        --warn-line: #f2cf74;
+        --warn-strong: #c98a00;
+        --warn-fg: #4a3300;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --warn-bg: #33270b;
+          --warn-line: #6b5212;
+          --warn-strong: #f0b93a;
+          --warn-fg: #f6e3b4;
+        }
       }
       .features {
         list-style: none;
@@ -392,14 +436,14 @@
 
     <div class="wrap">
       <header class="top">
-        <a class="brand" href="./" aria-label="Nib home"><svg><use href="#i-nib" /></svg><span>nib</span></a>
+        <a class="brand" href="./" aria-label="Nib-E home"><svg><use href="#i-nib" /></svg><span>nib-e</span></a>
         <span class="pill">Beta</span>
         <span class="grow"></span>
         <a class="navlink hide-sm" href="#privacy">Privacy</a>
         <a class="navlink hide-sm" href="#features">Features</a>
         <a class="navlink hide-sm" href="#download">Desktop app</a>
         <a class="navlink" data-gh href="#">GitHub</a>
-        <a class="btn sm primary" href="app/">Open Nib</a>
+        <a class="btn sm primary" href="app/">Open Nib-E</a>
       </header>
 
       <main>
@@ -407,22 +451,22 @@
           <h1>A PDF editor that <em>keeps your files to yourself.</em></h1>
           <p class="lead">Read, fill, sign, draw on, redact and organise PDFs right in your browser. Nothing is uploaded. No account, no tracking, no AI.</p>
           <div class="ctas">
-            <a class="btn primary" href="app/">Open Nib <svg><use href="#i-open" /></svg></a>
+            <a class="btn primary" href="app/">Open Nib-E <svg><use href="#i-open" /></svg></a>
             <a class="btn" href="#download"><svg><use href="#i-down" /></svg> Desktop app</a>
           </div>
           <p class="fine">Works in Chrome, Edge, Firefox and Safari, also on phones and tablets · Or install the desktop app for Windows, macOS and Linux.</p>
         </div>
 
-        <figure class="shot"><img src="assets/fill.webp" width="3200" height="2000" alt="Nib filling in a membership form: answers typed into the boxes, a radio button and a checkbox ticked, Fill and Sign panel on the right." /></figure>
+        <figure class="shot"><img src="assets/fill.webp" width="3200" height="2000" alt="Nib-E filling in a membership form: answers typed into the boxes, a radio button and a checkbox ticked, Fill and Sign panel on the right." /></figure>
 
         <section id="privacy">
           <p class="kicker">Private by design</p>
           <h2>Your PDFs never leave your computer.</h2>
-          <p class="lead">Most online PDF tools upload your documents to their servers. Nib does all the work inside your browser, so contracts, IDs and exam papers stay with you.</p>
+          <p class="lead">Most online PDF tools upload your documents to their servers. Nib-E does all the work inside your browser, so contracts, IDs and exam papers stay with you.</p>
           <div class="privacy">
             <div class="card"><svg><use href="#i-offline" /></svg><h3>Network: none</h3><p>Opening, editing and saving happen on your device. The desktop app has no internet permission at all, and the web version is blocked from connecting anywhere once loaded.</p></div>
             <div class="card"><svg><use href="#i-eye" /></svg><h3>No account, no tracking, no AI</h3><p>Nothing about you or your files is collected. No AI service ever sees your text.</p></div>
-            <div class="card"><svg><use href="#i-shield" /></svg><h3>Safe mode</h3><p>Scripts inside PDFs never run and links can't open anything by themselves. Nib shows what it blocked.</p></div>
+            <div class="card"><svg><use href="#i-shield" /></svg><h3>Safe mode</h3><p>Scripts inside PDFs never run and links can't open anything by themselves. Nib-E shows what it blocked.</p></div>
           </div>
         </section>
 
@@ -430,35 +474,35 @@
           <p class="kicker">What it does</p>
           <h2>Everyday PDF tools, without the subscription.</h2>
           <ul class="features">
-            <li><svg><use href="#i-fill" /></svg><div><strong>Fill any form</strong><span>Even forms without form fields: Nib finds the boxes, lines and tick boxes and asks if you want to fill them. Text matches the form's font.</span></div></li>
+            <li><svg><use href="#i-fill" /></svg><div><strong>Fill any form</strong><span>Even forms without form fields: Nib-E finds the boxes, lines and tick boxes and asks if you want to fill them. Text matches the form's font.</span></div></li>
             <li><svg><use href="#i-sign" /></svg><div><strong>Sign</strong><span>Draw your signature once, place it anywhere, keep it on this device if you like.</span></div></li>
             <li><svg><use href="#i-pen" /></svg><div><strong>Write like on paper</strong><span>Pen and highlighter with stylus pressure and palm rejection. Choose how much your writing is smoothed: precise for handwriting, smooth for diagrams.</span></div></li>
             <li><svg><use href="#i-study" /></svg><div><strong>Study mode</strong><span>Your PDF beside a lined, grid or blank notebook. Notes are kept as you write and come back, at the page where you stopped, when you open the book again. The book file stays untouched unless you choose otherwise.</span></div></li>
             <li><svg><use href="#i-stamp" /></svg><div><strong>Comments and stamps</strong><span>Sticky notes, highlights, shapes, ready-made stamps, or design your own stamp and reuse it.</span></div></li>
-            <li><svg><use href="#i-redact" /></svg><div><strong>Redaction that really removes</strong><span>Text under the box is deleted and picture pixels erased. Nib checks the result before you save.</span></div></li>
+            <li><svg><use href="#i-redact" /></svg><div><strong>Redaction that really removes</strong><span>Text under the box is deleted and picture pixels erased. Nib-E checks the result before you save.</span></div></li>
             <li><svg><use href="#i-pages" /></svg><div><strong>Pages and files</strong><span>Insert, rotate, reorder, delete and extract pages. Combine PDFs, compress, add a password, export images.</span></div></li>
             <li><svg><use href="#i-tabs" /></svg><div><strong>Several files at once</strong><span>Each PDF opens in its own tab. Save writes back to the file you opened, the earlier version can be restored, and unsaved work survives a crash.</span></div></li>
           </ul>
           <div class="shots" style="margin-top: 40px">
             <figure><div class="shot"><img src="assets/study.webp" width="3200" height="2000" loading="lazy" alt="Study mode: a physics worksheet with highlighted lines on the left, handwritten notes on lined paper on the right." /></div><figcaption>Study mode: highlight on the left, work it out on the right.</figcaption></figure>
-            <figure><div class="shot"><img src="assets/ask.webp" width="3200" height="2000" loading="lazy" alt="Nib asking: Fill in this form? Nib found 9 places to fill in. Buttons: Not now, Make fillable." /></div><figcaption>Forms without fields: Nib finds the places to fill in and asks first.</figcaption></figure>
+            <figure><div class="shot"><img src="assets/ask.webp" width="3200" height="2000" loading="lazy" alt="Nib-E asking: Fill in this form? Nib-E found 9 places to fill in. Buttons: Not now, Make fillable." /></div><figcaption>Forms without fields: Nib-E finds the places to fill in and asks first.</figcaption></figure>
           </div>
         </section>
 
         <section id="download">
           <p class="kicker">Desktop app</p>
-          <h2>Install Nib. It never goes online.</h2>
-          <p class="lead">Same Nib, as a normal app: opens PDFs from your file manager (“Open with Nib”), saves straight back to the file, and has no permission to use the internet. Free, no account.</p>
+          <h2>Install Nib-E. It never goes online.</h2>
+          <p class="lead">Same Nib-E, as a normal app: opens PDFs from your file manager (“Open with Nib-E”), saves straight back to the file, and has no permission to use the internet. Free, no account.</p>
           <div class="privacy dl">
             <div class="card">
               <h3>Windows</h3>
-              <p><a data-gh-releases href="#">Download</a> <code>Nib_…_x64-setup.exe</code> (no admin rights needed).</p>
+              <p><a data-gh-releases href="#">Download</a> <code>Nib-E_…_x64-setup.exe</code> (no admin rights needed).</p>
               <p class="warn"><strong>First start:</strong> Windows shows “Windows protected your PC”. Click <strong>More info</strong>, then <strong>Run anyway</strong>.</p>
             </div>
             <div class="card">
               <h3>macOS</h3>
-              <p><a data-gh-releases href="#">Download</a> <code>Nib_…_universal.dmg</code> (Apple silicon and Intel).</p>
-              <p class="warn"><strong>First start:</strong> macOS says Nib cannot be opened. Open <strong>System Settings → Privacy &amp; Security</strong>, scroll down, click <strong>Open Anyway</strong>.</p>
+              <p><a data-gh-releases href="#">Download</a> <code>Nib-E_…_universal.dmg</code> (Apple silicon and Intel).</p>
+              <p class="warn"><strong>First start:</strong> macOS says Nib-E cannot be opened. Open <strong>System Settings → Privacy &amp; Security</strong>, scroll down, click <strong>Open Anyway</strong>.</p>
             </div>
             <div class="card">
               <h3>Linux</h3>
@@ -466,27 +510,27 @@
               <p class="warn">Make the AppImage executable (right-click → Properties → Allow executing), then double-click it.</p>
             </div>
           </div>
-          <p class="fine">Why the warnings? The installers are not signed with a paid certificate yet. The app is built openly from this source code by GitHub. Nib never checks for updates by itself: download a newer version here and install it over the old one (settings and study notes are kept). Prefer no install at all? <a href="app/index.html" download="Nib.html">Download Nib.html</a>, a single file that opens in your browser and works offline.</p>
+          <div class="callout" role="note"><svg><use href="#i-shield" /></svg><p><strong>Why the warnings?</strong> The installers are not signed with a paid certificate yet. The app is built openly from this source code by GitHub. Nib-E never checks for updates by itself: download a newer version here and install it over the old one (settings and study notes are kept). Prefer no install at all? <a href="app/index.html" download="Nib-E.html">Download Nib-E.html</a>, a single file that opens in your browser and works offline.</p></div>
         </section>
 
         <section id="beta">
           <div class="beta">
             <div>
-              <p class="kicker">Help test Nib</p>
+              <p class="kicker">Help test Nib-E</p>
               <h2>This is a beta. Tell us what breaks.</h2>
-              <p class="lead">Try Nib with your own PDFs: forms, lecture slides, scans, long reports. Every report helps.</p>
+              <p class="lead">Try Nib-E with your own PDFs: forms, lecture slides, scans, long reports. Every report helps.</p>
             </div>
             <ol>
-              <li><strong>Open Nib</strong> and use it like you normally use a PDF reader.</li>
+              <li><strong>Open Nib-E</strong> and use it like you normally use a PDF reader.</li>
               <li>Something odd? Note what you did and which browser you use.</li>
-              <li><a data-gh-issues href="#">Open an issue on GitHub</a> (a screenshot helps). Please don't attach private documents.</li>
+              <li><a href="https://docs.google.com/forms/d/e/1FAIpQLSfy3FUAR3hxknKPvrZi9NFxmflDDaBQQIV0PNaT5af3yO8xDA/viewform" target="_blank" rel="noopener">Tell us in the feedback form</a> (no account needed), or use <strong>Help → Send feedback</strong> in Nib-E. Please don't attach private documents.</li>
             </ol>
           </div>
         </section>
       </main>
 
       <footer>
-        <span>Nib 0.4.0 beta · MIT licence</span>
+        <span>Nib-E 0.5.0 beta · part of the Desk-E family · MIT licence</span>
         <span>Built on PDFium (the engine inside Chrome) via EmbedPDF</span>
         <a data-gh href="#">Source on GitHub</a>
         <span>This site uses no cookies and no analytics.</span>

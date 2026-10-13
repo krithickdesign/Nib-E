@@ -1,6 +1,6 @@
-// Opening and saving files, wherever Nib runs:
-//  - desktop app (Tauri): the system Open / Save windows; Nib can write back to
-//    the file it opened. Only files the person picked (or opened with Nib) can be
+// Opening and saving files, wherever Nib-E runs:
+//  - desktop app (Tauri): the system Open / Save windows; Nib-E can write back to
+//    the file it opened. Only files the person picked (or opened with Nib-E) can be
 //    read or written, enforced in src-tauri/src/lib.rs.
 //  - Chrome / Edge: the same Open / Save windows through the File System Access API.
 //  - Firefox / Safari: no Save window exists for web pages; files are downloaded
@@ -10,7 +10,7 @@ import { inFrame, invoke, isDesktop } from './env';
 
 export type SaveResult = 'saved' | 'cancelled';
 
-/** Where a document lives on disk, if Nib may write back to it. */
+/** Where a document lives on disk, if Nib-E may write back to it. */
 export type FileRef = { kind: 'fsa'; handle: FsHandle } | { kind: 'path'; path: string };
 
 export interface FsHandle {
@@ -50,7 +50,7 @@ const PDF_TYPE: PickerType = { description: 'PDF document', accept: { 'applicati
 
 function typeFor(mime: string, ext: string): PickerType {
   if (mime === 'application/pdf') return PDF_TYPE;
-  const label = mime === 'application/zip' ? 'ZIP archive' : mime === 'text/plain' ? 'Text file' : mime === 'application/json' ? 'Nib notes backup' : 'Image';
+  const label = mime === 'application/zip' ? 'ZIP archive' : mime === 'text/plain' ? 'Text file' : mime === 'application/json' ? 'Nib-E notes backup' : 'Image';
   return { description: label, accept: { [mime]: [ext] } };
 }
 
@@ -68,7 +68,7 @@ export function hasSaveWindow(): boolean {
   return isDesktop() || (!!window.showSaveFilePicker && !inFrame());
 }
 
-/** True when Nib can write over a file it opened. */
+/** True when Nib-E can write over a file it opened. */
 export function canWriteBack(ref: FileRef | null): boolean {
   return !!ref && (ref.kind === 'path' || !inFrame());
 }
@@ -162,7 +162,7 @@ export async function writeRef(ref: FileRef, bytes: Uint8Array): Promise<void> {
     await invoke('write_file', bytes, { headers: { 'x-nib-path': encodeURIComponent(ref.path) } });
     return;
   }
-  if (!(await ensureWritable(ref.handle))) throw new Error('Nib was not allowed to change this file. Use Save as to save a copy.');
+  if (!(await ensureWritable(ref.handle))) throw new Error('Nib-E was not allowed to change this file. Use Save as to save a copy.');
   const w = await ref.handle.createWritable();
   try {
     await w.write(new Blob([bytes as BlobPart]));
@@ -185,7 +185,7 @@ export async function readRef(ref: FileRef): Promise<Uint8Array | null> {
 
 export interface SaveAsResult {
   status: SaveResult;
-  /** Where it was written, when Nib can write there again (not for downloads). */
+  /** Where it was written, when Nib-E can write there again (not for downloads). */
   ref: FileRef | null;
   name: string;
   /** The file went to the browser's downloads (no Save window here). */

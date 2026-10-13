@@ -1,5 +1,5 @@
 // Stroke geometry. The same outline function feeds the screen and the saved
-// PDF, so ink looks identical in Nib and in other PDF readers.
+// PDF, so ink looks identical in Nib-E and in other PDF readers.
 import { getStroke } from 'perfect-freehand';
 import type { InkItem } from '../model';
 

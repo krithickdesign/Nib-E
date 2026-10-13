@@ -220,7 +220,7 @@ function collectFields(out: OutField[], pageIndex: number, e: PageEntry, box: Bo
 
 const f2 = (n: number) => (Math.round(n * 100) / 100).toString();
 
-/** Writes Nib content onto one output page. */
+/** Writes Nib-E content onto one output page. */
 class Writer {
   private m = pdfium();
   private dirty = false;
@@ -237,7 +237,7 @@ class Writer {
   }
 
   private insert(obj: number): void {
-    // Tagged so Nib can find its own content again (see nibdata.ts).
+    // Tagged so Nib-E can find its own content again (see nibdata.ts).
     this.m.FPDFPageObj_AddMark(obj, NIB_TAG);
     this.m.FPDFPage_InsertObject(this.page, obj);
     this.dirty = true;

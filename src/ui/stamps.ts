@@ -1,4 +1,4 @@
-// "My stamps": stamps people design in Nib or upload as PNG. They are kept in
+// "My stamps": stamps people design in Nib-E or upload as PNG. They are kept in
 // this browser only (localStorage) and placed on pages as transparent images.
 import { loadImage } from '../doc';
 import { store } from '../store';
@@ -29,7 +29,7 @@ export interface El {
 export interface MyStamp {
   id: string;
   name: string;
-  /** Designed in Nib (editable) or an uploaded picture. */
+  /** Designed in Nib-E (editable) or an uploaded picture. */
   design?: El[];
   png?: string;
   /** Small preview for the list. */

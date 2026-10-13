@@ -28,6 +28,8 @@ import { droppedRefs, hasSaveWindow, pickPdfs, prepareSaving, readPath, setDownl
 import { exportBackup, exportFlattened, exportNotesOnly, exportText, exportWithNotes, printDoc, restoreBackup, saveDoc, saveDocAs } from './saving';
 import { LibraryView } from './ui/libraryview';
 import { askPrint, saveHint, SaveMenu, type MenuAction } from './ui/savemenu';
+import { HelpMenu } from './ui/helpmenu';
+import { APP_NAME } from './config';
 import { MAX_TABS, store, type DocState, type Tool } from './store';
 import { ContextBar } from './ui/contextbar';
 import { ask } from './ui/dialog';
@@ -97,7 +99,7 @@ function setupChrome(): void {
   label('btn-study', 'study', 'Study', 'Study mode: PDF beside a notebook');
   label('btn-full', 'fullscreen', 'Full page', 'Full page (F)');
   label('btn-tools', 'tools', 'Tools', 'Show or hide all tools');
-  label('btn-help', 'help', 'Help', 'How Nib works');
+  label('btn-help', 'help', 'Help', 'Help, shortcuts and feedback');
   $('exit-full').innerHTML = `${icon('exitFull')}<span>Exit full page</span>`;
   $('full-study').innerHTML = `${icon('study')}<span>Notes</span>`;
   $('full-study').title = 'Show or hide the notebook';
@@ -118,7 +120,26 @@ function setupChrome(): void {
   $('btn-study').addEventListener('click', () => store.setStudy(!store.study));
   $('btn-full').addEventListener('click', () => store.setFullpage(true));
   $('btn-tools').addEventListener('click', () => store.setPrefs({ rightOpen: !store.prefs.rightOpen }));
-  $('btn-help').addEventListener('click', () => openHelp());
+  const helpMenu = new HelpMenu($('btn-help'), $('help-menu'));
+  $('btn-help').setAttribute('aria-haspopup', 'menu');
+  $('btn-help').setAttribute('aria-expanded', 'false');
+  $('btn-help').addEventListener('click', () => helpMenu.toggle());
+  // The logo opens the start page in a new window (or tab), next to the open files.
+  const brand = document.querySelector('.brand') as HTMLElement;
+  brand.setAttribute('role', 'button');
+  brand.tabIndex = 0;
+  brand.title = `New ${APP_NAME} ${isDesktop() ? 'window' : 'tab'} (start page)`;
+  const openStart = () => {
+    if (isDesktop()) void invoke('new_window').catch((e) => toast(String(e), 'error'));
+    else window.open(location.href.split('#')[0], '_blank');
+  };
+  brand.addEventListener('click', openStart);
+  brand.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openStart();
+    }
+  });
   $('exit-full').addEventListener('click', () => store.setFullpage(false));
   $('full-study').addEventListener('click', () => store.setStudy(!store.study));
   $('btn-check').addEventListener('click', () => store.setPanel(store.panel === 'check' && store.prefs.rightOpen ? 'home' : 'check'));
@@ -204,6 +225,13 @@ function applyUiScale(): void {
   }
 }
 
+/** Light / dark: follow the system unless chosen in Settings. */
+function applyTheme(): void {
+  const t = store.prefs.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+
 function renderLayout(): void {
   const p = store.prefs;
   app.classList.toggle('left-closed', !p.leftOpen);
@@ -273,7 +301,10 @@ function setupNotebookBar(): void {
 function setupLayout(): void {
   store.on((why) => {
     if (why === 'prefs' || why === 'mode' || why === 'notes' || why === 'doc' || why === 'tabs') renderLayout();
-    if (why === 'prefs') applyUiScale();
+    if (why === 'prefs') {
+      applyUiScale();
+      applyTheme();
+    }
     if (why === 'doc' && !store.doc && store.fullpage) store.setFullpage(false);
     if ((why === 'mode' || why === 'doc') && store.study && store.doc && !store.notes.length) {
       // A fresh notebook starts with one lined page.
@@ -321,6 +352,7 @@ function setupLayout(): void {
     notebook.fit('width');
   });
   applyUiScale();
+  applyTheme();
   renderLayout();
 }
 
@@ -553,7 +585,7 @@ function setupFieldsAsk(): void {
       <span class="ask-ico">${icon('wand')}</span>
       <div class="ask-text">
         <strong>Fill in this form?</strong>
-        <p>Nib found <b>${n}</b> place${n === 1 ? '' : 's'} to fill in${pages > 1 ? ` on ${pages} pages` : ''}${doc!.detecting ? ' so far' : ''}. Turn them into boxes you can type in?</p>
+        <p>Nib-E found <b>${n}</b> place${n === 1 ? '' : 's'} to fill in${pages > 1 ? ` on ${pages} pages` : ''}${doc!.detecting ? ' so far' : ''}. Turn them into boxes you can type in?</p>
         <div class="ask-actions"><button class="btn btn-quiet sm" type="button" data-a="no">Not now</button><button class="btn btn-primary sm" type="button" data-a="yes">${icon('wand')}Make fillable</button></div>
       </div>
       <button class="icon-btn sm ask-x" type="button" data-a="no" aria-label="Not now">${icon('close')}</button>`;
@@ -857,7 +889,7 @@ function setupStorage(): void {
     if (seen) toast('Saved to your Downloads folder.', 'ok');
     else
       toast(
-        'Saved to your Downloads folder. This browser has no Save window for web pages. To choose a folder each time, turn on “Always ask where to save files” in the browser settings, or use Chrome, Edge or the Nib desktop app.',
+        'Saved to your Downloads folder. This browser has no Save window for web pages. To choose a folder each time, turn on “Always ask where to save files” in the browser settings, or use Chrome, Edge or the Nib-E desktop app.',
         'info',
         12000,
       );
@@ -865,7 +897,7 @@ function setupStorage(): void {
   startAutosave();
 }
 
-/** Offers work that was not saved when Nib closed (crash, closed tab). */
+/** Offers work that was not saved when Nib-E closed (crash, closed tab). */
 async function offerRecovery(): Promise<void> {
   const list = await pendingRecovery();
   if (!list.length) return;
@@ -875,7 +907,7 @@ async function offerRecovery(): Promise<void> {
     .join('');
   const res = await ask({
     title: list.length === 1 ? 'Unsaved changes found' : `Unsaved changes in ${list.length} files`,
-    body: `<p>Nib closed before these were saved. Restore them?</p><ul class="plain-list">${names}</ul>`,
+    body: `<p>Nib-E closed before these were saved. Restore them?</p><ul class="plain-list">${names}</ul>`,
     actions: [
       { label: 'Discard', value: 'discard', kind: 'quiet' },
       { label: 'Later', value: 'later' },
@@ -897,7 +929,7 @@ async function closeApp(): Promise<void> {
   if (un.length) {
     const res = await ask({
       title: un.length === 1 ? `Save changes to “${un[0].name}”?` : `${un.length} files have unsaved changes`,
-      body: `<p>If you close Nib now, these changes are lost:</p><ul class="plain-list">${un.map((t) => `<li>${esc(t.name)}</li>`).join('')}</ul>`,
+      body: `<p>If you close Nib-E now, these changes are lost:</p><ul class="plain-list">${un.map((t) => `<li>${esc(t.name)}</li>`).join('')}</ul>`,
       actions: [
         { label: 'Cancel', value: 'cancel', kind: 'quiet' },
         { label: 'Close without saving', value: 'close', kind: 'danger' },
@@ -913,7 +945,7 @@ async function setupDesktop(): Promise<void> {
   if (!isDesktop()) return;
   app.classList.add('desktop');
   listen<string[]>('nib://open-paths', (paths) => void openPaths(paths));
-  // Dropped files arrive as nib://open-paths (the app first allows Nib to read them).
+  // Dropped files arrive as nib://open-paths (the app first allows Nib-E to read them).
   listen('tauri://drag-drop', () => ($('dropzone').hidden = true));
   listen('tauri://drag-enter', () => ($('dropzone').hidden = false));
   listen('tauri://drag-leave', () => ($('dropzone').hidden = true));
@@ -975,7 +1007,7 @@ async function boot(): Promise<void> {
   } catch (e) {
     console.error(e);
     $('boot-text').textContent =
-      'The PDF engine could not start here. This browser view may block WebAssembly. Download Nib.html and double-click it to open it in Chrome, Edge or Firefox.';
+      'The PDF engine could not start here. This browser view may block WebAssembly. Download Nib-E.html and double-click it to open it in Chrome, Edge or Firefox.';
     app.classList.add('boot-failed');
     return;
   }

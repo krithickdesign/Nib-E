@@ -83,7 +83,7 @@ export class SaveMenu {
       `<div class="menu-sep" role="separator"></div>` +
       item('print', 'print', 'Print…', '', `${mod}P`) +
       (backup ? item('restore', 'history', 'Restore earlier version', 'From before your last Save') : '') +
-      (hasSaveWindow() ? '' : `<p class="menu-note">${icon('info')}This browser puts files in Downloads. For a Save window, use Chrome, Edge or the Nib desktop app, or turn on “Always ask where to save files” in your browser’s settings.</p>`);
+      (hasSaveWindow() ? '' : `<p class="menu-note">${icon('info')}This browser puts files in Downloads. For a Save window, use Chrome, Edge or the Nib-E desktop app, or turn on “Always ask where to save files” in your browser’s settings.</p>`);
     // The menu is drawn at the interface size; its position is given in that scale.
     const ui = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1;
     const r = this.anchor.getBoundingClientRect();
