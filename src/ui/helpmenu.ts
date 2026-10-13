@@ -67,7 +67,7 @@ function whatsNew(): void {
       <li>${icon('nib')}<span><strong>${APP_NAME}</strong>: Nib-E is now part of the Desk-E family.</span></li>
       <li>${icon('help')}<span><strong>Help menu</strong> with feedback, shortcuts and this list.</span></li>
       <li>${icon('settings')}<span><strong>Light / dark</strong> switch in Settings.</span></li>
-      <li>${icon('open')}<span>Click the logo to open a new ${isDesktop() ? 'window' : 'tab'} on the start page.</span></li>
+      <li>${icon('open')}<span>Click the logo to open the ${isDesktop() ? 'start page in a new window' : 'Nib-E home page in a new tab'}.</span></li>
       <li>${icon('save')}<span>Save writes over the file you opened; Save menu with Export and Print; earlier version can be restored.</span></li>
       <li>${icon('book')}<span>Study notes are kept as you write and come back with the book.</span></li>
       <li>${icon('pen')}<span>Pen feel: Precise, Balanced, Smooth.</span></li>

@@ -29,7 +29,7 @@ import { exportBackup, exportFlattened, exportNotesOnly, exportText, exportWithN
 import { LibraryView } from './ui/libraryview';
 import { askPrint, saveHint, SaveMenu, type MenuAction } from './ui/savemenu';
 import { HelpMenu } from './ui/helpmenu';
-import { APP_NAME } from './config';
+import { APP_NAME, landingUrl } from './config';
 import { MAX_TABS, store, type DocState, type Tool } from './store';
 import { ContextBar } from './ui/contextbar';
 import { ask } from './ui/dialog';
@@ -128,10 +128,13 @@ function setupChrome(): void {
   const brand = document.querySelector('.brand') as HTMLElement;
   brand.setAttribute('role', 'button');
   brand.tabIndex = 0;
-  brand.title = `New ${APP_NAME} ${isDesktop() ? 'window' : 'tab'} (start page)`;
+  // Web: the Nib-E website's landing page. Desktop app and the single offline
+  // file have no landing page, so they open a fresh Nib-E start screen.
+  const landing = isDesktop() ? null : landingUrl(location.href);
+  brand.title = landing ? `${APP_NAME} home page (new tab)` : `New ${APP_NAME} ${isDesktop() ? 'window' : 'tab'}`;
   const openStart = () => {
     if (isDesktop()) void invoke('new_window').catch((e) => toast(String(e), 'error'));
-    else window.open(location.href.split('#')[0], '_blank');
+    else window.open(landing ?? location.href.split('#')[0], '_blank');
   };
   brand.addEventListener('click', openStart);
   brand.addEventListener('keydown', (e) => {
@@ -1019,7 +1022,7 @@ async function boot(): Promise<void> {
   await setupDesktop();
 
   // Test hook, used by the automated checks in test/.
-  (window as unknown as { __nib: unknown }).__nib = { store, viewer, notebook, exportPdf, openBytes, mergeFile, mergeBytes, fieldCount, closeDoc, closeTab, openHelp, myStamps, useStamp, save, saveAsNew, menuAction, flushAll, offerRecovery, setRecoveryIdle, listBooks };
+  (window as unknown as { __nib: unknown }).__nib = { store, viewer, notebook, exportPdf, openBytes, mergeFile, mergeBytes, fieldCount, closeDoc, closeTab, openHelp, myStamps, useStamp, save, saveAsNew, menuAction, flushAll, offerRecovery, setRecoveryIdle, listBooks, landingUrl };
 }
 
 void boot();

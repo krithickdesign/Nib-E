@@ -7,7 +7,7 @@
 - **Help menu** (top right): Help and tour, Keyboard shortcuts, What's new, Send feedback, Privacy and safe mode, About.
 - **Send feedback**: choose Something broke / Confusing / Idea / General opinion, describe it, optionally add technical details (version, browser, system; never files). Opens the project's GitHub issue form filled in, or copies the text. Nib-E itself sends nothing.
 - **Light / dark switch**: Settings → Appearance (Automatic, Light, Dark).
-- **Logo opens the start page** in a new tab (web) or a new window (desktop app).
+- **Logo opens the Nib-E home page** (the website landing page) in a new tab. The desktop app and the offline single file have no home page, so there it opens a new Nib-E window or tab.
 
 - **Feedback and survey** go to the Google feedback form (Help → Send feedback copies your text and opens the form; Help → Take the survey). No account needed.
 

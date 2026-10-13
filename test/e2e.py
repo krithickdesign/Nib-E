@@ -920,6 +920,8 @@ def main():
             hp.locator(".brand").click()
         np_ = newp.value
         np_.wait_for_selector(".app.ready", timeout=20000)
+        lu = hp.evaluate("[window.__nib.landingUrl('https://krithick.github.io/Nib-E/app/'), window.__nib.landingUrl('https://krithick.github.io/Nib-E/app/index.html#x'), window.__nib.landingUrl('file:///home/me/Nib-E.html')]")
+        check("on the website the logo leads to the landing page (one folder up from /app/)", lu == ["https://krithick.github.io/Nib-E/", "https://krithick.github.io/Nib-E/", None], str(lu))
         check("logo opens the start page in a new tab", np_.locator("#empty").is_visible() and "nib-e" in (hp.locator(".brand-word").text_content() or ""))
         hctx.close()
 
