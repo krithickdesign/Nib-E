@@ -18,6 +18,7 @@
 - Website pictures retaken with the new names.
 
 **Fixed**
+- Release workflow: the final "publish" step found no installers ("no assets to download") because the hidden draft release was looked up by its tag, which drafts don't have yet. Every step now uses the release id; the installers are built with `tauri build` and uploaded by the workflow itself (no third-party upload action), a missing upload stops the run with a clear message, and a failed run of the same version cleans up its old draft.
 - Releases are published as "latest", so the website's download links (`/releases/latest`) work. GitHub leaves pre-releases out of that link.
 
 ## 0.5.0-beta

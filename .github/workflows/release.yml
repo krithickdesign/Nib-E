@@ -1,8 +1,9 @@
 # One button for a new desktop version:
 #   Actions → Release → Run workflow → enter the new version (e.g. 0.5.1)
 # It sets the version everywhere, builds Windows, macOS and Linux installers on
-# GitHub's computers (free for public repositories), adds fingerprints
-# (SHA256SUMS.txt) and publishes the release once every build has succeeded.
+# GitHub's computers (free for public repositories), uploads them to a hidden
+# (draft) release, adds fingerprints (SHA256SUMS.txt) and publishes the release
+# once every build has succeeded. All steps address the release by its id.
 # Leave the version empty to rebuild the current version (only if it was never released).
 name: Release
 
@@ -54,16 +55,22 @@ jobs:
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Stop if this version was released already
+      - name: Stop if this version was released already; remove old drafts
         env:
           GH_TOKEN: ${{ github.token }}
           V: ${{ steps.v.outputs.version }}
+          REPO: ${{ github.repository }}
         run: |
-          if gh release view "v$V" --json isDraft -q '.isDraft' 2>/dev/null | grep -q false; then
+          # A published release is found by its tag; drafts are not.
+          if gh api "repos/$REPO/releases/tags/v$V" --silent 2>/dev/null; then
             echo "::error::Version $V is already published. Run again with a new version number (e.g. one higher)."
             exit 1
           fi
-          gh release delete "v$V" --yes --cleanup-tag 2>/dev/null || true
+          # Drafts left over from an earlier, failed run of the same version.
+          for id in $(gh api "repos/$REPO/releases" --paginate -q ".[] | select(.draft and .tag_name == \"v$V\") | .id"); do
+            echo "Removing old draft $id"
+            gh api -X DELETE "repos/$REPO/releases/$id"
+          done
 
       - name: Create the release (hidden until all builds succeed)
         id: rel
@@ -71,6 +78,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           V: ${{ steps.v.outputs.version }}
           SHA: ${{ steps.v.outputs.sha }}
+          REPO: ${{ github.repository }}
           STORE_ID: ${{ vars.MS_STORE_ID }}
         run: |
           # Windows: point to the Microsoft Store first once the listing exists.
@@ -80,8 +88,13 @@ jobs:
             : > notes.md
           fi
           cat .github/release-notes.md >> notes.md
-          gh release create "v$V" --draft --latest --target "$SHA" --title "Nib-E $V" --notes-file notes.md
-          echo "id=$(gh api "repos/${{ github.repository }}/releases" -q ".[] | select(.tag_name==\"v$V\") | .id" | head -1)" >> "$GITHUB_OUTPUT"
+          # Created through the API so its id comes straight back (the builds upload to this id).
+          id=$(gh api -X POST "repos/$REPO/releases" \
+            -f tag_name="v$V" -f target_commitish="$SHA" -f name="Nib-E $V" \
+            -F draft=true -F prerelease=false -F body=@notes.md -q .id)
+          if [[ -z "$id" ]]; then echo "::error::Could not create the release."; exit 1; fi
+          echo "Draft release id: $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
 
       - name: Rebuild the website with the new version
         if: inputs.version != ''
@@ -128,15 +141,50 @@ jobs:
 
       - run: npm ci
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Check the release id
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RID: ${{ needs.prepare.outputs.release_id }}
+        shell: bash
+        run: |
+          if [[ -z "$RID" ]]; then echo "::error::No release id from the prepare job; the installers would not be uploaded."; exit 1; fi
+
+      - name: Build the installers
+        shell: bash
+        env:
           # "Get the latest version" in Settings opens this page in the browser.
           NIB_WEBSITE: https://github.com/${{ github.repository }}/releases/latest
           VITE_NIB_REPO: https://github.com/${{ github.repository }}
-        with:
-          releaseId: ${{ needs.prepare.outputs.release_id }}
-          args: ${{ matrix.args }}
+        run: npm run tauri build -- ${{ matrix.args }}
+
+      # Uploaded by this script (not by a third-party action), so every file is
+      # checked and a missing upload stops the release.
+      - name: Upload the installers to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RID: ${{ needs.prepare.outputs.release_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          shopt -s nullglob
+          b=src-tauri/target
+          files=(
+            $b/release/bundle/nsis/*.exe $b/release/bundle/msi/*.msi
+            $b/release/bundle/deb/*.deb $b/release/bundle/appimage/*.AppImage
+            $b/universal-apple-darwin/release/bundle/dmg/*.dmg
+          )
+          if [[ ${#files[@]} -eq 0 ]]; then echo "::error::No installer files were built."; exit 1; fi
+          for f in "${files[@]}"; do
+            name=$(basename "$f")
+            # A re-run replaces a file of the same name.
+            for old in $(gh api "repos/$REPO/releases/$RID/assets" --paginate -q ".[] | select(.name == \"$name\") | .id"); do
+              gh api -X DELETE "repos/$REPO/releases/assets/$old"
+            done
+            echo "Uploading $name ($(wc -c < "$f") bytes)"
+            curl -fsS --retry 3 -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
+              --data-binary @"$f" \
+              "https://uploads.github.com/repos/$REPO/releases/$RID/assets?name=$name" > /dev/null
+          done
 
   # Microsoft Store package (MSIX). Runs only once the Store identity is set up
   # (repository variables MSIX_IDENTITY_NAME, MSIX_PUBLISHER, MSIX_PUBLISHER_NAME;
@@ -187,13 +235,27 @@ jobs:
       - name: Add fingerprints and publish
         env:
           GH_TOKEN: ${{ github.token }}
-          V: ${{ needs.prepare.outputs.version }}
+          RID: ${{ needs.prepare.outputs.release_id }}
           REPO: ${{ github.repository }}
         run: |
           mkdir assets && cd assets
-          gh release download "v$V" --repo "$REPO" --pattern '*'
+          # Everything works with the release id: drafts have no tag yet.
+          gh api "repos/$REPO/releases/$RID/assets" --paginate -q '.[] | select(.name != "SHA256SUMS.txt") | "\(.id)\t\(.name)"' > list.tsv
           rm -f SHA256SUMS.txt
-          sha256sum * > SHA256SUMS.txt
+          n=$(wc -l < list.tsv)
+          echo "Installers on the release: $n"
+          if [[ "$n" -eq 0 ]]; then
+            echo "::error::The builds uploaded no installers to the release. Open a build job and look at the upload step."
+            exit 1
+          fi
+          while IFS=$'\t' read -r aid name; do
+            gh api -H "Accept: application/octet-stream" "repos/$REPO/releases/assets/$aid" > "$name"
+          done < list.tsv
+          rm list.tsv
+          sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          gh release upload "v$V" SHA256SUMS.txt --repo "$REPO" --clobber
-          gh release edit "v$V" --repo "$REPO" --draft=false --latest
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: text/plain" \
+            --data-binary @SHA256SUMS.txt \
+            "https://uploads.github.com/repos/$REPO/releases/$RID/assets?name=SHA256SUMS.txt" > /dev/null
+          gh api -X PATCH "repos/$REPO/releases/$RID" -F draft=false -f make_latest=true -q '.html_url'
