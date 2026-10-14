@@ -1,6 +1,6 @@
 {
   "name": "nib",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Nib-E - a private PDF reader and editor that works offline",
   "scripts": {
     "dev": "vite",
