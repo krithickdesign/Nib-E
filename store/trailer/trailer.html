@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nib-E trailer</title>
+    <!--
+      Time-driven motion piece. Nothing animates by itself: render.py calls
+      window.renderAt(seconds) for every frame and takes a screenshot.
+      Formats: ?f=16x9 (1920x1080), ?f=9x16 (1080x1920), ?f=4x5 (1080x1350).
+      Footage: frames/*.png, captured from the real app by capture.py.
+
+      Pacing rule: text and demo never compete. Each feature starts with a
+      full-screen title (demo dimmed behind it); during the demo only one
+      short caption is shown at a time, on the footage itself.
+    -->
+    <style>
+      @font-face { font-family: "Brico"; font-weight: 700; src: url("../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2"); }
+      @font-face { font-family: "Brico"; font-weight: 800; src: url("../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2"); }
+      @font-face { font-family: "Hanken"; font-weight: 500; src: url("../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-500-normal.woff2"); }
+      @font-face { font-family: "Hanken"; font-weight: 600; src: url("../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-600-normal.woff2"); }
+      @font-face { font-family: "Plex"; font-weight: 500; src: url("../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2"); }
+      :root { --ink: #171a26; --muted: #5a6075; --accent: #2f3fd6; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; overflow: hidden; background: #eef0f7; }
+      #stage {
+        position: relative;
+        overflow: hidden;
+        font-family: "Hanken", system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 900px at 85% -10%, rgba(47, 63, 214, 0.12), transparent 60%),
+          radial-gradient(900px 700px at -10% 110%, rgba(47, 63, 214, 0.07), transparent 60%),
+          linear-gradient(165deg, #f6f7fc 0%, #e8ebf5 100%);
+      }
+      .layer { position: absolute; inset: 0; }
+      .center { position: absolute; left: 0; right: 0; text-align: center; }
+      .wordmark { font-family: "Brico"; font-weight: 800; letter-spacing: -0.03em; }
+      .display { font-family: "Brico"; font-weight: 800; letter-spacing: -0.025em; line-height: 1.04; }
+      .tagline { font-family: "Brico"; font-weight: 700; letter-spacing: -0.015em; line-height: 1.12; }
+      .sub { color: var(--muted); font-weight: 500; line-height: 1.35; }
+      .kicker {
+        display: inline-flex; align-items: center; gap: 0.6em;
+        font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+      }
+      .kicker .num { font-family: "Plex"; letter-spacing: 0; background: var(--accent); color: #fff; border-radius: 0.5em; padding: 0.12em 0.5em; }
+      .pill {
+        display: inline-flex; align-items: center; gap: 0.5em;
+        padding: 0.5em 1.05em; border-radius: 999px;
+        background: #fff; border: 1px solid rgba(23, 26, 38, 0.1);
+        font-weight: 600; box-shadow: 0 6px 18px rgba(23, 26, 38, 0.08);
+      }
+      .pill.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .mono { font-family: "Plex"; font-weight: 500; }
+      #card {
+        position: absolute; border-radius: 22px; overflow: hidden; background: #fff;
+        box-shadow: 0 2px 6px rgba(23, 26, 38, 0.08), 0 30px 80px rgba(23, 26, 38, 0.22);
+      }
+      #card canvas { display: block; }
+      .caption {
+        position: absolute; left: 50%;
+        display: flex; align-items: center; gap: 0.6em;
+        background: rgba(23, 26, 38, 0.92); color: #fff;
+        font-weight: 600; white-space: nowrap;
+        padding: 0.62em 1.15em; border-radius: 999px;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
+      }
+      .caption .n { font-family: "Plex"; font-size: 0.8em; background: var(--accent); border-radius: 50%; width: 1.65em; height: 1.65em; display: grid; place-items: center; }
+      .brandtop { position: absolute; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script>
+      // ---------------- format ----------------
+      const Q = new URLSearchParams(location.search);
+      const FMT = Q.get('f') || '16x9';
+      const F = {
+        '16x9': { W: 1920, H: 1080, card: [200, 70, 1520, 940], title: 92, sub: 34, kick: 24, cap: 30, brand: 150, tag: 60, big: 112, top: null },
+        '9x16': { W: 1080, H: 1920, card: [36, 300, 1008, 1360], title: 96, sub: 38, kick: 28, cap: 34, brand: 150, tag: 62, big: 104, top: 150 },
+        '4x5': { W: 1080, H: 1350, card: [36, 150, 1008, 1150], title: 82, sub: 32, kick: 24, cap: 30, brand: 128, tag: 52, big: 92, top: 72 },
+      }[FMT];
+      const stage = document.getElementById('stage');
+      stage.style.width = F.W + 'px';
+      stage.style.height = F.H + 'px';
+      const vertical = FMT !== '16x9';
+
+      // ---------------- helpers ----------------
+      const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+      const lerp = (a, b, u) => a + (b - a) * u;
+      const seg = (t, a, b) => clamp((t - a) / (b - a));
+      const eo = (u) => 1 - Math.pow(1 - u, 3);
+      const eio = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+      const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
+      // fade in over [a, a+i], out over [b-o, b]
+      const win = (t, a, b, i = 0.4, o = 0.35) => eo(seg(t, a, a + i)) * (1 - eio(seg(t, b - o, b)));
+      const IMG = { W: 3200, H: 2000 };
+      const NIB = (s) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M12 21.5 5.5 12 8 4.5h8l2.5 7.5z" fill="#2f3fd6"/><path d="M12 21.5V13" stroke="#fff" stroke-width="1.4"/><circle cx="12" cy="11.6" r="1.6" fill="#fff"/></svg>`;
+
+      // ---------------- assets ----------------
+      const names = ['ask', 'fill0', 'fill1', 'fill2', 'fill3', 'fill4', 'fill5', 'fill6', 'sign0', 'sign10', 'sign_done', 'study_pdf', 'study0', 'study1', 'study2', 'study3', 'study4', 'study5', 'study6', 'redact0', 'redact1', 'redact2', 'redact3', 'toolbox'];
+      const imgs = {};
+      let META = null;
+      window.ready = (async () => {
+        META = await (await fetch('frames/meta.json')).json();
+        await Promise.all(names.map((n) => new Promise((res, rej) => { const im = new Image(); im.onload = () => { imgs[n] = im; res(); }; im.onerror = rej; im.src = `frames/${n}.png`; })));
+        for (const f of ['800 40px Brico', '700 40px Brico', '600 20px Hanken', '500 20px Hanken', '500 20px Plex']) await document.fonts.load(f);
+        build();
+        return true;
+      })();
+
+      // ---------------- timeline ----------------
+      const SC = [
+        ['intro', 3.5],
+        ['promise', 3.5],
+        ['fill', 9.0],
+        ['sign', 7.8],
+        ['study', 7.0],
+        ['redact', 7.0],
+        ['tools', 4.0],
+        ['outro', 5.0],
+      ];
+      let acc = 0;
+      const T0 = {};
+      for (const [n, d] of SC) { T0[n] = acc; acc += d; }
+      window.DURATION = acc;
+      const DUR = Object.fromEntries(SC);
+      const TITLE_END = 1.8; // each feature: full-screen title for 1.8 s, then the demo
+
+      const TITLES = {
+        fill: ['01', 'Fill any form', 'Even forms without fillable fields.'],
+        sign: ['02', 'Sign', 'Draw it once, place it anywhere.'],
+        study: ['03', 'Study mode', 'Your PDF beside a notebook.'],
+        redact: ['04', 'Redact', 'Remove text and images for good.'],
+        tools: ['05', 'And everything else', 'Pages, merge, compress, password, stamps, export.'],
+      };
+      // captions on the footage: [scene, start, end, text]
+      const CAPS = [
+        ['fill', 2.0, 3.45, 'Nib-E finds the boxes for you'],
+        ['fill', 3.5, 7.55, 'Click a box, type, press Tab'],
+        ['fill', 7.6, 9.0, 'Tick boxes with one click'],
+        ['sign', 2.0, 5.95, 'Draw your signature once'],
+        ['sign', 6.0, 7.8, 'Tap the line to place it'],
+        ['study', 2.0, 4.35, 'Click “Study”'],
+        ['study', 4.4, 7.0, 'Write, sketch or type notes'],
+        ['redact', 1.9, 3.3, 'Search a name or number'],
+        ['redact', 3.35, 5.25, 'Mark all, then apply', 'top'],
+        ['redact', 5.3, 7.0, 'Gone for good, and checked'],
+        ['tools', 1.95, 4.0, 'Every tool free. No Pro plan.'],
+      ];
+
+      // ---------------- DOM ----------------
+      let card, cv, ctx, off, octx, introEl, promiseEl, outroEl, titleEl, capEl, brandTop;
+      function build() {
+        const R = (v) => v + 'px';
+        const [cx, cy, cw, ch] = F.card;
+        card = el(`<div id="card"></div>`);
+        Object.assign(card.style, { left: R(cx), top: R(cy), width: R(cw), height: R(ch) });
+        cv = document.createElement('canvas');
+        cv.width = cw; cv.height = ch;
+        card.append(cv);
+        ctx = cv.getContext('2d');
+        off = document.createElement('canvas');
+        off.width = cw; off.height = ch;
+        octx = off.getContext('2d');
+        stage.append(card);
+
+        if (F.top) {
+          brandTop = el(`<div class="brandtop" style="top:${F.top - 40}px">${NIB(56)}<span class="wordmark" style="font-size:64px">nib-e</span></div>`);
+          stage.append(brandTop);
+        }
+
+        titleEl = el(`<div class="layer" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:0 80px">
+            <div>
+              <div class="kicker" style="font-size:${F.kick}px"><span class="num"></span><span class="k"></span></div>
+              <div class="display t" style="font-size:${F.title}px;margin-top:${F.title * 0.25}px"></div>
+              <div class="sub s" style="font-size:${F.sub}px;margin-top:${F.sub * 0.6}px"></div>
+            </div>
+          </div>`);
+        stage.append(titleEl);
+
+        capEl = el(`<div class="caption" style="font-size:${F.cap}px"><span class="n"></span><span class="c"></span></div>`);
+        stage.append(capEl);
+
+        introEl = el(`<div class="layer">
+            <div class="center" style="top:${F.H / 2 - F.brand * 0.95}px">
+              <span class="mark" style="display:inline-block;vertical-align:middle;margin-right:${F.brand * 0.08}px">${NIB(F.brand * 0.62)}</span><span class="wordmark" style="font-size:${F.brand}px;vertical-align:middle;display:inline-block">nib-e</span>
+            </div>
+            <div class="center tagline" style="top:${F.H / 2 + F.brand * 0.28}px;font-size:${F.tag}px;padding:0 60px">The all-in-one PDF editor.</div>
+          </div>`);
+        stage.append(introEl);
+
+        promiseEl = el(`<div class="layer">
+            <div class="center" style="top:${F.H / 2 - F.big * 1.3}px;padding:0 60px">
+              <div class="display p1" style="font-size:${F.big}px">Every feature free.</div>
+              <div class="display p2" style="font-size:${F.big * 0.62}px;color:#2f3fd6;margin-top:${F.big * 0.3}px">No paywalls. No Pro plan.</div>
+            </div>
+            <div class="center p3" style="top:${F.H / 2 + F.big * 0.95}px;padding:0 40px"><span class="pill" style="font-size:${F.sub * 0.85}px">Works offline · No account · Open source</span></div>
+          </div>`);
+        stage.append(promiseEl);
+
+        outroEl = el(`<div class="layer">
+            <div class="center" style="top:${F.H / 2 - F.brand * 1.2}px">
+              <span style="display:inline-block;vertical-align:middle;margin-right:${F.brand * 0.06}px">${NIB(F.brand * 0.55)}</span><span class="wordmark" style="font-size:${F.brand * 0.85}px;vertical-align:middle">nib-e</span>
+              <div class="tagline" style="font-size:${F.tag * 0.9}px;margin-top:${F.tag * 0.25}px;padding:0 50px">The all-in-one PDF editor.</div>
+              <div class="sub" style="font-size:${F.sub}px;margin-top:${F.sub * 0.5}px;padding:0 50px">Free for Windows, macOS, Linux and the web.</div>
+              <div style="margin-top:${F.tag * 0.75}px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:0 40px">
+                <span class="pill accent" style="font-size:${F.sub * 0.85}px">Microsoft Store</span>
+                <span class="pill mono" style="font-size:${F.sub * 0.78}px">krithickdesign.github.io/Nib-E</span>
+              </div>
+            </div>
+          </div>`);
+        stage.append(outroEl);
+      }
+
+      // ---------------- camera + drawing ----------------
+      const FULL = [0, 0, 3200, 2000];
+      function camera(rect, vw, vh) {
+        const [x, y, w, h] = rect;
+        const s = Math.min(vw / w, vh / h);
+        const sw = vw / s, sh = vh / s;
+        let ox = x + w / 2 - sw / 2, oy = y + h / 2 - sh / 2;
+        ox = sw <= IMG.W ? clamp(ox, 0, IMG.W - sw) : (IMG.W - sw) / 2;
+        oy = sh <= IMG.H ? clamp(oy, 0, IMG.H - sh) : (IMG.H - sh) / 2;
+        return { s, ox, oy };
+      }
+      const toScr = (cam, x, y) => [(x - cam.ox) * cam.s, (y - cam.oy) * cam.s];
+      function drawImg(c, name, cam, alpha = 1) {
+        if (alpha <= 0) return;
+        c.globalAlpha = alpha;
+        c.imageSmoothingQuality = 'high';
+        c.drawImage(imgs[name], -cam.ox * cam.s, -cam.oy * cam.s, IMG.W * cam.s, IMG.H * cam.s);
+        c.globalAlpha = 1;
+      }
+      function pathOn(c, cam, paths) {
+        c.beginPath();
+        for (const p of paths) {
+          if (p.length < 2) continue;
+          const [a, b] = toScr(cam, p[0][0], p[0][1]);
+          c.moveTo(a, b);
+          for (const q of p.slice(1)) { const [x, y] = toScr(cam, q[0], q[1]); c.lineTo(x, y); }
+        }
+      }
+      // `name` shown only inside a mask: a left-to-right rect wipe, or along partial paths.
+      function drawMasked(name, cam, mask) {
+        octx.clearRect(0, 0, off.width, off.height);
+        octx.globalCompositeOperation = 'source-over';
+        drawImg(octx, name, cam);
+        octx.globalCompositeOperation = 'destination-in';
+        octx.fillStyle = '#000';
+        octx.strokeStyle = '#000';
+        if (mask.rect) {
+          const [x, y, w, h] = mask.rect;
+          const [a, b] = toScr(cam, x, y);
+          octx.fillRect(a, b, w * cam.s * mask.u, h * cam.s);
+        } else {
+          octx.lineCap = 'round'; octx.lineJoin = 'round';
+          octx.lineWidth = mask.width * cam.s;
+          pathOn(octx, cam, mask.paths); // one combined path (destination-in per stroke would erase the others)
+          octx.stroke();
+        }
+        octx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(off, 0, 0);
+      }
+      // Signature ink drawn as vector, so nothing appears ahead of the pen.
+      function drawInk(cam, paths) {
+        ctx.save();
+        ctx.strokeStyle = '#1b1f2e';
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.lineWidth = 6.6 * cam.s;
+        pathOn(ctx, cam, paths);
+        ctx.stroke();
+        ctx.restore();
+      }
+      function drawCursor(cam, cur) {
+        if (!cur || cur.a <= 0) return;
+        const [x, y] = toScr(cam, cur.x, cur.y);
+        const k = vertical ? 1.3 : 1.15;
+        ctx.save();
+        ctx.globalAlpha = cur.a;
+        if (cur.click > 0 && cur.click < 1) {
+          ctx.beginPath();
+          ctx.arc(x, y, 14 * k + 34 * k * eo(cur.click), 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(47,63,214,${0.55 * (1 - cur.click)})`;
+          ctx.lineWidth = 4 * k;
+          ctx.stroke();
+          ctx.fillStyle = `rgba(47,63,214,${0.16 * (1 - cur.click)})`;
+          ctx.fill();
+        }
+        ctx.translate(x, y);
+        ctx.scale(k, k);
+        if (cur.pen) {
+          ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(47,63,214,0.25)'; ctx.fill();
+          ctx.beginPath(); ctx.arc(0, 0, 3.2, 0, Math.PI * 2); ctx.fillStyle = '#2f3fd6'; ctx.fill();
+          ctx.rotate(-Math.PI / 4);
+          ctx.fillStyle = '#171a26';
+          ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(5, -14); ctx.lineTo(5, -48); ctx.lineTo(-5, -48); ctx.lineTo(-5, -14); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#2f3fd6'; ctx.fillRect(-5, -48, 10, 8);
+        } else {
+          ctx.scale(1.25, 1.25);
+          ctx.beginPath();
+          ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(5.5, 17); ctx.lineTo(9.5, 26); ctx.lineTo(13, 24.5); ctx.lineTo(9, 15.8); ctx.lineTo(16, 15.8); ctx.closePath();
+          ctx.fillStyle = '#171a26'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round';
+          ctx.fill(); ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // piecewise camera with slow, eased moves: keys [[tEnd, rect]], each move takes `dur` before its key
+      function camPath(list, t, dur = 1.1) {
+        let cur = list[0][1];
+        for (let i = 1; i < list.length; i++) {
+          const [tb, rb] = list[i];
+          const u = eio(seg(t, tb - dur, tb));
+          if (u <= 0) break;
+          cur = cur.map((v, j) => lerp(v, rb[j], u));
+        }
+        return cur;
+      }
+      function curAt(keys, t) {
+        if (t <= keys[0][0]) return keys[0].slice(1);
+        for (let i = 1; i < keys.length; i++) {
+          if (t <= keys[i][0]) {
+            const u = eio(seg(t, keys[i - 1][0], keys[i][0]));
+            return [lerp(keys[i - 1][1], keys[i][1], u), lerp(keys[i - 1][2], keys[i][2], u)];
+          }
+        }
+        return keys[keys.length - 1].slice(1);
+      }
+      const clickU = (t, clicks) => { for (const c of clicks) if (t >= c && t < c + 0.5) return (t - c) / 0.5; return 0; };
+      function partial(pts, u) {
+        if (u <= 0) return [[pts[0]], pts[0]];
+        let total = 0;
+        for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        let left = total * clamp(u);
+        const out = [pts[0]];
+        for (let i = 1; i < pts.length; i++) {
+          const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+          if (left >= d) { out.push(pts[i]); left -= d; continue; }
+          const p = [lerp(pts[i - 1][0], pts[i][0], d ? left / d : 0), lerp(pts[i - 1][1], pts[i][1], d ? left / d : 0)];
+          out.push(p);
+          return [out, p];
+        }
+        return [out, pts[pts.length - 1]];
+      }
+      const paperPt = ([fx, fy]) => { const [x, y, w, h] = META.study_paper; return [x + fx * w, y + fy * h]; };
+
+      // ---------------- card content ----------------
+      const FIELDS = () => (vertical ? [760, 330, 1220, 720] : [700, 300, 1500, 780]);
+      const SIGRECT = () => (vertical ? [760, 560, 1300, 640] : [650, 520, 1600, 700]);
+      const WIDE = [300, 120, 2850, 1700];
+      const PAPER = () => { const P = META.study_paper; return [P[0] - 60, P[1] - 40, P[2] + 120, P[3] * 0.62]; };
+      const STUDY_END = () => (vertical ? PAPER() : WIDE);
+      const TEXT_RECT = () => (vertical ? [780, 330, 1350, 500] : [760, 300, 1500, 560]);
+
+      function cardFrame(t) {
+        const M = META;
+        const out = { layers: [], ink: null, cam: FULL, cur: null };
+        const L = (name, alpha = 1) => out.layers.push({ name, alpha });
+        const LM = (name, mask) => out.layers.push({ name, mask });
+        const cf = (a, b, t0, d = 0.35) => { L(a); L(b, eo(seg(t, t0, t0 + d))); };
+
+        if (t < T0.sign) {
+          // ---- fill: ask -> make fillable -> type 4 boxes -> tick ----
+          const lt = t - T0.fill;
+          const askRect = vertical ? [760, 150, 1500, 1050] : [500, 120, 2200, 1150];
+          out.cam = camPath([[0, askRect], [4.3, FIELDS()]], lt, 1.2);
+          const box = M.fill_boxes;
+          const widths = [747, 747, 747, 500];
+          const wipes = [[4.35, 5.15], [5.3, 5.95], [6.1, 6.65], [6.8, 7.35]];
+          if (lt < 3.05) L('ask');
+          else if (lt < wipes[0][0]) cf('ask', 'fill0', 3.05, 0.35);
+          else if (lt < 7.9) {
+            const done = wipes.filter((w) => lt >= w[1]).length;
+            L('fill' + done);
+            if (done < 4 && lt >= wipes[done][0]) {
+              const [cx, cy] = box[done];
+              LM('fill' + (done + 1), { rect: [cx - widths[done] / 2 - 20, cy - 45, widths[done] + 40, 90], u: eo(seg(lt, wipes[done][0], wipes[done][1])) });
+            }
+          } else if (lt < 8.55) cf('fill4', 'fill5', 7.95, 0.25);
+          else cf('fill5', 'fill6', 8.6, 0.25);
+          const ck = [
+            [1.9, M.ask_yes[0] + 700, M.ask_yes[1] + 900], [2.85, M.ask_yes[0], M.ask_yes[1]],
+            [3.6, M.ask_yes[0], M.ask_yes[1]], [4.2, box[0][0] - 230, box[0][1]],
+            [7.4, box[0][0] - 230, box[0][1]], [7.9, M.fill_radio[0], M.fill_radio[1]],
+            [8.15, M.fill_radio[0], M.fill_radio[1]], [8.55, M.fill_check[0], M.fill_check[1]],
+            [9.6, M.fill_check[0] + 500, M.fill_check[1] + 300],
+          ];
+          const [x, y] = curAt(ck, lt);
+          out.cur = { x, y, a: eo(seg(lt, 1.85, 2.3)), click: clickU(lt, [2.95, 4.25, 7.95, 8.6]) };
+          return out;
+        }
+        if (t < T0.study) {
+          // ---- sign: draw a new signature -> draw -> use -> place ----
+          const lt = t - T0.sign;
+          const pad = M.sign_pad;
+          const padRect = [pad[0] - 80, pad[1] - 300, pad[2] + 160, pad[3] + 520];
+          out.cam = camPath([[0, FIELDS()], [1.5, FULL], [3.7, padRect], [7.3, SIGRECT()]], lt, 1.1);
+          const pen = M.sign_pen;
+          const strokes = [];
+          let i0 = 0;
+          for (const n of M.sign_strokes) { strokes.push(pen.slice(i0, i0 + n)); i0 += n; }
+          const drawA = 3.6, drawB = 5.5;
+          let tip = strokes[0][0];
+          if (lt < 2.8) L('fill6');
+          else if (lt < drawA) cf('fill6', 'sign0', 2.8, 0.3);
+          else if (lt < drawB) {
+            L('sign0');
+            let left = seg(lt, drawA, drawB) * pen.length;
+            const paths = [];
+            for (const s of strokes) {
+              if (left <= 0) break;
+              const [p, q] = partial(s, Math.min(1, left / s.length));
+              paths.push(p);
+              tip = q;
+              left -= s.length;
+            }
+            out.ink = paths;
+          } else if (lt < 6.15) { L('sign0'); out.ink = strokes; L('sign10', eo(seg(lt, drawB, drawB + 0.2))); }
+          else if (lt < 6.95) cf('sign10', 'fill6', 6.15, 0.25);
+          else cf('fill6', 'sign_done', 6.95, 0.35);
+          let c;
+          if (lt < drawA) c = curAt([[0, 2600, 1300], [1.9, 2600, 1300], [2.6, M.sign_redraw[0], M.sign_redraw[1]], [3.0, M.sign_redraw[0], M.sign_redraw[1]], [3.55, tip[0], tip[1]]], lt);
+          else if (lt < drawB) c = tip;
+          else c = curAt([[drawB, pen[pen.length - 1][0], pen[pen.length - 1][1]], [6.0, M.sign_use[0], M.sign_use[1]], [6.3, M.sign_use[0], M.sign_use[1]], [6.85, M.sign_place[0], M.sign_place[1]], [7.8, M.sign_place[0] + 500, M.sign_place[1] + 350]], lt);
+          out.cur = { x: c[0], y: c[1], a: 1, pen: lt >= 3.35 && lt < drawB + 0.1, click: clickU(lt, [2.7, 6.1, 6.9]) };
+          return out;
+        }
+        if (t < T0.redact) {
+          // ---- study: click Study -> draw -> notes ----
+          const lt = t - T0.study;
+          out.cam = camPath([[0, SIGRECT()], [1.5, FULL], [3.8, STUDY_END()]], lt, 1.1);
+          const SS = M.study_strokes.map((s) => s.map(paperPt));
+          const sT = [4.3, 4.75, 5.2, 5.6, 5.95];
+          const sD = [0.4, 0.4, 0.3, 0.3, 0.25];
+          let tip = SS[0][0];
+          if (lt < 1.6) cf('sign_done', 'study_pdf', 0, 0.6);
+          else if (lt < 2.7) L('study_pdf');
+          else if (lt < 3.1) cf('study_pdf', 'study0', 2.7, 0.35);
+          else if (lt < 6.35) {
+            let done = 0;
+            for (let i = 0; i < 5; i++) if (lt >= sT[i] + sD[i]) done = i + 1;
+            L('study' + done);
+            if (done < 5 && lt >= sT[done]) {
+              const [p, q] = partial(SS[done], seg(lt, sT[done], sT[done] + sD[done]));
+              LM('study' + (done + 1), { paths: [p], width: 22 });
+              tip = q;
+            } else tip = done < 5 ? SS[done][0] : SS[4][SS[4].length - 1];
+          } else cf('study5', 'study6', 6.35, 0.45);
+          let c;
+          if (lt < 2.8) c = curAt([[1.7, 1800, 1500], [2.45, M.study_btn[0], M.study_btn[1]]], lt);
+          else if (lt < 4.25) c = curAt([[2.8, M.study_btn[0], M.study_btn[1]], [4.25, SS[0][0][0], SS[0][0][1]]], lt);
+          else if (lt < 6.35) c = tip;
+          else c = curAt([[6.35, tip[0], tip[1]], [7.0, tip[0] + 300, tip[1] + 400]], lt);
+          out.cur = { x: c[0], y: c[1], a: eo(seg(lt, 1.6, 1.9)) * (1 - seg(lt, 6.5, 6.9)), pen: lt >= 3.9 && lt < 6.4, click: clickU(lt, [2.55]) };
+          return out;
+        }
+        if (t < T0.tools) {
+          // ---- redact: search -> mark all -> apply -> result ----
+          const lt = t - T0.redact;
+          const work = vertical ? [2240, 840, 960, 1160] : [600, 120, 2600, 1500];
+          out.cam = camPath([[0, STUDY_END()], [1.6, work], [6.2, TEXT_RECT()]], lt, 1.1);
+          if (lt < 1.6) cf('study6', 'redact0', 0, 0.6);
+          else if (lt < 2.6) L('redact0');
+          else if (lt < 3.85) { L('redact0'); LM('redact1', { rect: [2340, 950, 520, 90], u: eo(seg(lt, 2.6, 3.15)) }); }
+          else if (lt < 4.85) cf('redact1', 'redact2', 3.85, 0.3);
+          else cf('redact2', 'redact3', 4.85, 0.45);
+          const c = curAt([[1.7, 1700, 1700], [2.4, M.redact_find[0], M.redact_find[1]], [3.3, M.redact_find[0], M.redact_find[1]], [3.7, M.redact_mark[0], M.redact_mark[1]], [4.2, M.redact_mark[0], M.redact_mark[1]], [4.7, M.redact_apply[0], M.redact_apply[1]], [5.3, M.redact_apply[0], M.redact_apply[1]], [6.2, M.redact_apply[0] + 300, M.redact_apply[1] + 300]], lt);
+          out.cur = { x: c[0], y: c[1], a: eo(seg(lt, 1.6, 1.9)) * (1 - seg(lt, 5.2, 5.6)), click: clickU(lt, [2.5, 3.8, 4.8]) };
+          return out;
+        }
+        // ---- tools: slow pan over the toolbox ----
+        const lt = t - T0.tools;
+        const tb = M.toolbox_panel;
+        const a = vertical ? [tb[0] - 120, tb[1], tb[2] + 120, tb[3] * 0.55] : [1250, 100, 1950, 1250];
+        const b = vertical ? [tb[0] - 120, tb[1] + tb[3] * 0.45, tb[2] + 120, tb[3] * 0.55] : [1250, 700, 1950, 1250];
+        out.cam = lt < 1.8 ? camPath([[0, TEXT_RECT()], [1.6, a]], lt, 1.4) : a.map((v, j) => lerp(v, b[j], eio(seg(lt, 1.9, 4.0))));
+        if (lt < 1.0) cf('redact3', 'toolbox', 0, 0.8);
+        else L('toolbox');
+        return out;
+      }
+
+      function paintCard(t) {
+        const f = cardFrame(t);
+        const cam = camera(f.cam, cv.width, cv.height);
+        ctx.fillStyle = '#e7eaf2';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        let inkDone = false;
+        for (const l of f.layers) {
+          if (l.mask) drawMasked(l.name, cam, l.mask);
+          else drawImg(ctx, l.name, cam, l.alpha);
+          // vector ink sits on the empty pad, under the real final frame
+          if (f.ink && !inkDone && l.name === 'sign0') { drawInk(cam, f.ink); inkDone = true; }
+        }
+        drawCursor(cam, f.cur);
+      }
+
+      // ---------------- render ----------------
+      window.renderAt = function (t) {
+        for (const e of [introEl, promiseEl, outroEl, titleEl, capEl]) e.style.opacity = '0';
+
+        // intro
+        if (t < T0.promise) {
+          const exitU = eio(seg(t, 3.05, 3.5));
+          introEl.style.opacity = String(1 - exitU);
+          const m = eo(seg(t, 0, 0.9));
+          const mark = introEl.querySelector('.mark');
+          mark.style.opacity = String(m);
+          mark.style.transform = `scale(${0.5 + 0.5 * m})`;
+          const w = eo(seg(t, 0.35, 1.3));
+          const wm = introEl.querySelector('.wordmark');
+          wm.style.opacity = String(w);
+          wm.style.transform = `translateY(${(1 - w) * 30}px)`;
+          const g = eo(seg(t, 1.3, 2.1));
+          const tg = introEl.querySelector('.tagline');
+          tg.style.opacity = String(g);
+          tg.style.transform = `translateY(${(1 - g) * 24 - exitU * 16}px)`;
+        }
+        // promise
+        else if (t < T0.fill) {
+          const lt = t - T0.promise;
+          promiseEl.style.opacity = String(1 - eio(seg(lt, 3.1, 3.5)));
+          [['.p1', 0.1], ['.p2', 0.9], ['.p3', 1.7]].forEach(([s, a]) => {
+            const u = eo(seg(lt, a, a + 0.6));
+            const e = promiseEl.querySelector(s);
+            e.style.opacity = String(u);
+            e.style.transform = `translateY(${(1 - u) * 28}px)`;
+          });
+        }
+
+        // feature scenes
+        const cardOn = t >= T0.fill - 0.2 && t < T0.outro + 0.8;
+        card.style.display = cardOn ? 'block' : 'none';
+        if (brandTop) brandTop.style.opacity = String(win(t, T0.fill - 0.2, T0.outro + 0.6, 0.6, 0.5));
+        if (cardOn) {
+          // title phase: card dimmed and blurred behind the title
+          let dim = 0;
+          for (const key of Object.keys(TITLES)) {
+            if (t >= T0[key] - 0.4 && t < T0[key] + TITLE_END + 0.5) {
+              const lt = t - T0[key];
+              dim = Math.max(dim, eo(seg(lt, -0.4, 0.1)) * (1 - eio(seg(lt, TITLE_END - 0.3, TITLE_END + 0.3))));
+            }
+          }
+          const inU = eo(seg(t, T0.fill - 0.2, T0.fill + 0.6));
+          const outU = eio(seg(t, T0.outro, T0.outro + 0.7));
+          card.style.opacity = String(inU * (1 - outU) * (1 - 0.72 * dim));
+          card.style.filter = dim > 0.01 ? `blur(${(dim * 10).toFixed(2)}px)` : 'none';
+          card.style.transform = `translateY(${(1 - inU) * 60 + outU * 40}px) scale(${1 - 0.04 * dim - 0.05 * outU})`;
+          paintCard(Math.min(t, T0.outro - 0.001));
+
+          for (const [key, [n, k, s]] of Object.entries(TITLES)) {
+            const lt = t - T0[key];
+            if (lt < -0.2 || lt > TITLE_END + 0.2) continue;
+            const u = eo(seg(lt, 0, 0.45));
+            const o = eio(seg(lt, TITLE_END - 0.35, TITLE_END));
+            titleEl.style.opacity = String(u * (1 - o));
+            titleEl.firstElementChild.style.transform = `translateY(${(1 - u) * 26 - o * 18}px)`;
+            titleEl.querySelector('.num').textContent = n;
+            titleEl.querySelector('.k').textContent = k;
+            titleEl.querySelector('.t').textContent = s;
+            titleEl.querySelector('.s').textContent = '';
+          }
+          // one caption at a time, on the footage
+          const [cx, cy, cw, ch] = F.card;
+          for (const [key, a, b, text, pos] of CAPS) {
+            const lt = t - T0[key];
+            if (lt < a || lt >= b) continue;
+            const u = win(lt, a, b, 0.35, 0.3);
+            capEl.style.opacity = String(u);
+            const list = CAPS.filter((c) => c[0] === key);
+            capEl.querySelector('.n').textContent = String(list.findIndex((c) => c[1] === a) + 1);
+            capEl.querySelector('.n').style.display = key === 'tools' ? 'none' : 'grid';
+            capEl.querySelector('.c').textContent = text;
+            capEl.style.top = (pos === 'top' ? cy + 48 - (1 - u) * 14 : cy + ch - 56 - capEl.offsetHeight + (1 - u) * 14) + 'px';
+            capEl.style.transform = 'translateX(-50%)';
+            capEl.style.left = cx + cw / 2 + 'px';
+          }
+        }
+
+        // outro
+        if (t >= T0.outro) {
+          const lt = t - T0.outro;
+          const b = eo(seg(lt, 0.5, 1.3));
+          outroEl.style.opacity = String(b);
+          outroEl.style.transform = `translateY(${(1 - b) * 24}px)`;
+        }
+      };
+
+      // Store thumbnail (16:9): message + filled, signed form.
+      window.renderPoster = function () {
+        window.renderAt(0);
+        introEl.style.opacity = '0';
+        card.style.display = 'block';
+        card.style.opacity = '1';
+        card.style.filter = 'none';
+        card.style.transform = 'none';
+        const [cx, cy, cw, ch] = [760, 110, 1080, 860];
+        Object.assign(card.style, { left: cx + 'px', top: cy + 'px', width: cw + 'px', height: ch + 'px' });
+        cv.width = cw; cv.height = ch;
+        const cam = camera([760, 330, 1260, 900], cw, ch);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, cw, ch);
+        drawImg(ctx, 'sign_done', cam);
+        const p = el(`<div style="position:absolute;left:100px;width:600px">
+            <div style="display:flex;align-items:center;gap:14px">${NIB(64)}<span class="wordmark" style="font-size:78px">nib-e</span></div>
+            <div class="display" style="font-size:78px;margin-top:22px">The all-in-one PDF editor.</div>
+            <div class="sub" style="font-size:32px;margin-top:18px">Every feature free.<br/>No paywalls. No Pro plan.</div>
+            <div style="margin-top:30px"><span class="pill" style="font-size:24px">Fill · Sign · Redact · Study · Pages</span></div>
+          </div>`);
+        stage.append(p);
+        p.style.top = (F.H - p.offsetHeight) / 2 + 'px';
+      };
+    </script>
+  </body>
+</html>

@@ -16,12 +16,12 @@ Rules kept here on purpose:
 
 **Short description** (shown at the top, ≤ 270 characters):
 ```
-Private PDF reader and editor. Fill forms, sign, write and draw, redact and organise pages, all offline. No account, no uploads, no ads.
+The all-in-one PDF editor. Fill forms, sign, write and draw, redact and organise pages. Every feature free: no paywalls, no Pro plan, no account. Works offline.
 ```
 
 **Description:**
 ```
-Nib-E is a PDF reader and editor that keeps your files to yourself. Everything happens on your PC: nothing is uploaded, there is no account, no ads, no tracking and no AI.
+Nib-E is the all-in-one PDF editor, and every feature is free: no paywalls, no trial, no Pro plan, no watermark. Everything happens on your PC: nothing is uploaded, there is no account, no ads, no tracking and no AI.
 
 WRITE
 • Fill in any form, even forms without form fields: Nib-E finds the boxes, lines and tick boxes and asks if you want to fill them. Text matches the form's font.
@@ -106,12 +106,12 @@ study notes
 
 **Kurzbeschreibung:**
 ```
-Privater PDF-Reader und -Editor. Formulare ausfüllen, unterschreiben, schreiben und zeichnen, schwärzen, Seiten ordnen, alles offline. Kein Konto, kein Upload, keine Werbung. (App-Sprache: Englisch)
+Der All-in-one-PDF-Editor. Formulare ausfüllen, unterschreiben, schreiben und zeichnen, schwärzen, Seiten ordnen. Alle Funktionen kostenlos: keine Bezahlschranke, kein Pro-Abo, kein Konto. (App-Sprache: Englisch)
 ```
 
 **Beschreibung:**
 ```
-Nib-E ist ein PDF-Reader und -Editor, bei dem Ihre Dateien bei Ihnen bleiben. Alles passiert auf Ihrem PC: nichts wird hochgeladen, kein Konto, keine Werbung, kein Tracking, keine KI.
+Nib-E ist der All-in-one-PDF-Editor, und alle Funktionen sind kostenlos: keine Bezahlschranke, keine Testphase, kein Pro-Abo, kein Wasserzeichen. Alles passiert auf Ihrem PC: nichts wird hochgeladen, kein Konto, keine Werbung, kein Tracking, keine KI.
 
 Hinweis: Die App ist derzeit auf Englisch. Weitere Sprachen folgen.
 

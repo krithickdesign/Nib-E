@@ -75,7 +75,7 @@ function whatsNew(): void {
 
 function about(): void {
   void modal(`<div class="about-head"><span class="brand-mark big">${icon('nib')}</span><div><h2>${APP_NAME}</h2><p class="muted mono">${esc(VERSION)} · ${buildLabel(isDesktop())}</p></div></div>
-    <p>A private PDF reader and editor from the Desk-E line, published by ${esc(PUBLISHER)}. Your files never leave this device.</p>
+    <p>The all-in-one PDF editor from the Desk-E line, published by ${esc(PUBLISHER)}. Every feature is free, and your files never leave this device.</p>
     <div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The app has no permission to use the internet.' : 'This page is blocked from connecting anywhere once loaded.'} ${updateNote(isDesktop())}</small></span></div>
     <p class="muted small">Nib-E is an independent project, not affiliated with any other PDF software maker. PDF is an open standard (ISO 32000).</p>
     <p class="muted small">MIT licence. Built on PDFium (the PDF engine inside Chrome) via EmbedPDF, pdf-lib, perfect-freehand and fflate.${REPO_URL && !isDesktop() ? ` Source code: <a href="${esc(REPO_URL)}" target="_blank" rel="noopener noreferrer">${esc(REPO_URL.replace(/^https:\/\//, ''))}</a>` : ''}</p>`);

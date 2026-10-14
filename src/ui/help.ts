@@ -18,8 +18,8 @@ const SLIDES: Slide[] = [
   {
     icon: 'nib',
     kicker: 'Welcome',
-    title: 'Nib-E: a private PDF reader and editor',
-    body: `<p>Part of the Desk-E family. Read, fill, sign, draw, comment, organise pages, redact and save. No account, nothing uploaded.</p>
+    title: 'Nib-E: the all-in-one PDF editor',
+    body: `<p>Part of the Desk-E family. Read, fill, sign, draw, comment, organise pages, redact and save. <strong>Every feature is free</strong>: no paywalls, no Pro plan, no account.</p>
       <p class="help-beta">Nib-E is young and growing. Found something rough? Help → Send feedback shapes what comes next.</p>`,
   },
   {

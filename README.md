@@ -1,9 +1,11 @@
-# Nib-E · a private PDF editor
+# Nib-E · the all-in-one PDF editor
 
 Part of the Desk-E family. Published as Axiomate Technologies.
 
-Read, fill, sign, draw on, redact and organise PDFs in your browser.
-**Your files never leave your device:** no uploads, no account, no tracking, no AI.
+Fill forms, sign, write and draw, redact, organise pages and study, in your browser or as an app.
+**Every feature free:** no paywalls, no Pro plan, no account. And your files never leave your device.
+
+[▶ Watch Nib-E in 47 seconds](docs/assets/nib-e-trailer.mp4)
 
 ![Nib-E filling in a form](docs/assets/fill.webp)
 

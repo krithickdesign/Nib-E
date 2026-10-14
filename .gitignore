@@ -13,3 +13,7 @@ dist-desktop/
 src-tauri/target/
 src-tauri/gen/
 docs/app/
+
+# trailer: captured footage and rendered videos (regenerate with store/trailer/*.py)
+store/trailer/frames/*.png
+store/trailer/out/
