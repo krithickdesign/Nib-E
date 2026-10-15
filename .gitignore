@@ -13,7 +13,14 @@ dist-desktop/
 src-tauri/target/
 src-tauri/gen/
 docs/app/
+# German website: generated from docs/index.html by scripts/site-de.py
+docs/de/
 
 # trailer: captured footage and rendered videos (regenerate with store/trailer/*.py)
 store/trailer/frames/*.png
 store/trailer/out/
+
+# Store marketing slides: generated (regenerate with store/marketing/*.py)
+store/marketing/frames/*.png
+store/marketing/out/
+store/marketing/slides.html

@@ -4,6 +4,7 @@ Run (after capture.py):
   python3 store/trailer/render.py                 # all formats
   python3 store/trailer/render.py 16x9            # one format
   python3 store/trailer/render.py --preview 16x9 3 9.5 20   # PNG frames at those seconds
+  add --lang de to any of these for the German version (file names end in -de)
 Output: store/trailer/out/
 """
 import functools
@@ -21,6 +22,7 @@ OUT = Path(__file__).resolve().parent / "out"
 OUT.mkdir(exist_ok=True)
 FPS = 30
 SIZES = {"16x9": (1920, 1080), "9x16": (1080, 1920), "4x5": (1080, 1350)}
+LANG = "en"
 NAMES = {"16x9": "Nib-E-trailer-16x9-1920x1080.mp4", "9x16": "Nib-E-trailer-9x16-1080x1920.mp4", "4x5": "Nib-E-trailer-4x5-1080x1350.mp4"}
 
 
@@ -40,7 +42,7 @@ def open_page(browser, base, fmt, poster=False):
     page = browser.new_page(viewport={"width": w, "height": h}, device_scale_factor=1)
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
-    page.goto(f"{base}/store/trailer/trailer.html?f={fmt}{'&poster=1' if poster else ''}")
+    page.goto(f"{base}/store/trailer/trailer.html?f={fmt}&lang={LANG}{'&poster=1' if poster else ''}")
     page.wait_for_function("window.ready && window.ready.then && true")
     page.evaluate("window.ready")
     if errors:
@@ -52,7 +54,7 @@ def render(browser, base, fmt):
     page = open_page(browser, base, fmt)
     dur = page.evaluate("window.DURATION")
     n = int(round(dur * FPS))
-    out = OUT / NAMES[fmt]
+    out = OUT / suffix(NAMES[fmt])
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-f", "image2pipe", "-framerate", str(FPS), "-c:v", "mjpeg", "-i", "-",
@@ -81,13 +83,25 @@ def poster(browser, base):
     page = open_page(browser, base, "16x9", poster=True)
     page.evaluate("window.renderPoster()")
     page.wait_for_timeout(200)
-    page.screenshot(path=str(OUT / "Nib-E-trailer-thumbnail-1920x1080.png"))
+    page.screenshot(path=str(OUT / suffix("Nib-E-trailer-thumbnail-1920x1080.png")))
     page.close()
     print("wrote thumbnail")
 
 
+def suffix(name):
+    if LANG == "en":
+        return name
+    stem, ext = name.rsplit(".", 1)
+    return f"{stem}-{LANG}.{ext}"
+
+
 def main():
+    global LANG
     args = sys.argv[1:]
+    if "--lang" in args:
+        i = args.index("--lang")
+        LANG = args[i + 1]
+        del args[i:i + 2]
     srv = serve()
     base = f"http://127.0.0.1:{srv.server_address[1]}"
     with sync_playwright() as pw:
@@ -97,7 +111,7 @@ def main():
             page = open_page(browser, base, fmt)
             for s in args[2:]:
                 page.evaluate(f"window.renderAt({float(s)})")
-                page.screenshot(path=str(OUT / f"preview-{fmt}-{s}.png"))
+                page.screenshot(path=str(OUT / suffix(f"preview-{fmt}-{s}.png")))
             print("previews done")
         else:
             if args == ["--poster"]:

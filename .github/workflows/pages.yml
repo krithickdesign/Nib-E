@@ -40,12 +40,14 @@ jobs:
         env:
           VITE_NIB_REPO: https://github.com/${{ github.repository }}
         run: npm run pages
+      - name: Build the German page (docs/de) from the English one
+        run: python3 scripts/site-de.py
       - name: Point the Windows download at the Microsoft Store
         env:
           STORE_ID: ${{ vars.MS_STORE_ID }}
         run: |
           if [[ "$STORE_ID" =~ ^[A-Za-z0-9]{12}$ ]]; then
-            sed -i "s/__NIB_STORE_ID__/$STORE_ID/" docs/index.html
+            sed -i "s/__NIB_STORE_ID__/$STORE_ID/" docs/index.html docs/de/index.html
             echo "Store listing: https://apps.microsoft.com/detail/$STORE_ID"
           else
             echo "No Store ID yet (repository variable MS_STORE_ID): GitHub download stays first."

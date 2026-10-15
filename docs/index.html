@@ -7,6 +7,9 @@
     <meta name="nib-store-id" content="__NIB_STORE_ID__" />
     <title>Nib-E · the all-in-one PDF editor, every feature free</title>
     <meta name="description" content="The all-in-one PDF editor: fill forms, sign, write, redact, organise pages and study. Every feature free, no paywalls, no Pro plan. Works in your browser or as an app, offline, no account." />
+    <link rel="alternate" hreflang="en" href="https://krithickdesign.github.io/Nib-E/" />
+    <link rel="alternate" hreflang="de" href="https://krithickdesign.github.io/Nib-E/de/" />
+    <link rel="alternate" hreflang="x-default" href="https://krithickdesign.github.io/Nib-E/" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.5 5.5 12 8 4.5h8l2.5 7.5z' fill='%232f3fd6'/%3E%3Cpath d='M12 21.5V13' stroke='%23fff' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='11.6' r='1.6' fill='%23fff'/%3E%3C/svg%3E" />
     <!-- Everything on this page is served from this site: no trackers, no outside fonts. -->
     <style>
@@ -40,6 +43,8 @@
         --accent-soft: #e5e8ff;
         --note: #855600;
         --note-soft: #fbf0d8;
+        --tint: #f0f2ff;
+        --tint-line: #d9ddfb;
         --shadow: 0 1px 2px rgba(21, 24, 38, 0.06), 0 18px 50px rgba(21, 24, 38, 0.12);
         --display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
         --text: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -57,6 +62,8 @@
           --accent-soft: #232853;
           --note: #f0c36c;
           --note-soft: #32280f;
+          --tint: #181c33;
+          --tint-line: #2b3160;
           --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 50px rgba(0, 0, 0, 0.45);
         }
       }
@@ -72,6 +79,8 @@
         --accent-soft: #232853;
         --note: #f0c36c;
         --note-soft: #32280f;
+        --tint: #181c33;
+        --tint-line: #2b3160;
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 50px rgba(0, 0, 0, 0.45);
       }
       * {
@@ -151,6 +160,10 @@
         text-decoration: none;
         white-space: nowrap;
       }
+      button.btn {
+        font-family: inherit;
+        cursor: pointer;
+      }
       .btn:hover {
         border-color: var(--faint);
       }
@@ -190,6 +203,17 @@
         min-height: 40px;
         padding: 0 16px;
         font-size: 16px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
       :focus-visible {
         outline: 3px solid var(--accent);
@@ -243,27 +267,6 @@
         width: 100%;
         height: auto;
         background: #e8ebf5;
-      }
-      .compare {
-        margin-top: 22px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-      }
-      .compare .card p {
-        margin-top: 6px;
-      }
-      .compare .card.them {
-        background: transparent;
-        box-shadow: none;
-      }
-      .compare .card.us {
-        border-color: var(--accent);
-      }
-      @media (max-width: 720px) {
-        .compare {
-          grid-template-columns: 1fr;
-        }
       }
       .shot img {
         display: block;
@@ -336,13 +339,19 @@
         font-size: 13.5px;
         overflow-wrap: anywhere;
       }
-      .card .warn {
-        font-size: 14.5px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: var(--warn-bg);
-        border: 1px solid var(--warn-line);
-        color: var(--warn-fg);
+      /* Notes and hints: a quiet tint of the page's indigo, no alarm colours. */
+      .note {
+        font-size: 15px;
+        line-height: 1.5;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: var(--tint);
+        border: 1px solid var(--tint-line);
+        color: var(--fg);
+        margin: 12px 0 0;
+      }
+      .note strong {
+        color: var(--accent);
       }
       .callout {
         display: flex;
@@ -351,68 +360,28 @@
         margin-top: 22px;
         padding: 18px 20px;
         border-radius: 14px;
-        background: var(--warn-bg);
-        border: 1px solid var(--warn-line);
-        border-left: 6px solid var(--warn-strong);
-        color: var(--warn-fg);
+        background: var(--tint);
+        border: 1px solid var(--tint-line);
+        color: var(--muted);
         font-size: 16px;
         line-height: 1.55;
       }
       .callout svg {
         flex: none;
-        width: 26px;
-        height: 26px;
-        color: var(--warn-strong);
-        margin-top: 1px;
-      }
-      .callout p {
-        margin: 0;
-      }
-      .callout a {
-        color: inherit;
-        font-weight: 600;
-      }
-      :root {
-        --warn-bg: #fff4d6;
-        --warn-line: #f2cf74;
-        --warn-strong: #c98a00;
-        --warn-fg: #4a3300;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --warn-bg: #33270b;
-          --warn-line: #6b5212;
-          --warn-strong: #f0b93a;
-          --warn-fg: #f6e3b4;
-        }
-      }
-      .features {
-        list-style: none;
-        margin: 28px 0 0;
-        padding: 0;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2px 40px;
-      }
-      .features li {
-        display: grid;
-        grid-template-columns: 28px 1fr;
-        gap: 12px;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .features svg {
         width: 24px;
         height: 24px;
         color: var(--accent);
         margin-top: 2px;
       }
-      .features strong {
-        display: block;
+      .callout p {
+        margin: 0;
       }
-      .features span {
-        color: var(--muted);
-        font-size: 16px;
+      .callout strong {
+        color: var(--fg);
+      }
+      .callout a {
+        color: var(--accent);
+        font-weight: 600;
       }
       .beta {
         display: grid;
@@ -510,8 +479,6 @@
       }
       @media (max-width: 820px) {
         .privacy,
-        .features,
-        .shots,
         .beta {
           grid-template-columns: 1fr;
         }
@@ -523,6 +490,465 @@
         }
         section {
           padding-block: 44px;
+        }
+      }
+
+      /* ---- language switch ---- */
+      .lang {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--raised);
+      }
+      .lang a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .lang a[aria-current="true"] {
+        background: var(--accent-soft);
+        color: var(--fg);
+      }
+      .lang svg.flag {
+        width: 20px;
+        height: 14px;
+        border-radius: 3px;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+      }
+      .langhint {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--tint);
+        border: 1px solid var(--tint-line);
+        font-size: 15px;
+      }
+      .langhint a {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .langhint button {
+        margin-left: auto;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      /* ---- feature comparison table ---- */
+      .ctable {
+        width: 100%;
+        margin-top: 28px;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--raised);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .ctable th,
+      .ctable td {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: middle;
+      }
+      .ctable tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .ctable thead th {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--muted);
+        vertical-align: bottom;
+      }
+      .ctable thead th b {
+        display: block;
+        font: 700 21px/1.2 var(--display);
+        letter-spacing: -0.015em;
+        color: var(--fg);
+        margin-bottom: 2px;
+      }
+      .ctable thead th small {
+        display: block;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.4;
+      }
+      .ctable .col-them {
+        width: 22%;
+      }
+      .ctable .col-us {
+        width: 20%;
+        background: var(--tint);
+        border-left: 1px solid var(--tint-line);
+      }
+      .ctable thead .col-us b {
+        color: var(--accent);
+      }
+      .feat {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+      }
+      .feat svg {
+        width: 24px;
+        height: 24px;
+        color: var(--accent);
+        margin-top: 2px;
+      }
+      .feat strong {
+        display: block;
+      }
+      .feat span {
+        color: var(--muted);
+        font-size: 16px;
+      }
+      .mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      .mark svg {
+        flex: none;
+        width: 20px;
+        height: 20px;
+      }
+      .mark.yes {
+        color: var(--accent);
+      }
+      .mark.part {
+        color: var(--muted);
+      }
+      .mark.no {
+        color: var(--faint);
+      }
+      .mark.free {
+        color: var(--accent);
+        font-size: 16px;
+      }
+      .mark.free svg {
+        background: var(--accent);
+        color: var(--accent-fg);
+        border-radius: 50%;
+        padding: 3px;
+        width: 22px;
+        height: 22px;
+      }
+      @media (max-width: 760px) {
+        .ctable thead {
+          display: none;
+        }
+        .ctable,
+        .ctable tbody {
+          display: block;
+        }
+        .ctable tr {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          border-bottom: 1px solid var(--line);
+        }
+        .ctable tbody tr:last-child {
+          border-bottom: 0;
+        }
+        .ctable td {
+          display: block;
+          border: 0;
+          width: auto;
+          padding: 14px 16px;
+        }
+        .ctable td:first-child {
+          grid-column: 1 / -1;
+          padding-bottom: 6px;
+        }
+        .ctable td[data-label] {
+          padding-top: 8px;
+        }
+        .ctable td[data-label]::before {
+          content: attr(data-label);
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--faint);
+          margin-bottom: 4px;
+        }
+        .ctable td.col-them,
+        .ctable td.col-us {
+          width: auto;
+          border-left: 0;
+        }
+        .ctable td.col-us {
+          border-radius: 12px;
+          margin: 0 12px 12px 0;
+        }
+      }
+
+      /* ---- screenshot carousel ---- */
+      .carousel {
+        position: relative;
+        margin-top: 44px;
+      }
+      .car-track {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain;
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        scrollbar-width: none;
+        background: #1a2192;
+      }
+      .car-track::-webkit-scrollbar {
+        display: none;
+      }
+      .car-slide {
+        flex: 0 0 100%;
+        margin: 0;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+      }
+      .car-slide img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+      }
+      .car-btn {
+        position: absolute;
+        top: calc(50% - 26px);
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        color: var(--fg);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+      .car-btn svg {
+        width: 22px;
+        height: 22px;
+      }
+      .car-btn.prev {
+        left: -24px;
+      }
+      .car-btn.prev svg {
+        transform: scaleX(-1);
+      }
+      .car-btn.next {
+        right: -24px;
+      }
+      .car-nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .car-nav .dot {
+        width: 10px;
+        height: 10px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: var(--line);
+        cursor: pointer;
+        transition: width 0.25s, background 0.25s;
+      }
+      .car-nav .dot[aria-current="true"] {
+        width: 28px;
+        background: var(--accent);
+      }
+      .car-nav .pause {
+        margin-left: 10px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        color: var(--muted);
+        border-radius: 999px;
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .car-nav .pause svg {
+        width: 14px;
+        height: 14px;
+      }
+      @media (max-width: 1200px) {
+        .car-btn.prev {
+          left: 10px;
+        }
+        .car-btn.next {
+          right: 10px;
+        }
+      }
+      @media (max-width: 600px) {
+        .car-btn {
+          display: none;
+        }
+      }
+
+      /* ---- download cards + dialogs ---- */
+      .dl .card .btn {
+        margin-top: 14px;
+      }
+      .dl .card .btn + .btn {
+        margin-top: 10px;
+      }
+      dialog.dlg {
+        width: min(620px, 100% - 32px);
+        max-height: calc(100% - 32px);
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--raised);
+        color: var(--fg);
+        box-shadow: var(--shadow);
+      }
+      dialog.dlg::backdrop {
+        background: rgba(14, 16, 22, 0.55);
+        backdrop-filter: blur(3px);
+      }
+      .dlg-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 22px 24px 0;
+      }
+      .dlg-head h3 {
+        flex: 1;
+        margin: 0;
+        font: 700 24px/1.2 var(--display);
+        letter-spacing: -0.02em;
+      }
+      .dlg-x {
+        border: 0;
+        background: none;
+        color: var(--muted);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+      .dlg-x:hover {
+        background: var(--tint);
+      }
+      .dlg-x svg {
+        width: 20px;
+        height: 20px;
+      }
+      .dlg-body {
+        padding: 14px 24px 8px;
+        font-size: 16px;
+        color: var(--muted);
+      }
+      .dlg-body p {
+        margin: 10px 0 0;
+      }
+      .dlg-body code {
+        font-size: 14px;
+        overflow-wrap: anywhere;
+      }
+      .rec {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 4px 12px;
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--tint);
+        border: 1px solid var(--accent);
+        color: var(--fg);
+      }
+      .rec svg {
+        width: 26px;
+        height: 26px;
+        color: var(--accent);
+      }
+      .rec p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .rec > div {
+        min-width: 0;
+      }
+      .rec .btn {
+        grid-column: 2;
+        justify-self: start;
+        margin-top: 10px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.25;
+        padding: 10px 18px;
+      }
+      .dlg-sub {
+        margin: 20px 0 0;
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .dlg-foot {
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 18px 24px 22px;
+      }
+      .brand {
+        white-space: nowrap;
+      }
+      @media (max-width: 520px) {
+        header.top {
+          gap: 10px;
+        }
+        .lang a {
+          padding: 6px 8px;
+          gap: 0;
+          font-size: 0;
+        }
+        .lang svg.flag {
+          width: 22px;
+          height: 15px;
+        }
+        .rec {
+          grid-template-columns: 1fr;
+        }
+        .rec svg {
+          display: none;
+        }
+        .rec .btn {
+          grid-column: 1;
+          width: 100%;
+        }
+        .ss-steps {
+          grid-template-columns: 1fr;
+        }
+        .dlg-foot .btn {
+          flex: 1;
         }
       }
     </style>
@@ -545,6 +971,15 @@
         <symbol id="i-pages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></symbol>
         <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></symbol>
         <symbol id="i-tabs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 19.5v-11a2 2 0 0 1 2-2h4l2 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-part" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" /></symbol>
+        <symbol id="i-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="8" /><path d="m9 9 6 6m0-6-6 6" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.6v.2" /></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" /></symbol>
+        <symbol id="flag-uk" viewBox="0 0 60 30"><clipPath id="uk-c"><path d="M0 0v30h60V0z" /></clipPath><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z" /></clipPath><g clip-path="url(#uk-c)"><path d="M0 0v30h60V0z" fill="#012169" /><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6" /><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4" /><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10" /><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6" /></g></symbol>
+        <symbol id="flag-de" viewBox="0 0 5 3"><path d="M0 0h5v3H0z" fill="#000" /><path d="M0 1h5v2H0z" fill="#D00" /><path d="M0 2h5v1H0z" fill="#FFCE00" /></symbol>
       </defs>
     </svg>
 
@@ -555,9 +990,11 @@
         <a class="navlink hide-sm" href="#features">Features</a>
         <a class="navlink hide-sm" href="#privacy">Privacy</a>
         <a class="navlink hide-sm" href="#download">Desktop app</a>
-        <a class="navlink" data-gh href="#">GitHub</a>
+        <a class="navlink hide-sm" data-gh href="#">GitHub</a>
+        <nav class="lang" aria-label="Language"><a href="./" hreflang="en" aria-current="true" title="English (UK)"><svg class="flag" aria-hidden="true"><use href="#flag-uk" /></svg>EN</a><a href="de/" hreflang="de" lang="de" title="Deutsch"><svg class="flag" aria-hidden="true"><use href="#flag-de" /></svg>DE</a></nav>
         <a class="btn sm primary" href="app/">Open Nib-E</a>
       </header>
+      <div class="langhint" data-langhint lang="de" hidden>Diese Seite gibt es auch auf Deutsch. <a href="de/">Auf Deutsch lesen</a><button type="button" data-langhint-x aria-label="Schließen">×</button></div>
 
       <main>
         <div class="hero">
@@ -579,23 +1016,72 @@
         <section id="features">
           <p class="kicker">All in one</p>
           <h2>Every PDF tool you need. None of them behind a paywall.</h2>
-          <div class="compare">
-            <div class="card them"><h3>Many PDF editors</h3><p>Reading is free. Editing, signing, redacting or combining files needs a monthly subscription or a “Pro” upgrade.</p></div>
-            <div class="card us"><h3>Nib-E</h3><p>Every tool is free: no trial, no watermark, no feature locked behind a plan. Open source under the MIT licence.</p></div>
-          </div>
-          <ul class="features">
-            <li><svg><use href="#i-fill" /></svg><div><strong>Fill any form</strong><span>Even forms without form fields: Nib-E finds the boxes, lines and tick boxes and asks if you want to fill them. Text matches the form's font.</span></div></li>
-            <li><svg><use href="#i-sign" /></svg><div><strong>Sign</strong><span>Draw your signature once, place it anywhere, keep it on this device if you like.</span></div></li>
-            <li><svg><use href="#i-pen" /></svg><div><strong>Write like on paper</strong><span>Pen and highlighter with stylus pressure and palm rejection. Choose how much your writing is smoothed: precise for handwriting, smooth for diagrams.</span></div></li>
-            <li><svg><use href="#i-study" /></svg><div><strong>Study mode</strong><span>Your PDF beside a lined, grid or blank notebook. Notes are kept as you write and come back, at the page where you stopped, when you open the book again. The book file stays untouched unless you choose otherwise.</span></div></li>
-            <li><svg><use href="#i-stamp" /></svg><div><strong>Annotations and stamps</strong><span>Sticky notes, highlights, shapes, ready-made stamps, or design your own stamp and reuse it.</span></div></li>
-            <li><svg><use href="#i-redact" /></svg><div><strong>Redaction that really removes</strong><span>Text under the box is deleted and picture pixels erased. Nib-E checks the result before you save.</span></div></li>
-            <li><svg><use href="#i-pages" /></svg><div><strong>Pages and files</strong><span>Insert, rotate, reorder, delete and extract pages. Merge PDFs, reduce the file size, lock with a password, export pages as images.</span></div></li>
-            <li><svg><use href="#i-tabs" /></svg><div><strong>Several files at once</strong><span>Each PDF opens in its own tab. Save writes back to the file you opened, the earlier version can be restored, and unsaved work survives a crash.</span></div></li>
-          </ul>
-          <div class="shots" style="margin-top: 40px">
-            <figure><div class="shot"><img src="assets/study.webp" width="3200" height="2000" loading="lazy" alt="Study mode: a physics worksheet with a highlighted line on the left, a hand-drawn sketch and typed notes on lined paper on the right." /></div><figcaption>Study mode: highlight on the left, work it out on the right.</figcaption></figure>
-            <figure><div class="shot"><img src="assets/ask.webp" width="3200" height="2000" loading="lazy" alt="Nib-E asking: Fill in this form? Nib-E found 9 places to fill in. Buttons: Not now, Make fillable." /></div><figcaption>Forms without fields: Nib-E finds the places to fill in and asks first.</figcaption></figure>
+          <table class="ctable">
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Feature</span></th>
+                <th scope="col" class="col-them"><b>Many PDF editors</b><small>Reading is free. The rest needs a subscription or a “Pro” upgrade.</small></th>
+                <th scope="col" class="col-us"><b>Nib-E</b><small>Every tool free. No trial, no watermark. MIT licence.</small></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-fill" /></svg><div><strong>Fill any form</strong><span>Even forms without form fields: Nib-E finds the boxes, lines and tick boxes and asks if you want to fill them. Text matches the form's font.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark part"><svg aria-hidden="true"><use href="#i-part" /></svg>Fillable forms only</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-sign" /></svg><div><strong>Sign</strong><span>Draw your signature once, place it anywhere, keep it on this device if you like.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark yes"><svg aria-hidden="true"><use href="#i-check" /></svg>Often free</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-pen" /></svg><div><strong>Write like on paper</strong><span>Pen and highlighter with stylus pressure and palm rejection. Choose how much your writing is smoothed: precise for handwriting, smooth for diagrams.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark part"><svg aria-hidden="true"><use href="#i-part" /></svg>Varies</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-study" /></svg><div><strong>Study mode</strong><span>Your PDF beside a lined, grid or blank notebook. Notes are kept as you write and come back, at the page where you stopped, when you open the book again. The book file stays untouched unless you choose otherwise.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark no"><svg aria-hidden="true"><use href="#i-no" /></svg>Rarely available</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-stamp" /></svg><div><strong>Annotations and stamps</strong><span>Sticky notes, highlights, shapes, ready-made stamps, or design your own stamp and reuse it.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark part"><svg aria-hidden="true"><use href="#i-part" /></svg>Basic free, custom stamps often paid</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-redact" /></svg><div><strong>Redaction that really removes</strong><span>Text under the box is deleted and picture pixels erased. Nib-E checks the result before you save.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark no"><svg aria-hidden="true"><use href="#i-no" /></svg>Usually a paid plan</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-pages" /></svg><div><strong>Pages and files</strong><span>Insert, rotate, reorder, delete and extract pages. Merge PDFs, reduce the file size, lock with a password, export pages as images.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark no"><svg aria-hidden="true"><use href="#i-no" /></svg>Usually a paid plan</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-tabs" /></svg><div><strong>Several files at once</strong><span>Each PDF opens in its own tab. Save writes back to the file you opened, the earlier version can be restored, and unsaved work survives a crash.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark yes"><svg aria-hidden="true"><use href="#i-check" /></svg>Usually</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="carousel" data-carousel aria-roledescription="carousel" aria-label="Screenshots">
+            <div class="car-track" tabindex="0">
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="1 / 8"><img src="assets/slides/01-all-in-one.webp" width="1920" height="1080" alt="The all-in-one PDF editor. Every feature free, no Pro plan." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="2 / 8"><img src="assets/slides/02-fill-forms.webp" width="1920" height="1080" loading="lazy" alt="Fill any form, even forms without fillable fields: Nib-E found 9 boxes to fill." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="3 / 8"><img src="assets/slides/03-sign.webp" width="1920" height="1080" loading="lazy" alt="Sign in seconds: draw your signature once and place it on any line." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="4 / 8"><img src="assets/slides/04-annotate.webp" width="1920" height="1080" loading="lazy" alt="Highlight, comment and stamp: a report with a highlight, a circled figure, an arrow and an Approved stamp." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="5 / 8"><img src="assets/slides/05-pages.webp" width="1920" height="1080" loading="lazy" alt="Merge, reorder and shrink: the page manager with thumbnails." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="6 / 8"><img src="assets/slides/06-redact.webp" width="1920" height="1080" loading="lazy" alt="Redaction before and after: the name is removed for good, and Nib-E checks that nothing is left underneath." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="7 / 8"><img src="assets/slides/07-study-mode.webp" width="1920" height="1080" loading="lazy" alt="Study mode: a worksheet beside a notebook with a sketch and typed notes." /></figure>
+              <figure class="car-slide" role="group" aria-roledescription="slide" aria-label="8 / 8"><img src="assets/slides/08-every-tool-free.webp" width="1920" height="1080" loading="lazy" alt="Every tool free: twelve tools, each marked free. Works offline, no account, no uploads, no ads." /></figure>
+            </div>
+            <button type="button" class="car-btn prev" data-car-prev aria-label="Previous screenshot"><svg><use href="#i-open" /></svg></button>
+            <button type="button" class="car-btn next" data-car-next aria-label="Next screenshot"><svg><use href="#i-open" /></svg></button>
+            <div class="car-nav"><span data-car-dots></span><button type="button" class="pause" data-car-pause aria-label="Pause the slideshow"><svg><use href="#i-pause" /></svg></button></div>
           </div>
         </section>
 
@@ -617,33 +1103,65 @@
           <div class="privacy dl">
             <div class="card" id="windows">
               <h3>Windows</h3>
+              <p>Windows 10 and 11.</p>
               <div data-store hidden>
                 <a class="btn primary wide" data-store-link href="#">Get Nib-E from the Microsoft Store</a>
                 <p class="fine" style="margin-top:8px">Signed by Microsoft: no warning, and updates install by themselves.</p>
               </div>
-              <p data-store-soon class="fine">Microsoft Store: on its way. Until then, use the download below.</p>
-              <details data-store-alt open>
-                <summary>Or download the installer from GitHub</summary>
-                <p><a data-gh-releases href="#">Download</a> <code>Nib-E_…_x64-setup.exe</code> (no admin rights needed).</p>
-                <p class="warn"><strong>First start:</strong> a blue window “Windows protected your PC” appears, because this installer is not signed yet. Two clicks:</p>
-                <div class="ss-steps" aria-hidden="true">
-                  <div class="ss"><span class="ss-n">1</span><b>Windows protected your PC</b>Microsoft Defender SmartScreen prevented an unrecognised app from starting…<span class="ss-link">More info</span><span class="ss-btns"><span class="ss-btn">Don't run</span></span></div>
-                  <div class="ss"><span class="ss-n">2</span><b>Windows protected your PC</b>App: Nib-E_…_x64-setup.exe<br/>Publisher: Unknown publisher<span class="ss-btns"><span class="ss-btn hl">Run anyway</span><span class="ss-btn">Don't run</span></span></div>
-                </div>
-              </details>
+              <p data-store-soon class="fine" style="margin-top:10px">Microsoft Store: on its way. Until then, use the installer from GitHub.</p>
+              <button type="button" class="btn wide" data-open="dlg-win">Installer from GitHub (.exe)</button>
             </div>
             <div class="card">
               <h3>macOS</h3>
-              <p><a data-gh-releases href="#">Download</a> <code>Nib-E_…_universal.dmg</code> (Apple silicon and Intel).</p>
-              <p class="warn"><strong>First start:</strong> macOS says Nib-E cannot be opened. Open <strong>System Settings → Privacy &amp; Security</strong>, scroll down, click <strong>Open Anyway</strong>.</p>
+              <p>Apple silicon and Intel.</p>
+              <button type="button" class="btn wide" data-open="dlg-mac">Download for macOS</button>
             </div>
             <div class="card">
               <h3>Linux</h3>
-              <p><a data-gh-releases href="#">Download</a> the <code>.AppImage</code> (any distribution) or the <code>.deb</code> (Ubuntu, Debian).</p>
-              <p class="warn">Make the AppImage executable (right-click → Properties → Allow executing), then double-click it.</p>
+              <p>AppImage (any distribution) or .deb (Ubuntu, Debian).</p>
+              <button type="button" class="btn wide" data-open="dlg-linux">Download for Linux</button>
             </div>
           </div>
-          <div class="callout" role="note"><svg><use href="#i-shield" /></svg><p><strong>Why the warnings?</strong> The GitHub installers are not signed with a paid certificate yet; the Microsoft Store version is signed by Microsoft and has no warning. Every installer is built openly from this source code by GitHub. Nib-E never checks for updates by itself: the Store updates its version, and for the others you download a newer version here and install it over the old one (settings and study notes are kept). Prefer no install at all? <a href="app/index.html" download="Nib-E.html">Download Nib-E.html</a>, a single file that opens in your browser and works offline.</p></div>
+          <div class="callout" role="note"><svg><use href="#i-info" /></svg><p><strong>Why the warnings?</strong> The GitHub installers are not signed with a paid certificate yet; the Microsoft Store version is signed by Microsoft and has no warning. Every installer is built openly from this source code by GitHub. Nib-E never checks for updates by itself: the Store updates its version, and for the others you download a newer version here and install it over the old one (settings and study notes are kept). Prefer no install at all? <a href="app/index.html" download="Nib-E.html">Download Nib-E.html</a>, a single file that opens in your browser and works offline.</p></div>
+
+          <dialog class="dlg" id="dlg-win" aria-labelledby="dlg-win-t">
+            <div class="dlg-head"><h3 id="dlg-win-t">Before you download</h3><button type="button" class="dlg-x" data-close aria-label="Close"><svg><use href="#i-x" /></svg></button></div>
+            <div class="dlg-body">
+              <div class="rec" data-store hidden>
+                <svg><use href="#i-shield" /></svg>
+                <div><strong>We recommend the Microsoft Store version.</strong><p>Same app, same features, free. It is checked and signed by Microsoft, installs without any warning and updates by itself.</p></div>
+                <a class="btn primary" data-store-link href="#">Get it from the Microsoft Store</a>
+              </div>
+              <p class="dlg-sub">Still want the installer from GitHub?</p>
+              <p>File: <code>Nib-E_…_x64-setup.exe</code> (no admin rights needed). It is not signed with a paid certificate yet, so on first start Windows shows a blue window. Two clicks:</p>
+              <div class="ss-steps" aria-hidden="true">
+                <div class="ss"><span class="ss-n">1</span><b>Windows protected your PC</b>Microsoft Defender SmartScreen prevented an unrecognised app from starting…<span class="ss-link">More info</span><span class="ss-btns"><span class="ss-btn">Don't run</span></span></div>
+                <div class="ss"><span class="ss-n">2</span><b>Windows protected your PC</b>App: Nib-E_…_x64-setup.exe<br/>Publisher: Unknown publisher<span class="ss-btns"><span class="ss-btn hl">Run anyway</span><span class="ss-btn">Don't run</span></span></div>
+              </div>
+              <p class="sr-only">In the blue window, click More info, then Run anyway.</p>
+            </div>
+            <div class="dlg-foot"><button type="button" class="btn" data-close>Cancel</button><a class="btn primary" data-gh-releases href="#" target="_blank" rel="noopener">Continue to GitHub <svg><use href="#i-open" /></svg></a></div>
+          </dialog>
+
+          <dialog class="dlg" id="dlg-mac" aria-labelledby="dlg-mac-t">
+            <div class="dlg-head"><h3 id="dlg-mac-t">Before you download for macOS</h3><button type="button" class="dlg-x" data-close aria-label="Close"><svg><use href="#i-x" /></svg></button></div>
+            <div class="dlg-body">
+              <p>File: <code>Nib-E_…_universal.dmg</code> (Apple silicon and Intel), from the latest release on GitHub.</p>
+              <p class="note"><strong>First start:</strong> macOS says Nib-E cannot be opened, because it is not notarised by Apple yet. Open <strong>System Settings → Privacy &amp; Security</strong>, scroll down, click <strong>Open Anyway</strong>. You only do this once.</p>
+              <p>No install needed? <a href="app/">Open Nib-E in your browser</a>: same features, works offline once loaded.</p>
+            </div>
+            <div class="dlg-foot"><button type="button" class="btn" data-close>Cancel</button><a class="btn primary" data-gh-releases href="#" target="_blank" rel="noopener">Continue to GitHub <svg><use href="#i-open" /></svg></a></div>
+          </dialog>
+
+          <dialog class="dlg" id="dlg-linux" aria-labelledby="dlg-linux-t">
+            <div class="dlg-head"><h3 id="dlg-linux-t">Before you download for Linux</h3><button type="button" class="dlg-x" data-close aria-label="Close"><svg><use href="#i-x" /></svg></button></div>
+            <div class="dlg-body">
+              <p>Files: the <code>.AppImage</code> (any distribution) or the <code>.deb</code> (Ubuntu, Debian), from the latest release on GitHub.</p>
+              <p class="note"><strong>AppImage:</strong> make it executable (right-click → Properties → Allow executing), then double-click it. <strong>.deb:</strong> double-click to install with your software centre.</p>
+              <p>No install needed? <a href="app/">Open Nib-E in your browser</a>: same features, works offline once loaded.</p>
+            </div>
+            <div class="dlg-foot"><button type="button" class="btn" data-close>Cancel</button><a class="btn primary" data-gh-releases href="#" target="_blank" rel="noopener">Continue to GitHub <svg><use href="#i-open" /></svg></a></div>
+          </dialog>
         </section>
 
         <section id="feedback">
@@ -686,8 +1204,7 @@
           else a.hidden = true;
         });
         document.querySelectorAll('[data-gh-releases]').forEach(function (a) {
-          if (repo) a.href = repo + '/releases/latest';
-          else a.replaceWith(document.createTextNode('Get'));
+          a.href = (repo || 'https://github.com/krithickdesign/Nib-E') + '/releases/latest';
         });
         // Microsoft Store: main Windows install once the listing exists.
         var meta = document.querySelector('meta[name="nib-store-id"]');
@@ -702,14 +1219,140 @@
           document.querySelectorAll('[data-store-soon]').forEach(function (el) {
             el.hidden = true;
           });
-          document.querySelectorAll('[data-store-alt]').forEach(function (el) {
-            el.open = false;
-          });
         }
         document.querySelectorAll('[data-gh-issues]').forEach(function (a) {
           if (repo) a.href = repo + '/issues/new/choose';
           else a.replaceWith(document.createTextNode('Report it on the project’s GitHub page'));
         });
+
+        // Download dialogs: tips first, then on to GitHub.
+        document.querySelectorAll('[data-open]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var d = document.getElementById(b.getAttribute('data-open'));
+            if (d && d.showModal) d.showModal();
+            else location.href = (repo || 'https://github.com/krithickdesign/Nib-E') + '/releases/latest';
+          });
+        });
+        document.querySelectorAll('dialog.dlg').forEach(function (d) {
+          d.addEventListener('click', function (e) {
+            if (e.target === d || e.target.closest('[data-close]')) d.close();
+          });
+          d.querySelectorAll('[data-gh-releases]').forEach(function (a) {
+            a.addEventListener('click', function () {
+              d.close();
+            });
+          });
+        });
+
+        // "Also in German" hint for German-language browsers (English page only, until dismissed).
+        var hint = document.querySelector('[data-langhint]');
+        if (hint && document.documentElement.lang === 'en') {
+          var seen = false;
+          try {
+            seen = localStorage.getItem('nib.langhint') === '1';
+          } catch (e) {}
+          var langs = navigator.languages || [navigator.language || ''];
+          if (!seen && String(langs[0] || '').toLowerCase().indexOf('de') === 0) hint.hidden = false;
+          hint.querySelector('[data-langhint-x]').addEventListener('click', function () {
+            hint.hidden = true;
+            try {
+              localStorage.setItem('nib.langhint', '1');
+            } catch (e) {}
+          });
+        }
+
+        // Screenshot carousel: swipe, arrows, dots; advances every 6 s unless paused, hovered or reduced motion.
+        var car = document.querySelector('[data-carousel]');
+        if (car) {
+          var track = car.querySelector('.car-track');
+          var slides = car.querySelectorAll('.car-slide');
+          var dotsBox = car.querySelector('[data-car-dots]');
+          var pauseBtn = car.querySelector('[data-car-pause]');
+          var n = slides.length;
+          var idx = 0;
+          var dots = [];
+          var label = car.getAttribute('data-dot-label') || 'Show screenshot';
+          for (var k = 0; k < n; k++) {
+            (function (k) {
+              var b = document.createElement('button');
+              b.type = 'button';
+              b.className = 'dot';
+              b.setAttribute('aria-label', label + ' ' + (k + 1));
+              b.addEventListener('click', function () {
+                go(k);
+                stop();
+              });
+              dotsBox.appendChild(b);
+              dots.push(b);
+            })(k);
+          }
+          function mark() {
+            dots.forEach(function (d, k) {
+              d.setAttribute('aria-current', k === idx ? 'true' : 'false');
+            });
+          }
+          function go(k) {
+            idx = (k + n) % n;
+            track.scrollTo({ left: idx * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
+            mark();
+          }
+          var t;
+          track.addEventListener('scroll', function () {
+            clearTimeout(t);
+            t = setTimeout(function () {
+              var k = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+              if (k !== idx) {
+                idx = k;
+                mark();
+              }
+            }, 80);
+          });
+          car.querySelector('[data-car-prev]').addEventListener('click', function () {
+            go(idx - 1);
+            stop();
+          });
+          car.querySelector('[data-car-next]').addEventListener('click', function () {
+            go(idx + 1);
+            stop();
+          });
+          track.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowRight') { go(idx + 1); stop(); e.preventDefault(); }
+            if (e.key === 'ArrowLeft') { go(idx - 1); stop(); e.preventDefault(); }
+          });
+          var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+          var playing = !reduce;
+          var hover = false;
+          var visible = false;
+          var pauseLabel = pauseBtn.getAttribute('aria-label');
+          var playLabel = car.getAttribute('data-play-label') || 'Play the slideshow';
+          function paint() {
+            pauseBtn.querySelector('use').setAttribute('href', playing ? '#i-pause' : '#i-play');
+            pauseBtn.setAttribute('aria-label', playing ? pauseLabel : playLabel);
+          }
+          function stop() {
+            playing = false;
+            paint();
+          }
+          pauseBtn.addEventListener('click', function () {
+            playing = !playing;
+            paint();
+          });
+          car.addEventListener('pointerenter', function () { hover = true; });
+          car.addEventListener('pointerleave', function () { hover = false; });
+          car.addEventListener('focusin', function () { hover = true; });
+          car.addEventListener('focusout', function () { hover = false; });
+          track.addEventListener('touchstart', stop, { passive: true });
+          if ('IntersectionObserver' in window) {
+            new IntersectionObserver(function (es) {
+              visible = es[0].isIntersecting;
+            }, { threshold: 0.5 }).observe(car);
+          } else visible = true;
+          setInterval(function () {
+            if (playing && !hover && visible && !document.hidden) go(idx + 1);
+          }, 6000);
+          mark();
+          paint();
+        }
       })();
     </script>
   </body>
