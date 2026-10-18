@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.krithickdesign.NibE</id>
+  <name>Nib-E</name>
+  <summary>The all-in-one PDF editor, every feature free</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.krithickdesign">
+    <name>Axiomate Technologies</name>
+  </developer>
+  <description>
+    <p>Nib-E reads, edits, signs and protects PDFs. Every feature is free: no paywalls, no Pro plan, no account. Your files stay on your computer and the app works without internet.</p>
+    <ul>
+      <li>Edit existing text in the PDF's own font, add text, images, links, header, footer and watermark</li>
+      <li>Fill forms, even ones without form fields, and sign by hand or with a certificate (.p12/.pfx)</li>
+      <li>Check digital signatures</li>
+      <li>Redact text and images for good, protect with a password (AES-256)</li>
+      <li>Text recognition (OCR) makes scans searchable</li>
+      <li>Merge, reorder, rotate and extract pages; two-page view</li>
+      <li>Study mode: write on the PDF with a pen, notebook beside it</li>
+      <li>Safe mode: scripts never run, links stay inert</li>
+    </ul>
+    <p>Available in English, German, Spanish, French, Portuguese (Brazil) and Italian.</p>
+  </description>
+  <launchable type="desktop-id">io.github.krithickdesign.NibE.desktop</launchable>
+  <url type="homepage">https://krithickdesign.github.io/Nib-E/</url>
+  <url type="bugtracker">https://github.com/krithickdesign/Nib-E/issues</url>
+  <url type="vcs-browser">https://github.com/krithickdesign/Nib-E</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Fill and sign</caption>
+      <image>https://krithickdesign.github.io/Nib-E/assets/fill.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Study mode</caption>
+      <image>https://krithickdesign.github.io/Nib-E/assets/study.webp</image>
+    </screenshot>
+  </screenshots>
+  <branding>
+    <color type="primary" scheme_preference="light">#c9d2ff</color>
+    <color type="primary" scheme_preference="dark">#1d2b8f</color>
+  </branding>
+  <content_rating type="oars-1.1" />
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <provides>
+    <mediatype>application/pdf</mediatype>
+  </provides>
+  <categories>
+    <category>Office</category>
+  </categories>
+  <releases>
+    <release version="0.6.0" date="2026-10-17">
+      <description>
+        <p>Edit existing text, certificate signing and signature checks, text recognition (OCR), print check, two-page view, more fonts, copy and paste, and five new languages. Linux: fixes a start-up crash on some graphics drivers.</p>
+      </description>
+    </release>
+  </releases>
+</component>

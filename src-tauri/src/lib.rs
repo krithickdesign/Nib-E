@@ -49,6 +49,12 @@ const WEBSITE: &str = match option_env!("NIB_WEBSITE") {
     None => "https://github.com/",
 };
 
+/// Nib-E's Microsoft Store product id (for "Rate Nib-E" in the Store edition).
+const STORE_PRODUCT: &str = match option_env!("NIB_STORE_ID") {
+    Some(id) => id,
+    None => "9PPKF7HC76Q3",
+};
+
 /// Feedback and survey form (Google Form), opened in the browser on request.
 const FORM: &str = match option_env!("NIB_FORM") {
     Some(url) => url,
@@ -181,6 +187,69 @@ fn hand_over(app: &AppHandle, target: Option<&str>, paths: Vec<PathBuf>) {
     }
 }
 
+// ---------- Linux graphics safety ----------
+
+/// Linux: WebKitGTK (the web view Tauri uses there) crashes on some graphics
+/// drivers, most often NVIDIA and some Wayland setups. Before the window opens:
+/// - its DMA-BUF renderer is switched off (the usual cause of those crashes);
+/// - if the previous start never reached the page (it crashed during start-up),
+///   this and every later start use safe graphics (no GPU compositing, software
+///   OpenGL). Slower to draw, but it starts.
+/// Anything already set in the environment wins, and NIB_SAFE_GRAPHICS=1 forces
+/// safe graphics.
+#[cfg(target_os = "linux")]
+mod linux_gfx {
+    use std::env;
+    use std::fs;
+    use std::path::PathBuf;
+
+    /// Same folder as Tauri's app data dir for the identifier in tauri.conf.json.
+    fn data_dir() -> Option<PathBuf> {
+        let base = env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .or_else(|| env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))?;
+        Some(base.join("app.nib.pdfeditor"))
+    }
+
+    fn set_default(key: &str, value: &str) {
+        if env::var_os(key).is_none() {
+            env::set_var(key, value);
+        }
+    }
+
+    /// Call first thing, before any GTK or WebKit code runs.
+    pub fn prepare() {
+        set_default("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        let dir = data_dir();
+        let starting = dir.as_ref().map(|d| d.join("starting"));
+        let safe_file = dir.as_ref().map(|d| d.join("linux-safe-graphics"));
+        let crashed_before = starting.as_ref().map(|f| f.exists()).unwrap_or(false);
+        let forced = env::var("NIB_SAFE_GRAPHICS").map(|v| v == "1").unwrap_or(false);
+        if crashed_before {
+            if let Some(f) = &safe_file {
+                let _ = fs::write(f, b"The previous start crashed before the page loaded.\n");
+            }
+        }
+        let safe = forced || safe_file.as_ref().map(|f| f.exists()).unwrap_or(false);
+        if safe {
+            set_default("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+            set_default("LIBGL_ALWAYS_SOFTWARE", "1");
+        }
+        if let (Some(d), Some(f)) = (dir, starting) {
+            let _ = fs::create_dir_all(d);
+            let _ = fs::write(f, b"");
+        }
+    }
+
+    /// The page has loaded: this start did not crash.
+    pub fn started() {
+        if let Some(f) = data_dir().map(|d| d.join("starting")) {
+            let _ = fs::remove_file(f);
+        }
+    }
+}
+
 // ---------- commands ----------
 
 #[tauri::command]
@@ -258,6 +327,8 @@ fn write_file(files: State<'_, Files>, request: Request<'_>) -> Result<(), Strin
 /// Files Nib-E was started with (double-click on a PDF, Open with…).
 #[tauri::command]
 fn startup_files(files: State<'_, Files>) -> Vec<String> {
+    #[cfg(target_os = "linux")]
+    linux_gfx::started();
     let mut pending = files.pending.lock().unwrap();
     PAGE_READY.store(true, Ordering::SeqCst);
     std::mem::take(&mut *pending)
@@ -275,6 +346,16 @@ fn open_website(app: AppHandle) -> Result<(), String> {
         return Err("The Microsoft Store keeps this edition up to date.".into());
     }
     app.opener().open_url(WEBSITE, None::<&str>).map_err(|e| e.to_string())
+}
+
+/// Store edition: opens Nib-E's review page in the Microsoft Store app.
+#[tauri::command]
+fn open_review(app: AppHandle) -> Result<(), String> {
+    if !STORE_EDITION {
+        return Err("Only the Microsoft Store edition can be rated in the Store.".into());
+    }
+    let url = format!("ms-windows-store://review/?ProductId={STORE_PRODUCT}");
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
 }
 
 /// Opens the feedback / survey form in the person's normal browser. Only this
@@ -308,6 +389,8 @@ async fn new_window(app: AppHandle) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    linux_gfx::prepare();
     let mut builder = tauri::Builder::default();
 
     // A second start (double-click on another PDF) hands its files to the running Nib-E.
@@ -367,7 +450,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, startup_files, print_page, open_website, open_form, close_app, new_window])
+        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, startup_files, print_page, open_website, open_review, open_form, close_app, new_window])
         .build(tauri::generate_context!())
         .expect("error while starting Nib-E")
         .run(|app, event| {

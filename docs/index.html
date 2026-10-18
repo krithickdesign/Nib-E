@@ -964,6 +964,9 @@
         <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 5 6v5.5c0 4.3 3 7.6 7 9 4-1.4 7-4.7 7-9V6z" /><path d="m9 12 2.2 2.2L15.5 10" /></symbol>
         <symbol id="i-fill" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="5" rx="1.2" /><rect x="3.5" y="14" width="17" height="5" rx="1.2" /><path d="M6.5 7.5h5" /></symbol>
         <symbol id="i-sign" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.5c2-4 3.5-9 5.5-9 1.6 0-.8 8 1 8 1.4 0 2.2-3 3.5-3 1 0 .8 2 2 2 .9 0 1.6-.8 2.5-1.5" /><path d="M3.5 20.5h17" /></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+        <symbol id="i-cert" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 13.5 8 21l4-2 4 2-1-7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+        <symbol id="i-ocr" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 10h8M8 14h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
         <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 4.5 4 4L8.5 19.5 3.5 20.5l1-5z" /><path d="m13.5 6.5 4 4" /></symbol>
         <symbol id="i-study" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-2-1.5-5-2-8.5-2v13c3.5 0 6.5.5 8.5 2 2-1.5 5-2 8.5-2v-13c-3.5 0-6.5.5-8.5 2zM12 6.5v13" /></symbol>
         <symbol id="i-stamp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4.5h5l-1 7h-3zM5 15a3.5 3.5 0 0 1 3.5-3.5h7A3.5 3.5 0 0 1 19 15v1.5H5zM5.5 19.5h13" /></symbol>
@@ -1036,6 +1039,21 @@
                 <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
               </tr>
               <tr>
+                <td><div class="feat"><svg><use href="#i-edit" /></svg><div><strong>Edit existing text</strong><span>Click a line of the PDF and type. Nib-E keeps the font, size, colour and alignment (one line at a time).</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark no"><svg aria-hidden="true"><use href="#i-no" /></svg>Usually a paid plan</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-cert" /></svg><div><strong>Certificate signatures</strong><span>Sign with your own certificate (.p12/.pfx) and check the signatures in a PDF: intact, changed after signing, or not valid.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark part"><svg aria-hidden="true"><use href="#i-part" /></svg>Checking free, signing often paid</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
+                <td><div class="feat"><svg><use href="#i-ocr" /></svg><div><strong>Text recognition (OCR)</strong><span>Makes scanned pages searchable and copyable, on your device. English and German.</span></div></div></td>
+                <td class="col-them" data-label="Many PDF editors"><span class="mark no"><svg aria-hidden="true"><use href="#i-no" /></svg>Usually a paid plan</span></td>
+                <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
+              </tr>
+              <tr>
                 <td><div class="feat"><svg><use href="#i-pen" /></svg><div><strong>Write like on paper</strong><span>Pen and highlighter with stylus pressure and palm rejection. Choose how much your writing is smoothed: precise for handwriting, smooth for diagrams.</span></div></div></td>
                 <td class="col-them" data-label="Many PDF editors"><span class="mark part"><svg aria-hidden="true"><use href="#i-part" /></svg>Varies</span></td>
                 <td class="col-us" data-label="Nib-E"><span class="mark free"><svg aria-hidden="true"><use href="#i-check" /></svg>Free</span></td>
@@ -1090,7 +1108,7 @@
           <h2>And your PDFs never leave your computer.</h2>
           <p class="lead">Most online PDF tools upload your documents to their servers. Nib-E does all the work inside your browser, so contracts, IDs and exam papers stay with you.</p>
           <div class="privacy">
-            <div class="card"><svg><use href="#i-offline" /></svg><h3>Network: none</h3><p>Opening, editing and saving happen on your device. The desktop app has no internet permission at all, and the web version is blocked from connecting anywhere once loaded.</p></div>
+            <div class="card"><svg><use href="#i-offline" /></svg><h3>Network: none</h3><p>Opening, editing and saving happen on your device. The desktop app has no internet permission at all, and the web version can only load its own text-recognition files from this site once loaded.</p></div>
             <div class="card"><svg><use href="#i-eye" /></svg><h3>No account, no tracking, no AI</h3><p>Nothing about you or your files is collected. No AI service ever sees your text.</p></div>
             <div class="card"><svg><use href="#i-shield" /></svg><h3>Safe mode</h3><p>Scripts inside PDFs never run and links can't open anything by themselves. Nib-E shows what it blocked.</p></div>
           </div>
@@ -1156,9 +1174,10 @@
           <dialog class="dlg" id="dlg-linux" aria-labelledby="dlg-linux-t">
             <div class="dlg-head"><h3 id="dlg-linux-t">Before you download for Linux</h3><button type="button" class="dlg-x" data-close aria-label="Close"><svg><use href="#i-x" /></svg></button></div>
             <div class="dlg-body">
-              <p>Files: the <code>.AppImage</code> (any distribution) or the <code>.deb</code> (Ubuntu, Debian), from the latest release on GitHub.</p>
-              <p class="note"><strong>AppImage:</strong> make it executable (right-click → Properties → Allow executing), then double-click it. <strong>.deb:</strong> double-click to install with your software centre.</p>
-              <p>No install needed? <a href="app/">Open Nib-E in your browser</a>: same features, works offline once loaded.</p>
+              <p><strong>We recommend the web version on Linux:</strong> <a href="app/">open Nib-E in your browser</a>. Same features, works offline once loaded, nothing to install.</p>
+              <p class="dlg-sub">Prefer an app?</p>
+              <p>Take the <code>.deb</code> (Ubuntu, Debian, Mint) from the latest release on GitHub and double-click it to install with your software centre. The <code>.AppImage</code> works on any distribution: make it executable (right-click → Properties → Allow executing), then double-click it.</p>
+              <p class="note"><strong>Blank window or crash at start?</strong> Start it once more: Nib-E then switches to software drawing by itself. You can also start it with <code>NIB_SAFE_GRAPHICS=1</code>.</p>
             </div>
             <div class="dlg-foot"><button type="button" class="btn" data-close>Cancel</button><a class="btn primary" data-gh-releases href="#" target="_blank" rel="noopener">Continue to GitHub <svg><use href="#i-open" /></svg></a></div>
           </dialog>
@@ -1181,7 +1200,7 @@
       </main>
 
       <footer>
-        <span>Nib-E <span data-nib-version>0.5.2</span> · by <span data-nib-publisher>Axiomate Technologies</span> · part of the Desk-E family · MIT licence</span>
+        <span>Nib-E <span data-nib-version>0.6.0</span> · by <span data-nib-publisher>Axiomate Technologies</span> · part of the Desk-E family · MIT licence</span>
         <span>Built on PDFium (the engine inside Chrome) via EmbedPDF</span>
         <a data-gh href="#">Source on GitHub</a>
         <span>This site uses no cookies and no analytics.</span>

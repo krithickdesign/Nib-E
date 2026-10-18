@@ -10,6 +10,7 @@ export type Tool =
   | 'select'
   | 'hand'
   | 'text'
+  | 'retype'
   | 'pen'
   | 'highlighter'
   | 'eraser'
@@ -40,6 +41,10 @@ export type PanelView =
   | 'create'
   | 'study'
   | 'check'
+  | 'attachments'
+  | 'signatures'
+  | 'printcheck'
+  | 'ocr'
   | 'hf'
   | 'wm'
   | 'settings';
@@ -142,6 +147,14 @@ export interface Prefs {
   studyKeep: 'device' | 'file';
   /** Colour theme: follow the system, or always light / dark. */
   theme: 'system' | 'light' | 'dark';
+  /** Change the font and size menus by pointing at them and scrolling. */
+  wheelPick: boolean;
+  /** Interface language ('auto' follows the system). */
+  lang: import('./i18n').LangPref;
+  /** Languages for text recognition (Tesseract codes). */
+  ocrLangs: string[];
+  /** Page layout: one page per row, two side by side, or two with the title page alone. */
+  spread: 'single' | 'two' | 'cover';
 }
 
 export type Change =
@@ -206,6 +219,10 @@ const BASE_PREFS: Prefs = {
   keepBackup: true,
   studyKeep: 'device',
   theme: 'system',
+  wheelPick: true,
+  lang: 'auto',
+  ocrLangs: ['eng'],
+  spread: 'single',
 };
 
 function loadPrefs(): Prefs {
@@ -491,7 +508,7 @@ class Store {
   setTool(t: Tool): void {
     if (this.tool === t) return;
     this.tool = t;
-    if (t !== 'select' && t !== 'text') this.select(null);
+    if (t !== 'select' && t !== 'text' && t !== 'retype') this.select(null);
     this.emit('tool');
   }
 

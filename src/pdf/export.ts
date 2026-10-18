@@ -33,7 +33,7 @@ import {
   type TextItem,
   type Watermark,
 } from '../model';
-import { arrowHead, CHECK_PATH, hfSlots, images, layoutText, measure, stampLayout } from '../ui/draw';
+import { arrowHead, CHECK_PATH, hfSlots, images, keepsPdfFont, layoutText, measure, stampLayout } from '../ui/draw';
 import { engineBytes } from './pdfium';
 import {
   free,
@@ -43,8 +43,10 @@ import {
   openRaw,
   pageBox,
   pdfium,
+  readFloats,
   saveRaw,
   standardFontName,
+  unsupportedChars,
   withBytes,
   withFloats,
   withInts,
@@ -57,6 +59,71 @@ import {
 import type { DetectedField } from './detect';
 import { addFillableFields, type OutField } from './fillable';
 import { NIB_TAG } from './nibdata';
+import { fontBytes, hasItalic, isBundled, type BundledFont } from '../fonts';
+import type { FontFamily as TextFont } from '../model';
+
+const FPDF_FONT_TRUETYPE = 2;
+
+/**
+ * Bundled fonts embedded into one output document, loaded once each. The
+ * font files are fetched before writing (async), so pages can be written
+ * synchronously. Embedded as CID fonts, so any character the font has is kept.
+ */
+export class FontBank {
+  private loaded = new Map<string, number>();
+  private bytes = new Map<string, Uint8Array>();
+  private m = pdfium();
+
+  constructor(private doc: number) {}
+
+  static key(id: string, bold: boolean, italic: boolean): string {
+    return `${id}:${bold ? 1 : 0}:${italic && hasItalic(id) ? 1 : 0}`;
+  }
+
+  /** Fetches the files for every bundled font style the items use. */
+  async prepare(styles: { font: string; bold: boolean; italic: boolean }[]): Promise<void> {
+    for (const s of styles) {
+      if (!isBundled(s.font)) continue;
+      const k = FontBank.key(s.font, s.bold, s.italic);
+      if (!this.bytes.has(k)) this.bytes.set(k, await fontBytes(s.font as BundledFont, s.bold, s.italic && hasItalic(s.font)));
+    }
+  }
+
+  /** PDFium font handle for a bundled font style (0 if it could not be loaded). */
+  get(id: string, bold: boolean, italic: boolean): number {
+    const k = FontBank.key(id, bold, italic);
+    let f = this.loaded.get(k);
+    if (f !== undefined) return f;
+    const data = this.bytes.get(k);
+    f = data ? withBytes(data, (ptr, len) => this.m.FPDFText_LoadFont(this.doc, ptr, len, FPDF_FONT_TRUETYPE, true)) : 0;
+    this.loaded.set(k, f);
+    return f;
+  }
+
+  close(): void {
+    for (const f of this.loaded.values()) if (f) this.m.FPDFFont_Close(f);
+    this.loaded.clear();
+  }
+}
+
+/** Every text style used by these pages (to prepare their fonts). */
+export function textStyles(pages: PageEntry[]): { font: string; bold: boolean; italic: boolean }[] {
+  const out: { font: string; bold: boolean; italic: boolean }[] = [];
+  for (const p of pages)
+    for (const it of p.items) {
+      if (it.type !== 'text') continue;
+      out.push({ font: it.font, bold: it.bold, italic: it.italic });
+      // A replaced line whose characters a standard font can't store uses an included font instead.
+      if (it.replace) out.push({ font: replaceFallback(it), bold: it.bold, italic: it.italic });
+    }
+  return out;
+}
+
+/** Font for a replaced line when the PDF's own font can't be reused. */
+export function replaceFallback(t: TextItem): TextFont {
+  if (isBundled(t.font) || !unsupportedChars(t.text).length) return t.font;
+  return t.font === 'serif' ? 'sourceserif' : 'noto';
+}
 
 const ANNOT_TEXT = 1;
 const ANNOT_LINK = 2;
@@ -118,10 +185,13 @@ export async function buildPdf(input: ExportInput): Promise<Uint8Array> {
 
   const out: OutField[] = [];
   let bytes: Uint8Array;
+  let bank: FontBank | null = null;
   try {
     const target = openRaw(await bytesOf(primary));
     open.push(target);
     const D = target.doc;
+    bank = new FontBank(D);
+    await bank.prepare(textStyles(pages));
     const n0 = m.FPDF_GetPageCount(D);
     const claimed = new Set<number>();
     const at: number[] = [];
@@ -167,7 +237,9 @@ export async function buildPdf(input: ExportInput): Promise<Uint8Array> {
       try {
         m.FPDFPage_SetRotation(page, totalRot(e));
         const box = pageBox(page, e.h);
-        const w = new Writer(D, page, box, e);
+        const w = new Writer(D, page, box, e, bank);
+        // Edited lines of the PDF's own text: the old characters go first, before anything is added.
+        w.beginReplacements(e.items);
         if (e.src === null && e.template !== 'blank') w.ruling();
         if (i < input.docPages) {
           if (input.wm) w.watermark(input.wm);
@@ -187,6 +259,7 @@ export async function buildPdf(input: ExportInput): Promise<Uint8Array> {
     }
     bytes = saveRaw(D);
   } finally {
+    bank?.close();
     for (const r of open.reverse()) r.close();
   }
   if (input.fillable && out.length) bytes = await addFillableFields(bytes, out);
@@ -225,7 +298,7 @@ class Writer {
   private m = pdfium();
   private dirty = false;
 
-  constructor(private doc: number, private page: number, private box: Box, private e: PageEntry) {}
+  constructor(private doc: number, private page: number, private box: Box, private e: PageEntry, private fonts: FontBank) {}
 
   /** Page point -> PDF user space. */
   u(x: number, y: number): [number, number] {
@@ -234,6 +307,122 @@ class Writer {
 
   finish(): void {
     if (this.dirty) this.m.FPDFPage_GenerateContent(this.page);
+  }
+
+  /** Text objects in the PDF's own font for replaced lines, made before the old text is removed (they keep the font alive). */
+  private prepared = new Map<string, number>();
+
+  /**
+   * Removes the original characters of every replaced line on this page (text
+   * only: pictures and drawings under them stay). Lines whose look is unchanged
+   * first get a text object in the PDF's own font.
+   */
+  beginReplacements(items: Item[]): void {
+    const list = items.filter((it): it is TextItem => it.type === 'text' && !!it.replace);
+    if (!list.length) return;
+    const m = this.m;
+    const tp = m.FPDFText_LoadPage(this.page);
+    try {
+      for (const t of list) {
+        if (!keepsPdfFont(t) || !t.text.trim() || !tp) continue;
+        // PDFs usually carry only the characters they use: reuse the font only
+        // when every new character is already drawn with it on this page.
+        const known = t.replace!.glyphs;
+        if (![...t.text].every((ch) => /\s/.test(ch) || known.includes(ch))) continue;
+        const [ux, uy] = this.u(t.replace!.probe[0], t.replace!.probe[1]);
+        const idx = m.FPDFText_GetCharIndexAtPos(tp, ux, uy, 3, 3);
+        if (idx < 0) continue;
+        const src = m.FPDFText_GetTextObject(tp, idx);
+        const font = src ? m.FPDFTextObj_GetFont(src) : 0;
+        if (!font) continue;
+        const obj = m.FPDFPageObj_CreateTextObj(this.doc, font, t.size);
+        if (!obj) continue;
+        if (!withWide(t.text, (ptr) => m.FPDFText_SetText(obj, ptr))) {
+          m.FPDFPageObj_Destroy(obj);
+          continue;
+        }
+        this.prepared.set(t.id, obj);
+      }
+    } finally {
+      if (tp) m.FPDFText_ClosePage(tp);
+    }
+    const quads: number[] = [];
+    for (const t of list) {
+      const a = t.replace!.area;
+      const [x0, yTop] = this.u(a.x, a.y);
+      const [x1, yBot] = this.u(a.x + a.w, a.y + a.h);
+      // Quad order: upper-left, upper-right, lower-left, lower-right.
+      quads.push(x0, yTop, x1, yTop, x0, yBot, x1, yBot);
+    }
+    withFloats(quads, (ptr) => m.EPDFText_RedactInQuads(this.page, ptr, list.length, true, false));
+    this.dirty = true;
+  }
+
+  /** Characters a text object on this page reads back as (to check a font has every character). */
+  private readBack(obj: number): string {
+    const m = this.m;
+    const tp = m.FPDFText_LoadPage(this.page);
+    if (!tp) return '';
+    try {
+      let s = '';
+      const n = m.FPDFText_CountChars(tp);
+      for (let i = 0; i < n; i++) if (m.FPDFText_GetTextObject(tp, i) === obj) s += String.fromCodePoint(m.FPDFText_GetUnicode(tp, i) || 0xfffd);
+      return s;
+    } finally {
+      m.FPDFText_ClosePage(tp);
+    }
+  }
+
+  /** Puts a text object on the line of a text box, aligned like the box (left, centre, right). */
+  private placeOnLine(obj: number, t: TextItem): void {
+    const m = this.m;
+    const lay = layoutText(t);
+    const b = malloc(16);
+    let width = 0;
+    try {
+      if (m.FPDFPageObj_GetBounds(obj, b, b + 4, b + 8, b + 12)) width = readFloats(b, 4)[2];
+    } finally {
+      free(b);
+    }
+    let x = t.x + lay.padX;
+    if (t.align === 'right') x = t.x + t.w - lay.padX - width;
+    else if (t.align === 'center') x = t.x + t.w / 2 - width / 2;
+    const [ux, uy] = this.u(x, t.y + lay.base);
+    m.FPDFPageObj_Transform(obj, 1, 0, 0, 1, ux, uy);
+  }
+
+  /** A replaced line: the new text, in the PDF's own font when it has every character, else the closest font. */
+  private replaceText(t: TextItem): void {
+    const m = this.m;
+    let obj = this.prepared.get(t.id) ?? 0;
+    this.prepared.delete(t.id);
+    if (!t.text.trim()) {
+      if (obj) m.FPDFPageObj_Destroy(obj);
+      return;
+    }
+    const strip = (s: string) => s.replace(/\s+/g, '');
+    if (obj) {
+      this.placeOnLine(obj, t);
+      m.FPDFPageObj_SetFillColor(obj, ...hexToRgb(t.color), 255);
+      this.insert(obj);
+      if (strip(this.readBack(obj)) !== strip(t.text)) {
+        // The PDF's font lacks some characters (fonts are often cut down to the ones used).
+        m.FPDFPage_RemoveObject(this.page, obj);
+        m.FPDFPageObj_Destroy(obj);
+        obj = 0;
+      }
+    }
+    if (obj) return;
+    const font = replaceFallback(t);
+    const embedded = isBundled(font) ? this.fonts.get(font, t.bold, t.italic) : 0;
+    const std = (isBundled(font) ? 'sans' : font) as FontFamily;
+    const safe = embedded ? t.text : [...t.text].map((c) => (isWinAnsi(c) ? c : '?')).join('');
+    const o = embedded ? m.FPDFPageObj_CreateTextObj(this.doc, embedded, t.size) : m.FPDFPageObj_NewTextObj(this.doc, standardFontName(std, t.bold, t.italic), t.size);
+    if (!o) return;
+    withWide(safe, (ptr) => m.FPDFText_SetText(o, ptr));
+    this.placeOnLine(o, t);
+    m.FPDFPageObj_SetFillColor(o, ...hexToRgb(t.color), 255);
+    this.insert(o);
   }
 
   private insert(obj: number): void {
@@ -283,11 +472,15 @@ class Writer {
    * origin = baseline start, dir = unit vector along the line, up = unit
    * vector towards the top of the glyphs (all in page points).
    */
-  private textRun(str: string, font: FontFamily, bold: boolean, italic: boolean, size: number, color: string, alpha: number, origin: [number, number], dir: [number, number], up: [number, number]): void {
+  private textRun(str: string, font: TextFont, bold: boolean, italic: boolean, size: number, color: string, alpha: number, origin: [number, number], dir: [number, number], up: [number, number]): void {
     const m = this.m;
-    const safe = [...str].map((c) => (isWinAnsi(c) ? c : '?')).join('');
+    // Bundled fonts are embedded and keep every character they have; the
+    // standard PDF fonts only store Western European characters.
+    const embedded = isBundled(font) ? this.fonts.get(font, bold, italic) : 0;
+    const safe = embedded ? str : [...str].map((c) => (isWinAnsi(c) ? c : '?')).join('');
     if (!safe.trim()) return;
-    const t = m.FPDFPageObj_NewTextObj(this.doc, standardFontName(font, bold, italic), size);
+    const std = (isBundled(font) ? 'sans' : font) as FontFamily;
+    const t = embedded ? m.FPDFPageObj_CreateTextObj(this.doc, embedded, size) : m.FPDFPageObj_NewTextObj(this.doc, standardFontName(std, bold, italic), size);
     if (!t) return;
     withWide(safe, (ptr) => m.FPDFText_SetText(t, ptr));
     m.FPDFPageObj_SetFillColor(t, ...hexToRgb(color), Math.round(alpha * 255));
@@ -375,6 +568,7 @@ class Writer {
   }
 
   text(t: TextItem): void {
+    if (t.replace) return this.replaceText(t);
     if (!t.text.trim()) return;
     const lay = layoutText(t);
     const { w: cw, h: ch } = contentSize(t);
@@ -383,7 +577,12 @@ class Writer {
       this.path([corners], { fill: '#ffffff', closed: true });
     }
     lay.lines.forEach((line, i) => {
-      const f = this.contentFrame(t, lay.padX, lay.base + i * lay.lineH);
+      let u = lay.padX;
+      if (t.align && t.align !== 'left') {
+        const free = cw - lay.padX * 2 - measure(line, t.font, t.size, t.bold, t.italic);
+        u += t.align === 'center' ? free / 2 : free;
+      }
+      const f = this.contentFrame(t, u, lay.base + i * lay.lineH);
       this.textRun(line, t.font, t.bold, t.italic, t.size, t.color, 1, f.origin, f.dir, f.up);
     });
   }

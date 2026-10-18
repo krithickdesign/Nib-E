@@ -1,4 +1,4 @@
-"""End-to-end checks for Nib-E v0.3, run in headless Chromium against the single-file build.
+"""End-to-end checks for Nib-E, run in headless Chromium against the single-file build.
 
 Run:  npm run build:single && python3 test/e2e.py
 Needs: playwright (Python), pikepdf, pdfplumber, poppler (pdftoppm), Pillow, numpy
@@ -161,6 +161,9 @@ def all_stream_bytes(pdf):
 
 
 def main():
+    # Text recognition files sit next to the app (the website and desktop builds copy them too).
+    if not (ROOT / "dist-single" / "ocr" / "worker.min.js").exists():
+        subprocess.run(["node", "scripts/copy-ocr.mjs", "dist-single"], cwd=ROOT, check=True)
     srv = serve()
     url = f"http://127.0.0.1:{srv.server_address[1]}/index.html"
     errors = []
@@ -201,7 +204,7 @@ def main():
         st = pages_state(page)
         check("sample opens with 3 pages", len(st) == 3, f"{len(st)} pages")
         check("safe chip shows no blocked items for sample", "blocked" not in page.locator("#btn-check").inner_text())
-        check("all-tools list shows 15 tools (with Settings)", page.locator("#panel-body .tool-row[data-view]").count() == 15)
+        check("all-tools list shows 19 tools (with Settings)", page.locator("#panel-body .tool-row[data-view]").count() == 19)
         check("interface is 150% by default", page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--ui').trim()") == "1.5" and abs(page.locator(".topbar").bounding_box()["height"] - 78) < 2, str(page.locator(".topbar").bounding_box()["height"]))
         check("tour does not open once seen", page.locator("#help-dialog").count() == 0)
         page.locator("#btn-tools").click()
@@ -1101,6 +1104,133 @@ def main():
             check("Save (download route, Firefox/Safari) downloads the PDF", len(doc.pages) == 2)
         check("...and explains how to choose a folder", "Downloads" in f.locator("#toasts").inner_text())
         fctx.close()
+
+        # ---------- 0.6.0: edit text, fonts, clipboard, two pages, attachments, signatures, print check, OCR, languages ----------
+        vctx = browser.new_context(viewport={"width": 1400, "height": 1000}, device_scale_factor=1, accept_downloads=True, bypass_csp=True)
+        vctx.add_init_script(NO_PICKER)
+        v = vctx.new_page()
+        v.on("pageerror", lambda e: errors.append(str(e)))
+        v.goto(url)
+        v.wait_for_selector(".app.ready", timeout=20000)
+        v.evaluate("window.__nib.store.setPanel('settings')")
+        v.wait_for_timeout(200)
+        check("Settings work before a PDF is open", v.locator("#pf-lang").count() == 1)
+        v.evaluate("window.__nib.store.setPanel('home')")
+        v.wait_for_timeout(200)
+        check("tools that need a PDF are greyed out on the start screen", v.locator("#panel-body .tool-row.needs-doc").count() >= 10)
+
+        A4W, A4H = 595.28, 841.89
+        open_fixture(v, FIX / "retype.pdf")
+        tool(v, "retype")
+        click_at(v, 0, 80 / A4W, 145 / A4H)
+        ta = v.locator("textarea.text-editor")
+        check("Edit existing text: clicking a line opens it with its text", ta.count() == 1 and ta.input_value() == "Amount due: 1,250.00 EUR", ta.input_value() if ta.count() else "no editor")
+        ta.fill("Amount due: 2,500.00 EUR")
+        v.keyboard.press("Escape")
+        v.wait_for_timeout(200)
+        click_at(v, 0, 500 / A4W, 227 / A4H)
+        check("...reads right alignment", v.evaluate("window.__nib.store.pages[0].items.at(-1)?.align") == "right" or (ta.count() and ta.input_value().startswith("Total")))
+        ta.fill("Total: 99.00 EUR")
+        v.keyboard.press("Escape")
+        v.wait_for_timeout(200)
+        it = v.evaluate("window.__nib.store.pages[0].items.map(i => ({t: i.text, a: i.align, pf: i.replace && i.replace.pdfFont}))")
+        check("...two replaced lines with the PDF's font names", len(it) == 2 and all(x["pf"] for x in it) and it[1]["a"] == "right", str(it))
+        out = export(v)
+        (OUT / "retype-saved.pdf").write_bytes(out)
+        with pdfplumber.open(io.BytesIO(out)) as pdf:
+            txt = pdf.pages[0].extract_text() or ""
+            right = [c for c in pdf.pages[0].chars if 220 < c["top"] < 235]
+        check("...saved: old text gone, new text there", "2,500.00" in txt and "1,250.00 EUR\nPlease" not in txt and "99.00" in txt and "Total: 1,250" not in txt, txt.replace("\n", " | ")[:200])
+        check("...right edge kept (within 2 pt)", right and abs(max(c["x1"] for c in right) - (A4W - 56)) < 2, str(round(max(c["x1"] for c in right), 1)) if right else "none")
+        check("...neighbouring lines untouched", "Please pay within 14 days." in txt and "Customer: Hartmann GmbH, Regensburg" in txt)
+
+        # Included fonts: Noto Sans keeps characters the standard fonts can't.
+        tool(v, "text")
+        click_at(v, 0, 0.2, 0.6)
+        v.locator("textarea.text-editor").fill("Zaïre Ωmega Привет")
+        v.keyboard.press("Escape")
+        v.wait_for_timeout(200)
+        v.evaluate("""() => { const s = window.__nib.store; s.updatePages((p) => p.key !== s.pages[0].key ? p : { ...p, items: p.items.map((x, k) => k === p.items.length - 1 ? { ...x, font: 'noto' } : x) }); }""")
+        out = export(v)
+        with pdfplumber.open(io.BytesIO(out)) as pdf:
+            txt = pdf.pages[0].extract_text() or ""
+            fonts = {c["fontname"] for c in pdf.pages[0].chars if c["text"] in "ΩП"}
+        check("included font (Noto Sans) saves Greek and Cyrillic, embedded", "Ωmega" in txt and "Привет" in txt and any("Noto" in f for f in fonts), str(fonts))
+
+        # Copy, paste, duplicate.
+        tool(v, "select")
+        n0 = len(items(v))
+        v.evaluate("""() => { const s = window.__nib.store; const p = s.pages[0]; s.select({ key: p.key, id: p.items.at(-1).id }); }""")
+        v.keyboard.press("Control+c")
+        v.keyboard.press("Control+v")
+        v.wait_for_timeout(200)
+        v.keyboard.press("Control+d")
+        v.wait_for_timeout(200)
+        check("copy/paste and duplicate add copies of a text box", len(items(v)) == n0 + 2, f"{n0} → {len(items(v))}")
+        close_tab(v)
+
+        # Two-page view with title page.
+        open_fixture(v, SAMPLE, SAMPLE_NAME)
+        v.evaluate("window.__nib.store.setPrefs({ spread: 'cover' })")
+        v.wait_for_timeout(400)
+        boxes = [v.locator("#pages .sheet").nth(i).bounding_box() for i in range(3)]
+        check("two pages + title page: page 1 alone, pages 2 and 3 side by side",
+              abs(boxes[1]["y"] - boxes[2]["y"]) < 2 and boxes[2]["x"] > boxes[1]["x"] + 50 and boxes[1]["y"] > boxes[0]["y"] + 50)
+        v.screenshot(path=str(OUT / "30-two-pages.png"))
+        v.evaluate("window.__nib.store.setPrefs({ spread: 'single' })")
+        close_tab(v)
+
+        # Attachments, signatures, print check.
+        open_fixture(v, FIX / "signed.pdf")
+        v.evaluate("window.__nib.store.setPanel('signatures')")
+        v.wait_for_selector(".sig-row", timeout=15000)
+        badges = [v.locator(".sig-badge").nth(i).inner_text() for i in range(v.locator(".sig-badge").count())]
+        check("Digital signatures: first changed by the later one, second intact", badges == ["Changed after", "Intact"], str(badges))
+        with v.expect_file_chooser() as fc:
+            v.click('[data-act="sig-pick"]')
+        fc.value.set_files(str(FIX / "test-only-cert.p12"))
+        v.wait_for_timeout(200)
+        v.fill("#pf-sigpw", "test")
+        v.click('[data-act="sig-sign"]')
+        v.get_by_role("button", name="Sign and save", exact=True).wait_for(timeout=10000)
+        signed = download(v, lambda: v.get_by_role("button", name="Sign and save", exact=True).click(), OUT / "signed-by-nib.pdf")
+        ps = subprocess.run(["pdfsig", str(signed)], capture_output=True, text=True).stdout
+        check("certificate signing: pdfsig says the new signature is valid", "Nib-E Test Signer" in ps and ps.count("Signature is Valid") >= 1, ps.replace("\n", " ")[-160:])
+        v.evaluate("window.__nib.store.setPanel('printcheck')")
+        v.click('[data-act="print-run"]')
+        v.wait_for_selector("#panel-body .findings", timeout=15000)
+        check("Print check lists fonts, images and bleed", "fonts" in v.locator("#panel-body").inner_text().lower() and "bleed" in v.locator("#panel-body").inner_text().lower())
+        close_tab(v)
+
+        # Text recognition on a scan, also when the page is turned.
+        for fx in ("scan.pdf", "scan-rot.pdf"):
+            open_fixture(v, FIX / fx)
+            v.evaluate("window.__nib.store.setPanel('ocr')")
+            v.wait_for_selector('[data-act="ocr-run"]', timeout=10000)
+            v.click('[data-act="ocr-run"]')
+            v.wait_for_selector("#panel-body .callout.ok", timeout=120000)
+            out = export(v)
+            with pdfplumber.open(io.BytesIO(out)) as pdf:
+                txt = pdf.pages[0].extract_text() or ""
+            check(f"Text recognition makes {fx} searchable", "Heat Transfer" in txt and "furnace" in txt, txt[:80].replace("\n", " | "))
+            close_tab(v)
+        vctx.close()
+
+        # Interface language follows the system (German) and can be switched in Settings.
+        lctx = browser.new_context(viewport={"width": 1280, "height": 820}, locale="de-DE", bypass_csp=True)
+        lctx.add_init_script(NO_PICKER)
+        lp = lctx.new_page()
+        lp.on("pageerror", lambda e: errors.append(str(e)))
+        lp.goto(url)
+        lp.wait_for_selector(".app.ready", timeout=20000)
+        lp.wait_for_timeout(300)
+        check("German system: the interface is German", "PDF öffnen" in lp.locator("body").inner_text() and lp.evaluate("document.documentElement.lang") == "de")
+        lp.evaluate("window.__nib.store.setPanel('settings')")
+        lp.wait_for_timeout(200)
+        lp.select_option("#pf-lang", "en")
+        lp.wait_for_timeout(200)
+        check("...switching to English restores English texts", "Open a PDF" in lp.locator("body").inner_text() and "PDF öffnen" not in lp.locator("body").inner_text())
+        lctx.close()
 
         sctx = browser.new_context(bypass_csp=True, viewport={"width": 1280, "height": 820})
         s = sctx.new_page()

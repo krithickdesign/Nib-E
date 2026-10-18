@@ -15,17 +15,18 @@ const out = [title, ...styles, body.trim(), ...scripts].join('\n').replaceAll('\
 writeFileSync('dist-single/nib-artifact.html', out);
 console.log(`dist-single/nib-artifact.html  ${(out.length / 1024 / 1024).toFixed(2)} MB`);
 
-// Web and offline copies: security rules that allow no network requests at all.
+// Web and offline copies: security rules that allow no requests to other websites.
 // Nib-E needs none: the PDF engine, fonts and pictures are all inside the file.
+// 'self' only lets Text recognition load its files from the app's own folder (ocr/).
 // (The desktop build removes this tag; the app sets its own rules, see tauri.conf.json.)
 const CSP = [
   "default-src 'none'",
-  "script-src 'unsafe-inline' 'wasm-unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
   "style-src 'unsafe-inline'",
   'img-src data: blob:',
   'font-src data:',
-  'connect-src data: blob:',
-  'worker-src blob:',
+  "connect-src 'self' data: blob:",
+  "worker-src 'self' blob:",
   'media-src blob:',
   "frame-src 'none'",
   "object-src 'none'",

@@ -1,13 +1,13 @@
 {
   "name": "nib",
-  "version": "0.5.2",
-  "description": "Nib-E - a private PDF reader and editor that works offline",
+  "version": "0.6.0",
+  "description": "Nib-E - the all-in-one PDF editor, every feature free, works offline",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build --mode single && node scripts/to-artifact.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "tsx test/pen-feel.ts && python3 test/e2e.py",
+    "test": "tsx test/pen-feel.ts && tsx test/signatures.ts && python3 test/e2e.py",
     "fixtures": "python3 scripts/make-fixtures.py",
     "preview": "vite preview",
     "pages": "npm run build:single && node scripts/build-pages.mjs",
@@ -17,7 +17,8 @@
     "test:pen": "tsx test/pen-feel.ts",
     "tauri": "tauri",
     "version:set": "node scripts/set-version.mjs",
-    "publisher:set": "node scripts/set-publisher.mjs"
+    "publisher:set": "node scripts/set-publisher.mjs",
+    "test:sig": "tsx test/signatures.ts"
   },
   "license": "MIT",
   "dependencies": {
@@ -27,12 +28,17 @@
     "@fontsource/bricolage-grotesque": "^5.3.0",
     "@fontsource/hanken-grotesk": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
-    "fflate": "^0.8.2",
+    "@tesseract.js-data/deu": "^1.0.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "fflate": "^0.8.3",
+    "node-forge": "^1.4.0",
     "pdf-lib": "^1.17.1",
-    "perfect-freehand": "^1.2.3"
+    "perfect-freehand": "^1.2.3",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.2",
+    "@types/node-forge": "^1.3.11",
     "tsx": "^4.23.15",
     "typescript": "5.9",
     "vite": "^8.3.4",

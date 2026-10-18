@@ -1,0 +1,44 @@
+# Flatpak manifest for Nib-E (Flathub). See flatpak/README.md.
+# Packs the official .deb from the GitHub release: same build as the other Linux downloads.
+id: io.github.krithickdesign.NibE
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+command: nib
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # Open and save PDFs anywhere in the home folder (Save writes back to the opened file).
+  - --filesystem=home
+  # No --share=network: Nib-E works fully offline.
+modules:
+  - name: nib-e
+    buildsystem: simple
+    sources:
+      - type: file
+        dest-filename: nib-e.deb
+        # Update url and sha256 for every release (SHA256SUMS.txt in the release lists it).
+        url: https://github.com/krithickdesign/Nib-E/releases/download/v0.6.0/Nib-E_0.6.0_amd64.deb
+        sha256: REPLACE_WITH_SHA256_FROM_SHA256SUMS_TXT
+        only-arches: [x86_64]
+        # Lets the Flathub bot open a pull request for every new GitHub release.
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/krithickdesign/Nib-E/releases/latest
+          version-query: .tag_name | sub("^v"; "")
+          url-query: .assets[] | select(.name | test("_amd64\\.deb$")) | .browser_download_url
+      - type: file
+        path: io.github.krithickdesign.NibE.metainfo.xml
+      - type: file
+        path: io.github.krithickdesign.NibE.desktop
+    build-commands:
+      - ar -x nib-e.deb
+      - tar -xf data.tar.gz
+      - install -Dm755 usr/bin/nib /app/bin/nib
+      - install -Dm644 usr/share/icons/hicolor/128x128/apps/nib.png /app/share/icons/hicolor/128x128/apps/io.github.krithickdesign.NibE.png
+      - install -Dm644 usr/share/icons/hicolor/256x256@2/apps/nib.png /app/share/icons/hicolor/256x256/apps/io.github.krithickdesign.NibE.png || true
+      - install -Dm644 usr/share/icons/hicolor/32x32/apps/nib.png /app/share/icons/hicolor/32x32/apps/io.github.krithickdesign.NibE.png
+      - install -Dm644 io.github.krithickdesign.NibE.desktop /app/share/applications/io.github.krithickdesign.NibE.desktop
+      - install -Dm644 io.github.krithickdesign.NibE.metainfo.xml /app/share/metainfo/io.github.krithickdesign.NibE.metainfo.xml

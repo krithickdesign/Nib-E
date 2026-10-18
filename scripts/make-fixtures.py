@@ -358,8 +358,41 @@ def make_mixed():
     c.save()
 
 
+def make_retype():
+    """Text to edit in place: an embedded (subset) TrueType font, a standard font,
+    centred, right-aligned and coloured lines, a tinted box behind one line."""
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    ttf = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    pdfmetrics.registerFont(TTFont("DejaVuSans", ttf))
+    path = FIX / "retype.pdf"
+    w, h = A4
+    c = canvas.Canvas(str(path), pagesize=A4)
+    c.setTitle("Edit text test")
+    c.setFillColor(INK)
+    c.setFont("DejaVuSans", 20)
+    c.drawCentredString(w / 2, h - 80, "Invoice for March")
+    c.setFont("DejaVuSans", 11)
+    lines = ["Customer: Hartmann GmbH, Regensburg", "Amount due: 1,250.00 EUR", "Please pay within 14 days."]
+    for i, t in enumerate(lines):
+        c.drawString(56, h - 130 - i * 18, t)
+    c.setFont("Helvetica", 11)
+    c.drawString(56, h - 200, "Reference number 4471-B")
+    c.drawRightString(w - 56, h - 230, "Total: 1,250.00 EUR")
+    c.drawRightString(w - 56, h - 248, "VAT included")
+    c.setFillColor(HexColor("#fff4c2"))
+    c.rect(50, h - 292, 300, 22, fill=1, stroke=0)
+    c.setFillColor(HexColor("#c42a35"))
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(56, h - 285, "Overdue since 12 April")
+    c.showPage()
+    c.save()
+
+
 if __name__ == "__main__":
     make_sample()
+    make_retype()
     make_rotated()
     make_second()
     make_active()

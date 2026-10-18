@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src ipc: http://ipc.localhost data: blob:; worker-src 'self' blob:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'",
+      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost data: blob:; worker-src 'self' blob:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'",
       "dangerousDisableAssetCspModification": [
         "style-src"
       ]
@@ -43,8 +43,8 @@
     "publisher": "Axiomate Technologies",
     "copyright": "© Axiomate Technologies · MIT License",
     "category": "Productivity",
-    "shortDescription": "Private PDF reader and editor",
-    "longDescription": "Read, fill, sign, draw on, redact and organise PDFs. Works fully offline: no account, no uploads, no network access.",
+    "shortDescription": "The all-in-one PDF editor, every feature free",
+    "longDescription": "The all-in-one PDF editor: read, fill, sign, edit text, draw on, redact and organise PDFs. Every feature free, no Pro plan. Works fully offline: no account, no uploads, no network access.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

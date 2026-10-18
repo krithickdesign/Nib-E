@@ -132,8 +132,8 @@ DE = [
     ),
     ("<h3>Network: none</h3>", "<h3>Netzwerk: keins</h3>"),
     (
-        "Opening, editing and saving happen on your device. The desktop app has no internet permission at all, and the web version is blocked from connecting anywhere once loaded.",
-        "Öffnen, Bearbeiten und Speichern passieren auf Ihrem Gerät. Die Desktop-App hat gar keine Internet-Berechtigung, und die Web-Version kann sich nach dem Laden nirgendwohin verbinden.",
+        "Opening, editing and saving happen on your device. The desktop app has no internet permission at all, and the web version can only load its own text-recognition files from this site once loaded.",
+        "Öffnen, Bearbeiten und Speichern passieren auf Ihrem Gerät. Die Desktop-App hat gar keine Internet-Berechtigung, und die Web-Version kann nach dem Laden nur noch ihre eigenen Texterkennungs-Dateien von dieser Seite laden.",
     ),
     ("<h3>No account, no tracking, no AI</h3>", "<h3>Kein Konto, kein Tracking, keine KI</h3>"),
     ("Nothing about you or your files is collected. No AI service ever sees your text.", "Über Sie und Ihre Dateien wird nichts gesammelt. Kein KI-Dienst sieht jemals Ihren Text."),
@@ -191,13 +191,25 @@ DE = [
     ("No install needed? <a href=\"app/\">Open Nib-E in your browser</a>: same features, works offline once loaded.", "Ohne Installation? <a href=\"app/\">Nib-E im Browser öffnen</a>: dieselben Funktionen, offline nutzbar, sobald es geladen ist."),
     ('<h3 id="dlg-linux-t">Before you download for Linux</h3>', '<h3 id="dlg-linux-t">Vor dem Herunterladen für Linux</h3>'),
     (
-        "<p>Files: the <code>.AppImage</code> (any distribution) or the <code>.deb</code> (Ubuntu, Debian), from the latest release on GitHub.</p>",
-        "<p>Dateien: das <code>.AppImage</code> (jede Distribution) oder das <code>.deb</code> (Ubuntu, Debian), aus der neuesten Version auf GitHub.</p>",
+        '<p><strong>We recommend the web version on Linux:</strong> <a href="app/">open Nib-E in your browser</a>. Same features, works offline once loaded, nothing to install.</p>',
+        '<p><strong>Unter Linux empfehlen wir die Web-Version:</strong> <a href="app/">Nib-E im Browser öffnen</a>. Dieselben Funktionen, offline nutzbar, sobald es geladen ist, nichts zu installieren.</p>',
+    ),
+    ('<p class="dlg-sub">Prefer an app?</p>', '<p class="dlg-sub">Lieber eine App?</p>'),
+    (
+        "<p>Take the <code>.deb</code> (Ubuntu, Debian, Mint) from the latest release on GitHub and double-click it to install with your software centre. The <code>.AppImage</code> works on any distribution: make it executable (right-click → Properties → Allow executing), then double-click it.</p>",
+        "<p>Nehmen Sie das <code>.deb</code> (Ubuntu, Debian, Mint) aus der neuesten Version auf GitHub und doppelklicken Sie es, um es mit der Softwareverwaltung zu installieren. Das <code>.AppImage</code> läuft auf jeder Distribution: ausführbar machen (Rechtsklick → Eigenschaften → Ausführen erlauben), dann doppelklicken.</p>",
     ),
     (
-        "<strong>AppImage:</strong> make it executable (right-click → Properties → Allow executing), then double-click it. <strong>.deb:</strong> double-click to install with your software centre.",
-        "<strong>AppImage:</strong> ausführbar machen (Rechtsklick → Eigenschaften → Ausführen erlauben), dann doppelklicken. <strong>.deb:</strong> doppelklicken, um es mit der Softwareverwaltung zu installieren.",
+        "<strong>Blank window or crash at start?</strong> Start it once more: Nib-E then switches to software drawing by itself. You can also start it with <code>NIB_SAFE_GRAPHICS=1</code>.",
+        "<strong>Leeres Fenster oder Absturz beim Start?</strong> Starten Sie es noch einmal: Nib-E schaltet dann selbst auf Software-Darstellung um. Sie können es auch mit <code>NIB_SAFE_GRAPHICS=1</code> starten.",
     ),
+    ("<strong>Edit existing text</strong>", "<strong>Vorhandenen Text bearbeiten</strong>"),
+    ("Click a line of the PDF and type. Nib-E keeps the font, size, colour and alignment (one line at a time).", "Zeile im PDF anklicken und tippen. Nib-E behält Schrift, Größe, Farbe und Ausrichtung (zeilenweise)."),
+    ("<strong>Certificate signatures</strong>", "<strong>Zertifikatssignaturen</strong>"),
+    ("Sign with your own certificate (.p12/.pfx) and check the signatures in a PDF: intact, changed after signing, or not valid.", "Mit Ihrem eigenen Zertifikat (.p12/.pfx) signieren und die Signaturen eines PDFs prüfen: intakt, danach geändert oder ungültig."),
+    ("Checking free, signing often paid", "Prüfen gratis, Signieren oft kostenpflichtig"),
+    ("<strong>Text recognition (OCR)</strong>", "<strong>Texterkennung (OCR)</strong>"),
+    ("Makes scanned pages searchable and copyable, on your device. English and German.", "Macht gescannte Seiten durchsuchbar und kopierbar, auf Ihrem Gerät. Englisch und Deutsch."),
     ("<p>File: <code>", "<p>Datei: <code>"),
     # ---- feedback ----
     ('<p class="kicker">Feedback</p>', '<p class="kicker">Feedback</p>'),
@@ -207,7 +219,7 @@ DE = [
     ("<li>Something odd? Note what you did and which browser you use.</li>", "<li>Etwas seltsam? Notieren Sie, was Sie getan haben und welchen Browser Sie nutzen.</li>"),
     (
         'rel="noopener">Tell us in the feedback form</a> (no account needed), or use <strong>Help → Send feedback</strong> in Nib-E. Please don\'t attach private documents.',
-        'rel="noopener">Schreiben Sie uns im Feedback-Formular</a> (kein Konto nötig), oder nutzen Sie <strong>Help → Send feedback</strong> in Nib-E (die App ist auf Englisch). Bitte keine privaten Dokumente anhängen.',
+        'rel="noopener">Schreiben Sie uns im Feedback-Formular</a> (kein Konto nötig), oder nutzen Sie <strong>Hilfe → Feedback senden</strong> in Nib-E. Bitte keine privaten Dokumente anhängen.',
     ),
     # ---- footer ----
     ("· part of the Desk-E family · MIT licence</span>", "· Teil der Desk-E-Familie · MIT-Lizenz</span>"),

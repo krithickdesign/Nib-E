@@ -14,6 +14,16 @@ The Help tour (top right, **?**) explains the basics in a minute.
 
 ## Things to try
 
+**New in 0.6.0**
+- [ ] Content editor → Edit existing text: click a line, change it, save. Does it look the same as the rest of the page in another reader?
+- [ ] Toolbox → Digital signatures: open a signed PDF (from a bank, an authority, a contract tool). Is the result plausible?
+- [ ] Sign with your own .p12/.pfx certificate, then open the copy in another PDF reader: is the signature shown as valid?
+- [ ] Toolbox → Text recognition on a scan: can you select and copy the text afterwards?
+- [ ] Toolbox → Print check on a file for a print shop.
+- [ ] Two-page view (click the zoom number at the bottom), Page Down / Page Up.
+- [ ] Settings → Language: anything left in English that annoys you, or a translation that sounds wrong?
+- [ ] Linux: does the AppImage or .deb start? If the window stays blank, start it once more.
+
 **Desktop app**
 - [ ] Install it. Was the first-start warning clear? (Windows: More info → Run anyway; macOS: Privacy & Security → Open Anyway)
 - [ ] Double-click a PDF in your file manager / "Open with Nib-E". Drag a PDF onto the window.

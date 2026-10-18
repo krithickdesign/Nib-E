@@ -1,5 +1,11 @@
 // The right-hand panel: "Toolbox" home and one view per tool.
 import {
+  attachmentBytes,
+  listAttachments,
+  documentSignatures,
+  signAndSave,
+  ocrNow,
+  scannedPages,
   compressAndSave,
   exportImages,
   fieldCount,
@@ -17,6 +23,8 @@ import {
 } from '../doc';
 import { DEFAULT_HF, DEFAULT_WM, shownSize, uid, type HeaderFooter, type Template, type Watermark } from '../model';
 import type { Finding } from '../pdf/check';
+import type { SignatureReport } from '../pdf/signatures';
+import type { PrintReport } from '../pdf/printcheck';
 import { store, type PanelView, type Tool } from '../store';
 import { icon } from './icons';
 import { openSignaturePad } from './signature';
@@ -30,8 +38,10 @@ import { buildLabel, EDITION, updateNote } from '../config';
 import { isDesktop, invoke } from '../platform/env';
 import { idbClear } from '../platform/idb';
 import { setKeep } from '../library';
+import { saveFile } from '../platform/files';
 import { exportBackup } from '../saving';
 import { FEEL_LABEL } from './dock';
+import { currentLang, LANGUAGES, setLanguage, type LangPref } from '../i18n';
 
 export interface PanelHost {
   busy<T>(label: string, fn: () => Promise<T>): Promise<T | undefined>;
@@ -69,6 +79,7 @@ const GROUPS: ToolGroup[] = [
       { view: 'organize', label: 'Page manager', icon: 'organize', desc: 'Insert, rotate, move, delete, extract' },
       { view: 'combine', label: 'File merger', icon: 'combine', desc: 'Add PDFs or images as pages' },
       { view: 'compress', label: 'Size reducer', icon: 'compress', desc: 'Shrink large photos' },
+      { view: 'attachments', label: 'Attachments', icon: 'attach', desc: 'Files inside this PDF, portfolios' },
     ],
   },
   {
@@ -76,6 +87,7 @@ const GROUPS: ToolGroup[] = [
     tools: [
       { view: 'redact', label: 'PDF redaction', icon: 'redact', desc: 'Remove text and images for good' },
       { view: 'protect', label: 'Password lock', icon: 'protect', desc: 'Password with AES-256' },
+      { view: 'signatures', label: 'Digital signatures', icon: 'certificate', desc: 'Check signatures, sign with a certificate' },
       { view: 'check', label: 'Safety report', icon: 'shield', desc: 'What this file contains (safe mode)' },
     ],
   },
@@ -83,6 +95,8 @@ const GROUPS: ToolGroup[] = [
     title: 'Convert',
     tools: [
       { view: 'export', label: 'Image export', icon: 'exportImg', desc: 'Pages as PNG or JPEG' },
+      { view: 'ocr', label: 'Text recognition', icon: 'ocr', desc: 'Make scans searchable (OCR)' },
+      { view: 'printcheck', label: 'Print check', icon: 'print', desc: 'Fonts, image sharpness, bleed for printing' },
       { view: 'create', label: 'Image to PDF', icon: 'createPdf', desc: 'Photos and scans into one PDF' },
     ],
   },
@@ -103,12 +117,13 @@ export function toolLabel(v: PanelView): string {
 
 export const UI_SIZES = [1, 1.25, 1.5, 1.75, 2];
 
+/** Views that work with no file open (the rest are greyed out on the start screen). */
+const NO_DOC_VIEWS: PanelView[] = ['home', 'settings', 'create', 'study'];
+
 const LATER: { label: string; icon: string }[] = [
-  { label: 'Text recognition', icon: 'ocr' },
   { label: 'Office conversion', icon: 'word' },
   { label: 'Version diff', icon: 'compare' },
   { label: 'Measuring tool', icon: 'measure' },
-  { label: 'Certificate signing', icon: 'certificate' },
 ];
 
 const TITLES: Partial<Record<PanelView, string>> = {
@@ -151,6 +166,15 @@ export class ToolPanel {
   private title: HTMLElement;
   private back: HTMLButtonElement;
   private lastResult = '';
+  /** Signature check results, per source id. */
+  private sigs: { src: string; list: SignatureReport[] | null; error?: string } | null = null;
+  /** The certificate file picked for signing (kept in memory only, never stored). */
+  private p12: { name: string; bytes: Uint8Array } | null = null;
+  private signedCopy: { name: string; bytes: Uint8Array } | null = null;
+  private printReport: { doc: string; report: PrintReport } | null = null;
+  /** null: not checked yet, undefined: checking. */
+  private ocrOk: boolean | null | undefined = null;
+  private lastOcr: { doc: string; text: string } | null = null;
 
   constructor(root: HTMLElement, private host: PanelHost) {
     this.body = root.querySelector('#panel-body')!;
@@ -190,10 +214,13 @@ export class ToolPanel {
 
   private view(v: PanelView): string {
     const doc = store.doc;
-    if (!doc && v !== 'home') return '<p class="muted">Open a PDF first.</p>';
+    if (!doc && !NO_DOC_VIEWS.includes(v)) return `<div class="callout">${icon('open')}<p>Open a PDF to use this tool.</p></div>`;
     switch (v) {
       case 'home': {
-        const row = (t: ToolEntry) => `<li><button type="button" class="tool-row" data-view="${t.view}"><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span><small>${t.desc}</small></span></button></li>`;
+        const row = (t: ToolEntry) => {
+          const off = !doc && !NO_DOC_VIEWS.includes(t.view);
+          return `<li><button type="button" class="tool-row${off ? ' needs-doc' : ''}" data-view="${t.view}"${off ? ' aria-disabled="true" title="Open a PDF to use this"' : ''}><span class="tool-ico">${icon(t.icon)}</span><span class="row-text"><span>${t.label}</span><small>${off ? 'Open a PDF to use this' : t.desc}</small></span></button></li>`;
+        };
         return `${GROUPS.map((g) => `<section class="tool-group"><h3 class="tool-group-title">${g.title}</h3><ul class="tool-list">${g.tools.map(row).join('')}</ul></section>`).join('')}
           <section class="tool-group"><h3 class="tool-group-title">App</h3><ul class="tool-list">${row(SETTINGS_ENTRY)}</ul>
           ${actBtn('help', 'help', 'Help and tour', 'How Nib-E works, privacy, study mode')}</section>
@@ -212,6 +239,11 @@ export class ToolPanel {
             </div>${actBtn('view:organize', 'organize', 'Page manager')}`,
           ) +
           section(
+            'Change the PDF\'s text',
+            toolBtn('retype', 'Edit existing text', 'Click a line, type the new text') +
+              `<p class="muted small">Keeps the line's font, size, colour and alignment. Saving removes the old words for real and writes the new ones in the PDF's own font (one line at a time; long paragraphs don't re-flow). On screen the closest font is shown. If the PDF's font lacks a character you type, the closest font is saved instead.</p>`,
+          ) +
+          section(
             'Add content',
             toolBtn('text', 'Text', 'Click anywhere to type') +
               actBtn('image', 'image', 'Image', store.pendingImage ? 'Click on a page to place it' : 'PNG, JPEG, WebP…') +
@@ -219,8 +251,7 @@ export class ToolPanel {
               actBtn('view:wm', 'watermark', 'Watermark', store.plan.wm ? 'On' : undefined) +
               toolBtn('link', 'Link', 'Drag a box, enter a web address'),
           ) +
-          section('Other options', actBtn('view:combine', 'combine', 'File merger') + actBtn('view:redact', 'redact', 'PDF redaction') + actBtn('view:form', 'form', 'Form builder')) +
-          `<p class="muted small">Editing the PDF's existing text is not supported. Cover it with a white box and type on top if needed.</p>`
+          section('Other options', actBtn('view:combine', 'combine', 'File merger') + actBtn('view:redact', 'redact', 'PDF redaction') + actBtn('view:form', 'form', 'Form builder'))
         );
       case 'hf':
         return this.hfView(store.plan.hf);
@@ -241,7 +272,7 @@ export class ToolPanel {
           status +
           (n ? `<label class="switch"><input type="checkbox" id="pf-show" ${on ? 'checked' : ''}/><span>Show fill-in boxes</span></label>` : '') +
           section('Fill', toolBtn('text', 'Add text') + toolBtn('mark', 'Checkmark', 'Tick, cross or dot') + toolBtn('hand', 'Fill boxes', 'Click a box to type into it')) +
-          section('Sign', toolBtn('sign', 'Add signature', 'Tap the page to place it') + actBtn('redraw', 'sign', 'Draw a new signature')) +
+          section('Handwritten signature', toolBtn('sign', 'Add signature', 'Tap the page to place it') + actBtn('redraw', 'sign', 'Draw a new signature') + `<p class="muted small">A picture of your signature, like signing on paper. For a digital (certificate) signature, use Toolbox → Digital signatures.</p>`) +
           (answered ? `<button class="btn btn-quiet wide" type="button" data-act="clear-answers">Clear all answers</button>` : '')
         );
       }
@@ -392,7 +423,7 @@ export class ToolPanel {
             `<div class="seg"><label class="seg-opt"><input type="radio" name="pf-size" value="a4" checked/><span>A4, fitted</span></label><label class="seg-opt"><input type="radio" name="pf-size" value="fit"/><span>Same as image</span></label></div>`,
           ) +
           actBtn('create-new', 'createPdf', 'Choose images → new PDF', 'Opens as a new document') +
-          actBtn('add-images', 'addfile', 'Choose images → add to this PDF', 'Appended at the end')
+          (doc ? actBtn('add-images', 'addfile', 'Choose images → add to this PDF', 'Appended at the end') : '')
         );
       case 'study': {
         const doc = store.doc;
@@ -400,6 +431,11 @@ export class ToolPanel {
         const keep = doc?.bookId ? doc.keep : store.prefs.studyKeep;
         const opt = (v: 'device' | 'file', title: string, text: string) =>
           `<label class="check-row"><input type="radio" name="pf-keep" value="${v}" ${keep === v ? 'checked' : ''}/><span class="keep-opt"><strong>${title}</strong><small>${text}</small></span></label>`;
+        if (!doc)
+          return (
+            `<div class="callout">${icon('study')}<p>Open a PDF to study it beside a notebook. Books you studied before are listed on the start screen, with the page where you stopped.</p></div>` +
+            section('How to keep your notes', opt('device', 'Keep notes separately (recommended)', 'Your book stays untouched. Marks and notes are saved on this device as you write.') + opt('file', 'Write notes into the book', 'Save puts your marks and note pages into the book file itself.'))
+          );
         return (
           `<label class="switch"><input type="checkbox" id="pf-study" ${store.study ? 'checked' : ''}/><span>Study mode</span></label>` +
           `<p class="muted small">Shows the PDF on the left and a notebook on the right. Write with the pen on either side. Switch a note page between lined, grid and blank in the notebook bar.</p>` +
@@ -416,6 +452,28 @@ export class ToolPanel {
           )
         );
       }
+      case 'attachments': {
+        const list = listAttachments();
+        const rows = list
+          .map(
+            (a) =>
+              `<li class="att-row"><span class="att-name" title="${esc(a.name)}">${icon(/\.pdf$/i.test(a.name) ? 'open' : 'attach')}<span>${esc(a.name)}</span><small>${fmtBytes(a.size)}</small></span><span class="att-acts">${/\.pdf$/i.test(a.name) ? `<button class="btn sm" type="button" data-att-open="${a.index}">Open</button>` : ''}<button class="btn sm btn-quiet" type="button" data-att-save="${a.index}">Save copy</button></span></li>`,
+          )
+          .join('');
+        const portfolio = doc!.reports.some((r) => r.report.portfolio);
+        return (
+          (portfolio ? `<div class="callout">${icon('attach')}<p><strong>PDF Portfolio.</strong> The first page is only a cover. The real documents are the attached files below.</p></div>` : '') +
+          (list.length
+            ? `<ul class="att-list">${rows}</ul><p class="muted small">Nib-E never opens attachments by itself. Attached PDFs open in a new tab with the same safe mode. Save other files only if you trust the sender.</p>`
+            : `<div class="callout">${icon('info')}<p>This PDF has no attached files.</p></div>`)
+        );
+      }
+      case 'signatures':
+        return this.signaturesView();
+      case 'printcheck':
+        return this.printView();
+      case 'ocr':
+        return this.ocrView();
       case 'settings':
         return this.settingsView();
       case 'check':
@@ -442,6 +500,11 @@ export class ToolPanel {
     const p = store.prefs;
     return (
       section(
+        'Language',
+        `<select class="text-input" id="pf-lang" aria-label="Language">${LANGUAGES.map((l) => `<option value="${l.id}" ${(p.lang ?? 'auto') === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}</select>` +
+          (currentLang() !== 'en' ? `<p class="muted small">Translations are new: some messages are still in English.</p>` : ''),
+      ) +
+      section(
         'Interface size',
         `<div class="seg">${UI_SIZES.map((v) => `<label class="seg-opt"><input type="radio" name="pf-ui" value="${v}" ${Math.abs(p.uiScale - v) < 0.01 ? 'checked' : ''}/><span>${Math.round(v * 100)}%</span></label>`).join('')}</div>
          <p class="muted small">Makes Nib-E's buttons and text bigger or smaller. Pages have their own zoom at the bottom.</p>`,
@@ -463,6 +526,11 @@ export class ToolPanel {
         'Pen feel',
         `<div class="seg">${(['precise', 'balanced', 'smooth'] as const).map((v) => `<label class="seg-opt"><input type="radio" name="pf-feel" value="${v}" ${p.penFeel === v ? 'checked' : ''}/><span>${FEEL_LABEL[v]}</span></label>`).join('')}</div>
          <p class="muted small">How much your writing is smoothed. <strong>Precise</strong> follows the pen tip (handwriting), <strong>Smooth</strong> evens out long lines and diagrams. Applies to new strokes.</p>`,
+      ) +
+      section(
+        'Typing',
+        `<label class="switch"><input type="checkbox" id="pf-wheel" ${p.wheelPick ? 'checked' : ''}/><span>Scroll over the font and size menus to change them</span></label>
+         <p class="muted small">Point at the font or size menu above the page and turn the mouse wheel. No click needed.</p>`,
       ) +
       section(
         'Spelling',
@@ -512,6 +580,107 @@ export class ToolPanel {
       `<label class="switch"><input type="checkbox" id="wm-diag" ${v.diagonal ? 'checked' : ''}/><span>Diagonal</span></label>` +
       `<div class="btn-row"><button class="btn btn-primary" type="button" data-act="wm-apply">${wm ? 'Update' : 'Add'}</button>${wm ? `<button class="btn btn-quiet" type="button" data-act="wm-remove">Remove</button>` : ''}</div>`
     );
+  }
+
+  private signaturesView(): string {
+    const doc = store.doc!;
+    const src = doc.primary;
+    if (this.sigs?.src !== src) {
+      this.sigs = { src, list: null };
+      documentSignatures(doc)
+        .then((list) => {
+          if (this.sigs?.src === src) this.sigs.list = list;
+        })
+        .catch((e: Error) => {
+          if (this.sigs?.src === src) this.sigs = { src, list: [], error: e.message };
+        })
+        .finally(() => {
+          if (store.panel === 'signatures') this.render();
+        });
+    }
+    const badge: Record<SignatureReport['status'], [string, string, string]> = {
+      valid: ['ok', 'check', 'Intact'],
+      changed: ['warn', 'info', 'Changed after'],
+      invalid: ['bad', 'shieldAlert', 'Not valid'],
+      unknown: ['', 'info', 'Not checked'],
+    };
+    const when = (d: Date | null) => (d ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
+    const list = this.sigs.list;
+    let found: string;
+    if (!list) found = `<div class="callout">${icon('search')}<p>Checking signatures…</p></div>`;
+    else if (this.sigs.error) found = `<div class="callout warn">${icon('info')}<p>${esc(this.sigs.error)}</p></div>`;
+    else if (!list.length) found = `<p class="muted small">This file has no digital signatures.</p>`;
+    else
+      found =
+        `<ul class="sig-list">${list
+          .map((r) => {
+            const [cls, ic, label] = badge[r.status];
+            const meta = [r.timestamp ? 'Timestamp' : '', when(r.time), r.reason ? `Reason: ${r.reason}` : ''].filter(Boolean).map(esc).join(' · ');
+            return `<li class="sig-row sig-${r.status}"><div class="sig-head">${icon(ic)}<strong>${esc(r.timestamp && r.signer === 'Unknown signer' ? 'Timestamp' : r.signer)}</strong><span class="sig-badge ${cls}">${label}</span></div>${meta ? `<p class="small muted">${meta}</p>` : ''}<p>${esc(r.summary)}</p>${r.notes.length ? `<details><summary>Details</summary><ul>${r.notes.map((n) => `<li>${esc(n)}</li>`).join('')}${r.signerCert ? `<li>Certificate valid ${esc(r.signerCert.notBefore?.toISOString().slice(0, 10) ?? '?')} to ${esc(r.signerCert.notAfter?.toISOString().slice(0, 10) ?? '?')}${r.digest ? `, ${esc(r.digest)}` : ''}${r.subFilter ? `, ${esc(r.subFilter)}` : ''}.</li>` : ''}</ul></details>` : ''}</li>`;
+          })
+          .join('')}</ul>` + (doc.dirty || store.pages.some((p) => p.items.length) ? `<p class="muted small">This is the file as it was opened. Your unsaved changes are not part of it.</p>` : '');
+    const has = !!list?.length;
+    const pos = (v: string, l: string, on = false) => `<label class="seg-opt"><input type="radio" name="pf-sigpos" value="${v}" ${on ? 'checked' : ''}/><span>${l}</span></label>`;
+    const sign =
+      `<form class="stack" id="pf-sign" autocomplete="off">` +
+      `<button class="row-btn" type="button" data-act="sig-pick">${icon('certificate')}<span class="row-text"><span>${this.p12 ? esc(this.p12.name) : 'Choose certificate file'}</span><small>${this.p12 ? 'Click to choose another' : '.p12 or .pfx, with your private key'}</small></span></button>` +
+      `<label class="field-label">Certificate password<input class="text-input" type="password" id="pf-sigpw" autocomplete="off"/></label>` +
+      `<label class="field-label">Reason (optional)<input class="text-input" id="pf-sigreason" maxlength="120" placeholder="I approve this document"/></label>` +
+      `<label class="field-label">Place (optional)<input class="text-input" id="pf-sigloc" maxlength="80"/></label>` +
+      section('Visible box', `<div class="seg wrap">${pos('br', 'Bottom right', true)}${pos('bl', 'Bottom left')}${pos('tr', 'Top right')}${pos('none', 'Invisible')}</div><p class="muted small">On page ${store.current + 1} (the page you are on).</p>`) +
+      `<button class="btn btn-primary wide" type="submit" data-act="sig-sign">${icon('certificate')}Sign and save copy</button>` +
+      `</form>` +
+      (has ? `<div class="callout warn">${icon('info')}<p>Signing saves a new copy. The signatures already in this file will not be valid in that copy.</p></div>` : '') +
+      (this.signedCopy ? `<div class="callout ok">${icon('check')}<p>Saved “${esc(this.signedCopy.name)}”. Any change to that copy breaks the signature.</p></div><button class="btn wide" type="button" data-act="sig-open">${icon('open')}Open the signed copy</button>` : '') +
+      `<p class="muted small">Your certificate file and password stay on this device and are forgotten when you close Nib-E. Certificates come from your employer, a certificate provider or some national ID cards. RSA certificates are supported.</p>`;
+    return section('Signatures in this file', found) + section('Sign with a certificate', sign) + `<p class="muted small">Nib-E checks that a signature matches the file and the certificate inside it. It does not check trust lists or revocation, which need the internet. For legal checks, also use the tool your organisation requires.</p>`;
+  }
+
+  private ocrView(): string {
+    if (this.ocrOk === null) {
+      import('../pdf/ocr').then(({ ocrAvailable }) =>
+        ocrAvailable().then((ok) => {
+          this.ocrOk = ok;
+          if (store.panel === 'ocr') this.render();
+        }),
+      );
+      this.ocrOk = undefined;
+    }
+    if (this.ocrOk === false)
+      return `<div class="callout">${icon('info')}<p>Text recognition needs its language files, which this copy of Nib-E does not include. Use the desktop app or the online version at krithickdesign.github.io/Nib-E.</p></div>`;
+    const scans = scannedPages();
+    const total = store.pages.length;
+    const langs = (store.prefs.ocrLangs?.length ? store.prefs.ocrLangs : ['eng']) as string[];
+    const lang = (id: string, label: string) => `<label class="check-row"><input type="checkbox" name="pf-ocrlang" value="${id}" ${langs.includes(id) ? 'checked' : ''}/><span>${label}</span></label>`;
+    const which = (v: string, l: string, on: boolean) => `<label class="check-row"><input type="radio" name="pf-ocrpages" value="${v}" ${on ? 'checked' : ''}/><span>${l}</span></label>`;
+    return (
+      `<div class="callout">${icon('ocr')}<p>${scans.length ? `<strong>${scans.length} of ${total} page${total === 1 ? '' : 's'} ${scans.length === 1 ? 'looks' : 'look'} scanned</strong> (no text to search or copy).` : 'Every page already has text. You can still read pages again.'}</p></div>` +
+      section('Language of the text', lang('eng', 'English') + lang('deu', 'German')) +
+      section('Pages', which('scans', `Scanned pages (${scans.length})`, !!scans.length) + which('current', `This page (${store.current + 1})`, !scans.length) + which('all', `All pages (${total})`, false)) +
+      `<button class="btn btn-primary wide" type="button" data-act="ocr-run">${icon('ocr')}Recognise text</button>` +
+      (this.lastOcr?.doc === store.doc!.id ? `<div class="callout ok">${icon('check')}<p>${this.lastOcr.text}</p></div>` : '') +
+      `<p class="muted small">Runs on this device; nothing is uploaded. The page looks the same: an invisible text layer is added so you can select, copy and search it (also for redaction). Your additions so far become part of the pages. Takes a few seconds per page.</p>`
+    );
+  }
+
+  private printView(): string {
+    const r = this.printReport?.doc === store.doc!.id ? this.printReport.report : null;
+    const intro = `<p class="muted small">Checks the document as it will be saved, with your changes: what a print shop looks at first.</p>`;
+    const run = `<button class="btn ${r ? '' : 'btn-primary '}wide" type="button" data-act="print-run">${icon('print')}${r ? 'Check again' : 'Run print check'}</button>`;
+    if (!r) return intro + run;
+    const lvl: Record<string, [string, string]> = { ok: ['ok', 'check'], note: ['', 'info'], warn: ['warn', 'shieldAlert'] };
+    const warn = r.findings.filter((f) => f.level === 'warn').length;
+    const head = warn
+      ? `<div class="callout warn">${icon('info')}<p><strong>${warn} thing${warn === 1 ? '' : 's'} to fix before professional printing.</strong> Office and home printers are usually fine.</p></div>`
+      : `<div class="callout ok">${icon('check')}<p><strong>Ready to print.</strong> Notes below are worth a look for a print shop.</p></div>`;
+    const list = `<ul class="findings">${r.findings
+      .map((f) => {
+        const [cls, ic] = lvl[f.level];
+        return `<li class="finding finding-${cls || 'note'}"><span class="finding-icon">${icon(ic)}</span><div><div class="finding-title">${esc(f.title)}</div><p>${esc(f.detail)}${f.pages?.length ? ` <span class="muted">Page${f.pages.length === 1 ? '' : 's'} ${f.pages.join(', ')}.</span>` : ''}</p></div></li>`;
+      })
+      .join('')}</ul>`;
+    const partial = r.checkedPages < r.pages ? `<p class="muted small">Checked the first ${r.checkedPages} of ${r.pages} pages.</p>` : '';
+    return head + list + partial + run + `<p class="muted small">A quick check, not a full PDF/X preflight. Ask your print shop for their exact requirements.</p>`;
   }
 
   private checkView(): string {
@@ -575,6 +744,14 @@ export class ToolPanel {
       case 'pf-spell':
         store.setPrefs({ spellcheck: el.checked });
         break;
+      case 'pf-wheel':
+        store.setPrefs({ wheelPick: el.checked });
+        break;
+      case 'pf-lang':
+        store.setPrefs({ lang: el.value as LangPref });
+        setLanguage(el.value as LangPref);
+        this.render();
+        break;
       case 'pf-spell-lang':
         store.setPrefs({ spellLang: el.value });
         break;
@@ -611,6 +788,10 @@ export class ToolPanel {
     const b = (e.target as HTMLElement).closest('button, [data-view]') as HTMLElement | null;
     if (!b || (b as HTMLButtonElement).disabled) return;
     if (b.dataset.view) {
+      if (b.getAttribute('aria-disabled') === 'true') {
+        toast('Open a PDF first, then choose this tool.');
+        return;
+      }
       store.setPanel(b.dataset.view as PanelView);
       return;
     }
@@ -629,6 +810,33 @@ export class ToolPanel {
     if (b.dataset.editStamp) {
       const st = myStamps().find((x) => x.id === b.dataset.editStamp);
       if (st && (await openStampMaker(st))) this.render();
+      return;
+    }
+    if (b.dataset.attOpen) {
+      const i = Number(b.dataset.attOpen);
+      const a = listAttachments().find((x) => x.index === i);
+      if (!a) return;
+      await this.host.busy('Opening…', () => openBytes(a.name, attachmentBytes(i)));
+      return;
+    }
+    if (b.dataset.attSave) {
+      const i = Number(b.dataset.attSave);
+      const a = listAttachments().find((x) => x.index === i);
+      if (!a) return;
+      if (!/\.pdf$/i.test(a.name)) {
+        const { ask } = await import('./dialog');
+        const r = await ask({
+          title: `Save “${esc(a.name)}”?`,
+          body: '<p>Attached files can contain anything, including programs. Save it only if you trust where this PDF came from. Nib-E does not open it.</p>',
+          actions: [
+            { label: 'Cancel', value: false, kind: 'quiet' },
+            { label: 'Save copy', value: true, kind: 'primary' },
+          ],
+        });
+        if (!r?.value) return;
+      }
+      const r = await this.host.busy('Saving…', () => saveFile(a.name, attachmentBytes(i), /\.pdf$/i.test(a.name) ? 'application/pdf' : 'application/octet-stream'));
+      if (r === 'saved') toast(`Saved “${a.name}”.`, 'ok');
       return;
     }
     if (b.dataset.delStamp) {
@@ -781,6 +989,122 @@ export class ToolPanel {
           ? `${fmtBytes(r.before)} → ${fmtBytes(r.after)} (${Math.round((1 - r.after / r.before) * 100)}% smaller, ${r.images} image${r.images === 1 ? '' : 's'} scaled down).`
           : `Already compact (${fmtBytes(r.before)}). No large photos to shrink, so it was saved unchanged.`;
         this.render();
+        break;
+      }
+      case 'ocr-run': {
+        const langs = [...this.body.querySelectorAll<HTMLInputElement>('input[name="pf-ocrlang"]:checked')].map((i) => i.value);
+        if (!langs.length) {
+          toast('Choose at least one language.', 'error');
+          return;
+        }
+        store.setPrefs({ ocrLangs: langs });
+        const which = this.radio('pf-ocrpages');
+        const pages = which === 'all' ? store.pages.map((_, i) => i) : which === 'current' ? [store.current] : scannedPages();
+        if (!pages.length) {
+          toast('No scanned pages found. Choose This page or All pages.', 'error');
+          return;
+        }
+        const btn = this.body.querySelector('[data-act="ocr-run"]') as HTMLButtonElement;
+        const r = await this.host.busy('Recognising…', () =>
+          ocrNow({
+            langs,
+            pages,
+            force: which !== 'scans',
+            onProgress: (done, total, status) => {
+              btn.innerHTML = `${icon('ocr')}${status} ${Math.min(total, Math.floor(done) + 1)}/${total}`;
+            },
+          }),
+        );
+        if (!r) {
+          this.render();
+          return;
+        }
+        this.lastOcr = {
+          doc: store.doc!.id,
+          text: r.pagesRead
+          ? `Text found on ${r.pagesRead} page${r.pagesRead === 1 ? '' : 's'} (${r.words} words${r.confidence ? `, about ${Math.round(r.confidence)}% sure` : ''}). Save to keep it.${r.skippedText ? ` ${r.skippedText} page${r.skippedText === 1 ? '' : 's'} already had text.` : ''}`
+          : 'No pages needed reading: they already have text.',
+        };
+        store.setPanel('ocr');
+        this.render();
+        if (r.pagesRead) toast('Text recognised. You can now select and copy it.', 'ok');
+        break;
+      }
+      case 'print-run': {
+        const doc = store.doc;
+        if (!doc) return;
+        const { printCheck } = await import('../pdf/printcheck');
+        const { exportPdf } = await import('../doc');
+        const report = await this.host.busy('Checking…', async () => printCheck(await exportPdf({ includeNotes: false })));
+        if (!report) return;
+        this.printReport = { doc: doc.id, report };
+        this.render();
+        break;
+      }
+      case 'sig-pick': {
+        const files = await pick('.p12,.pfx,application/x-pkcs12', false);
+        if (!files.length) return;
+        this.p12 = { name: files[0].name, bytes: new Uint8Array(await files[0].arrayBuffer()) };
+        const keep = ['pf-sigreason', 'pf-sigloc'].map((id) => [id, (this.body.querySelector(`#${id}`) as HTMLInputElement | null)?.value ?? ''] as const);
+        const pos = this.radio('pf-sigpos');
+        this.render();
+        for (const [id, v] of keep) (this.body.querySelector(`#${id}`) as HTMLInputElement | null)?.setAttribute('value', v);
+        if (pos) (this.body.querySelector(`input[name="pf-sigpos"][value="${pos}"]`) as HTMLInputElement | null)?.click();
+        (this.body.querySelector('#pf-sigpw') as HTMLInputElement | null)?.focus();
+        break;
+      }
+      case 'sig-sign': {
+        if (!this.p12) {
+          toast('Choose your certificate file first.', 'error');
+          return;
+        }
+        const pwEl = this.body.querySelector('#pf-sigpw') as HTMLInputElement;
+        const reason = (this.body.querySelector('#pf-sigreason') as HTMLInputElement).value.trim();
+        const location = (this.body.querySelector('#pf-sigloc') as HTMLInputElement).value.trim();
+        const where = this.radio('pf-sigpos') || 'br';
+        const page = store.pages[store.current];
+        if (!page) return;
+        const w = Math.min(220, page.w - 48);
+        const h = 58;
+        const rect = where === 'none' ? null : { x: where === 'bl' ? 36 : page.w - w - 36, y: where === 'tr' ? 36 : page.h - h - 36, w, h };
+        const { inspectP12 } = await import('../pdf/sign');
+        let who;
+        try {
+          who = await this.host.busy('Reading certificate…', () => inspectP12(this.p12!.bytes, pwEl.value));
+        } catch (err) {
+          toast((err as Error).message, 'error');
+          return;
+        }
+        if (!who) return;
+        const { ask } = await import('./dialog');
+        const ok = await ask({
+          title: 'Sign this document?',
+          body: `<p>Signing as <strong>${esc(who.name)}</strong>${who.selfSigned ? ' (self-signed certificate)' : `, issued by ${esc(who.issuer)}`}. Valid until ${esc(who.notAfter.toISOString().slice(0, 10))}.</p><p>Nib-E saves a signed copy. Your changes so far are included; notes pages are not.</p>`,
+          actions: [
+            { label: 'Cancel', value: false, kind: 'quiet' },
+            { label: 'Sign and save', value: true, kind: 'primary' },
+          ],
+        });
+        if (!ok?.value) return;
+        try {
+          const r = await this.host.busy('Signing…', () => signAndSave({ p12: this.p12!.bytes, password: pwEl.value, reason, location, page: store.current, rect }));
+          if (!r) return;
+          if (r.saved === 'saved') {
+            this.signedCopy = { name: r.name, bytes: r.bytes };
+            pwEl.value = '';
+            toast(`Signed and saved “${r.name}”.`, 'ok');
+            this.render();
+          }
+        } catch (err) {
+          toast((err as Error).message, 'error');
+        }
+        break;
+      }
+      case 'sig-open': {
+        if (!this.signedCopy) return;
+        const c = this.signedCopy;
+        await this.host.busy('Opening…', () => openBytes(c.name, c.bytes));
+        store.setPanel('signatures');
         break;
       }
       case 'protect': {

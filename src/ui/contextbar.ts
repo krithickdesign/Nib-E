@@ -1,9 +1,11 @@
 // The bar that appears above the page: font controls while adding or editing
 // text, and quick actions for any selected item.
 import { unsupportedChars } from '../pdf/core';
-import { uid, type FontFamily, type Item, type TextItem } from '../model';
+import { type FontFamily, type Item, type TextItem } from '../model';
 import { store } from '../store';
-import { FONT_LABEL } from './draw';
+import { FONTS, isBundled } from '../fonts';
+import { keepsPdfFont } from './draw';
+import { duplicateSelection } from './clipboard';
 import { icon } from './icons';
 import { COLOR_NAMES, MARKUP_COLORS, NOTE_COLORS, SHAPE_COLORS, TEXT_COLORS } from './tools';
 import { applyTextStyle, editingText } from './viewer';
@@ -11,7 +13,43 @@ import { applyTextStyle, editingText } from './viewer';
 const SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48];
 
 export class ContextBar {
+  private wheelT = 0;
+  private wheelReady = false;
+
   constructor(private root: HTMLElement, private onDelete: () => void) {
+    // Point at the font or size menu and scroll to change it (no click needed).
+    // A short rest first, so scrolling the page past the bar changes nothing.
+    root.addEventListener('pointerover', (e) => {
+      if (!(e.target as HTMLElement).closest('#ctx-font, #ctx-size')) return;
+      clearTimeout(this.wheelT);
+      this.wheelReady = false;
+      this.wheelT = window.setTimeout(() => (this.wheelReady = true), 250);
+    });
+    root.addEventListener('pointerout', (e) => {
+      if (!(e.target as HTMLElement).closest('#ctx-font, #ctx-size')) return;
+      clearTimeout(this.wheelT);
+      this.wheelReady = false;
+    });
+    root.addEventListener(
+      'wheel',
+      (e) => {
+        const sel = (e.target as HTMLElement).closest('#ctx-font, #ctx-size') as HTMLSelectElement | null;
+        if (!sel || !store.prefs.wheelPick) return;
+        e.preventDefault();
+        if (!this.wheelReady || Math.abs(e.deltaY) < 1) return;
+        const opts = [...sel.options];
+        const i = opts.findIndex((o) => o.selected);
+        const next = Math.max(0, Math.min(opts.length - 1, i + (e.deltaY > 0 ? 1 : -1)));
+        if (next === i) return;
+        sel.selectedIndex = next;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        // A burst of wheel events moves one step per notch, not ten at once.
+        this.wheelReady = false;
+        clearTimeout(this.wheelT);
+        this.wheelT = window.setTimeout(() => (this.wheelReady = true), 90);
+      },
+      { passive: false },
+    );
     // Keep focus in the text box while using the bar.
     root.addEventListener('pointerdown', (e) => {
       if (!(e.target as HTMLElement).closest('select, input')) e.preventDefault();
@@ -48,11 +86,15 @@ export class ContextBar {
       const bold = text?.bold ?? p.textBold;
       const italic = text?.italic ?? p.textItalic;
       const color = text?.color ?? p.textColor;
-      const bad = text ? unsupportedChars(text.text) : [];
+      const bad = text && !isBundled(font) ? unsupportedChars(text.text) : [];
       const sizes = SIZES.includes(size) ? SIZES : [...SIZES, size].sort((a, b) => a - b);
       this.root.innerHTML = `
         <label class="ctx-field"><span class="sr">Font</span>
-          <select id="ctx-font" aria-label="Font">${(['sans', 'serif', 'mono'] as FontFamily[]).map((f) => `<option value="${f}" ${f === font ? 'selected' : ''}>${FONT_LABEL[f]}</option>`).join('')}</select>
+          <select id="ctx-font" aria-label="Font" title="${store.prefs.wheelPick ? 'Point at it and scroll to change' : 'Font'}"><optgroup label="Standard (every reader has them)">${FONTS.filter((f) => !f.files)
+            .map((f) => `<option value="${f.id}" ${f.id === font ? 'selected' : ''}>${f.label}</option>`)
+            .join('')}</optgroup><optgroup label="Included with Nib-E (embedded)">${FONTS.filter((f) => f.files)
+            .map((f) => `<option value="${f.id}" ${f.id === font ? 'selected' : ''}>${f.label} · ${f.kind}</option>`)
+            .join('')}</optgroup></select>
         </label>
         <div class="ctx-size">
           <button class="icon-btn sm" type="button" data-a="smaller" aria-label="Smaller">${icon('minus')}</button>
@@ -63,10 +105,13 @@ export class ContextBar {
         <button class="icon-btn sm" type="button" data-a="bold" aria-pressed="${bold}" aria-label="Bold" title="Bold">${icon('bold')}</button>
         <button class="icon-btn sm" type="button" data-a="italic" aria-pressed="${italic}" aria-label="Italic" title="Italic">${icon('italic')}</button>
         <span class="ctx-sep"></span>
+        ${(['left', 'center', 'right'] as const).map((a) => `<button class="icon-btn sm" type="button" data-align="${a}" aria-pressed="${(text?.align ?? 'left') === a}" aria-label="Align ${a}" title="Align ${a}">${icon(a === 'left' ? 'alignL' : a === 'center' ? 'alignC' : 'alignR')}</button>`).join('')}
+        <span class="ctx-sep"></span>
         ${TEXT_COLORS.map((c) => `<button class="swatch sm" type="button" data-color="${c}" style="--sw:${c}" aria-label="${COLOR_NAMES[c]}" aria-pressed="${c === color}"></button>`).join('')}
-        ${item ? `<span class="ctx-sep"></span><button class="icon-btn sm danger" type="button" data-a="delete" aria-label="Delete" title="Delete">${icon('trash')}</button>` : ''}
-        ${bad.length ? `<span class="ctx-warn" title="Standard PDF fonts cannot store these characters. They will be saved as ?">Can't save: ${bad.join(' ')}</span>` : ''}
-        ${text?.field ? `<span class="ctx-hint">Tab: next box</span>` : ''}`;
+        ${item ? `<span class="ctx-sep"></span><button class="icon-btn sm" type="button" data-a="duplicate" aria-label="Duplicate" title="Duplicate (Ctrl+D)">${icon('copy')}</button><button class="icon-btn sm danger" type="button" data-a="delete" aria-label="Delete" title="Delete">${icon('trash')}</button>` : ''}
+        ${bad.length ? `<span class="ctx-warn" title="Standard PDF fonts cannot store these characters. Choose Noto Sans (or another included font) to keep them.">Can't save: ${bad.join(' ')} · use Noto Sans</span>` : ''}
+        ${text?.field ? `<span class="ctx-hint">Tab: next box</span>` : ''}
+        ${text?.replace ? `<span class="ctx-hint" title="Original: ${text.replace.orig.replace(/"/g, '&quot;')}">${keepsPdfFont(text) ? `PDF font: ${text.replace.pdfFont.replace(/</g, '')}` : 'Font changed: saved with the chosen font'}</span>` : ''}`;
       return;
     }
     // Non-text selection.
@@ -81,12 +126,12 @@ export class ContextBar {
       <span class="ctx-label">${label}</span>
       ${colors.length ? `<span class="ctx-sep"></span>${colors.map((c) => `<button class="swatch sm" type="button" data-color="${c}" style="--sw:${c}" aria-label="${COLOR_NAMES[c] ?? c}" aria-pressed="${c === current}"></button>`).join('')}` : ''}
       <span class="ctx-sep"></span>
-      <button class="icon-btn sm" type="button" data-a="duplicate" aria-label="Duplicate" title="Duplicate">${icon('copy')}</button>
+      <button class="icon-btn sm" type="button" data-a="duplicate" aria-label="Duplicate" title="Duplicate (Ctrl+D)">${icon('copy')}</button>
       <button class="icon-btn sm danger" type="button" data-a="delete" aria-label="Delete" title="Delete (Del)">${icon('trash')}</button>`;
   }
 
   private patch(p: Partial<TextItem>): void {
-    applyTextStyle(p);
+    applyTextStyle(p as Parameters<typeof applyTextStyle>[0]);
     const prefs: Partial<typeof store.prefs> = {};
     if (p.font) prefs.textFont = p.font;
     if (p.size) prefs.textSize = p.size;
@@ -101,6 +146,10 @@ export class ContextBar {
     if (!b) return;
     const { text, item } = this.target();
     const size = text?.size ?? store.prefs.textSize;
+    if (b.dataset.align) {
+      applyTextStyle({ align: b.dataset.align as TextItem['align'] });
+      return;
+    }
     if (b.dataset.color) {
       if (text || store.tool === 'text') this.patch({ color: b.dataset.color });
       else if (item && store.sel && 'color' in item) store.replaceItem(store.sel.key, { ...item, color: b.dataset.color } as Item);
@@ -123,12 +172,7 @@ export class ContextBar {
         this.onDelete();
         break;
       case 'duplicate':
-        if (item && store.sel) {
-          const copy = { ...item, id: uid('d') } as Item;
-          const moved = 'x' in copy && 'y' in copy && copy.type !== 'note' ? { ...copy, x: (copy as { x: number }).x + 10, y: (copy as { y: number }).y + 10 } : copy;
-          store.addItems(store.sel.key, [moved as Item]);
-          store.select({ key: store.sel.key, id: moved.id });
-        }
+        duplicateSelection();
         break;
     }
   }

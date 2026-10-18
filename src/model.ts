@@ -10,7 +10,8 @@ import type { PdfDocumentObject } from '@embedpdf/models';
 export type Rot = 0 | 1 | 2 | 3;
 /** x, y in page points, pressure 0..1. */
 export type Pt = [number, number, number];
-export type FontFamily = 'sans' | 'serif' | 'mono';
+/** Font of typed text: a standard PDF font or a font bundled with Nib-E (see fonts.ts). */
+export type FontFamily = import('./fonts').FontId;
 
 export interface Rect {
   x: number;
@@ -52,6 +53,37 @@ export interface TextItem extends Base, Rect {
   field?: string;
   /** Paint white behind the text (hides placeholder text on a line). */
   cover?: boolean;
+  /** Lines inside the box: left (default), centred or right-aligned. */
+  align?: 'left' | 'center' | 'right';
+  /** This box replaces a line of the PDF's own text (Content editor → Edit text). */
+  replace?: ReplaceInfo;
+}
+
+/**
+ * A line of the PDF's own text being replaced. On save the original characters
+ * in `area` are removed from the page (like redaction, but text only: pictures
+ * and drawings stay), then the new text is written, in the original font when
+ * it has every character, else in the closest font Nib-E has.
+ */
+export interface ReplaceInfo {
+  /** Where the original text is removed (page points; a strip through the line). */
+  area: Rect;
+  /** The original line's box: covered on screen with `bg` until saving removes the text. */
+  hide: Rect;
+  /** The original text. */
+  orig: string;
+  /** Characters the PDF's font is known to have (drawn elsewhere on the page with it). */
+  glyphs: string;
+  /** Font name in the PDF, without the subset prefix (e.g. "Calibri-Bold"). */
+  pdfFont: string;
+  /** Size, bold and italic as found; the original font is only reused while these are unchanged. */
+  font0: { font: FontFamily; size: number; bold: boolean; italic: boolean };
+  /** A point on the first character, to find the original font again when saving. */
+  probe: [number, number];
+  /** Colour behind the line (covers the old text on screen; saving removes it for real). */
+  bg: string;
+  /** Screen-only font made from the PDF's embedded font, if the browser could load it. */
+  css?: string;
 }
 
 export interface MarkItem extends Base, Rect {

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.6.0
+
+**New**
+- Edit existing text (Content editor → Edit existing text): click a line of the PDF's own text and type. Saving removes the old characters (same technique as redaction) and writes the new line in the PDF's own font when it has every character, else in the closest included font; size, colour, bold/italic and alignment are read from the line. Line-level; on screen the closest font is shown.
+- Digital signatures (Toolbox → Protect → Digital signatures): checks every signature in a PDF offline (document hash, signature value, certificate chain inside the file; RSA, RSA-PSS and ECDSA; CMS/PAdES and timestamps) and shows Intact / Changed after / Not valid. Trust lists and revocation are not checked (needs the internet) and the panel says so.
+- Certificate signing with your own .p12/.pfx (RSA): visible box (bottom right, bottom left, top right) or invisible, reason and place, SHA-256 detached CMS. Saves a signed copy; signatures already in the file stop being valid in that copy (warned). Tested with pdfsig and pyHanko.
+- Text recognition (OCR, Tesseract, English and German): adds an invisible text layer to scanned pages, also on rotated pages. Runs on the device; the recognition files ship with the desktop app and are served from the website's own folder for the web app.
+- Print check (Toolbox → Convert): fonts not embedded, image resolution at printed size, image colour spaces, trim and bleed boxes, transparency, page sizes.
+- Two-page view and two pages with a title page; zoom slider with Fit width / Fit page (click the zoom number). Page Down / Page Up, arrow keys and page-turn pedals turn pages.
+- Six bundled font families (Inter, Noto Sans, Roboto Condensed, Source Serif, Playfair Display, Caveat) with full Unicode, embedded when saving. Hover over the font or size menu and turn the mouse wheel to change it (Settings → Typing).
+- Copy, cut, paste and duplicate added items (Ctrl+C / X / V / D, duplicate button); text alignment left / centre / right.
+- Attachments panel (open attached PDFs, save other files after a warning); PDF portfolios open the panel automatically.
+- Interface languages: German, Spanish, French, Portuguese (Brazil), Italian (Settings → Language; follows the system by default). Some messages are still English.
+- Rate Nib-E in the help menu (Microsoft Store edition).
+- Flathub files (`flatpak/`), Store listing texts for Spanish, French, Portuguese and Italian.
+
+**Changed**
+- Settings, Image to PDF and Study mode work before a PDF is open; other tools are greyed out with "Open a PDF to use this".
+- "Signature" in Form filling is now "Handwritten signature", with a pointer to Digital signatures.
+- Clear messages for Adobe XFA forms, PDF portfolios, DRM/certificate-protected and damaged files.
+- Web app security rules allow loading files from the app's own site (for Text recognition); other websites stay blocked.
+- Desktop: the PDF engine is a separate file next to the page, so the app starts faster.
+- fflate 0.8.3 (fixes a possible endless loop on damaged ZIP files).
+
+**Fixed**
+- Linux: the AppImage could crash at start (core dump) or take very long on some graphics drivers. Nib-E now starts WebKitGTK without the DMA-BUF renderer, and after a crashed start it switches to software drawing by itself (also forced with `NIB_SAFE_GRAPHICS=1`). The release build now starts the Linux app once on a virtual screen and stops if it crashes.
+
 ## 0.5.1
 
 **Microsoft Store**

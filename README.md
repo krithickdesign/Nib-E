@@ -24,7 +24,8 @@ Fill forms, sign, write and draw, redact, organise pages and study, in your brow
 ## Privacy
 
 - **Network: none.** The desktop app has no internet permission (no network code, strict security rules).
-  The web version's security rules (CSP) block every connection once the page is loaded.
+  The web version's security rules (CSP) block every connection to other websites once the page is loaded;
+  only Text recognition loads its own files (`ocr/`) from the same site.
 - Opening, editing and saving all run on your device (PDFium as WebAssembly). Nothing is sent anywhere.
 - No account, no analytics, no cookies, no third-party requests (fonts are bundled). No update checks.
 - No AI features. A separate, opt-in AI editor may come later as its own product; Nib-E itself stays offline.
@@ -41,14 +42,20 @@ Fill forms, sign, write and draw, redact, organise pages and study, in your brow
 | **Tabs** | Several PDFs open at once (up to 8). Double-click the file name to rename. Asks before closing unsaved work; offers unsaved work back after a crash. |
 | **Save** | Save writes over the opened file (desktop app, Chrome, Edge), keeps the earlier version (restorable). Save menu: Save as, Export (with notes, flattened, notes only, images, text), Print. |
 | **Fill forms** | Real form fields, *and* forms without fields: Nib-E finds boxes, lines and tick boxes and asks whether to make them fillable. Text uses the form's font and size; `Tab` jumps to the next box. Works alongside real fields in the same file. |
-| **Sign** | Draw once, place anywhere, optionally remembered on this device. |
-| **Draw and write** | Pen and highlighter (stylus pressure, palm rejection, pen feel Precise / Balanced / Smooth), text boxes with font toolbar and spelling check. |
-| **Toolbox** | Grouped into Write (Content editor, Form filling & signature, Form builder, Annotations, Stamp library), Pages (Page manager, File merger, Size reducer), Protect (PDF redaction, Password lock, Safety report), Convert (Image export, Image to PDF) and Study. |
+| **Edit text** | Edit existing text: click a line of the PDF, type the new text. Saving removes the old characters and writes the new line in the PDF's own font (if it has every character) or the closest included font, same size, colour and alignment. |
+| **Sign** | Handwritten: draw once, place anywhere, optionally remembered on this device. Certificate: sign with your own .p12/.pfx (RSA, SHA-256, visible or invisible). |
+| **Check signatures** | Every signature in a PDF checked offline (hash, signature value, certificate chain in the file): Intact / Changed after / Not valid. No trust-list or revocation check. |
+| **Text recognition** | OCR (Tesseract, English and German) adds an invisible text layer to scanned pages, also rotated ones. |
+| **Print check** | Fonts not embedded, image resolution at printed size, colour spaces, trim and bleed, transparency, page sizes. |
+| **Draw and write** | Pen and highlighter (stylus pressure, palm rejection, pen feel Precise / Balanced / Smooth), text boxes with font toolbar (six included font families, alignment, mouse-wheel picking) and spelling check. Copy, paste and duplicate (Ctrl+C / V / D). |
+| **Toolbox** | Grouped into Write (Content editor, Form filling & signature, Form builder, Annotations, Stamp library), Pages (Page manager, File merger, Size reducer, Attachments), Protect (PDF redaction, Password lock, Digital signatures, Safety report), Convert (Image export, Text recognition, Print check, Image to PDF) and Study. |
 | **Study mode** | PDF beside a notebook; note pages lined, grid or blank. Notes kept on the device as you write and restored (with the last page) when the book is opened again; or written into the book file. Library on the start screen, `.nibe` backup. |
 | **Comments** | Sticky notes, highlight / underline / strike text, shapes, links, header and footer, watermark. |
 | **Stamps** | Ready-made stamps, your own text, a **stamp designer** (drag-and-drop text, shapes, logo, date), or any PNG. Saved in the browser. |
 | **Redact** | Removes text and erases picture pixels under the marks, optional removal of hidden data, then verifies nothing is left. |
 | **Pages and files** | Insert, rotate, reorder, delete, extract; combine PDFs and images; compress; password (AES-256); export pages as images. |
+| **View** | One page, two pages, or two pages with a title page; zoom slider, fit width / page; Page Down / Up, arrow keys and page-turn pedals. |
+| **Languages** | English, German, Spanish, French, Portuguese (Brazil), Italian (Settings → Language, follows the system by default). |
 | **Comfort** | Interface size 100–200 % (default 150 %; phones 100 %), light/dark theme, full-page reading, keyboard shortcuts, Help tour. Phone layout: bottom tool bar, tools sheet, PDF/Notes tabs, two-finger scroll while writing. |
 
 ## Website: published automatically (maintainers)
@@ -121,9 +128,12 @@ Design: edits are kept as a plan on top of the opened file; Save builds a new PD
 
 ## Known limits
 
-- The PDF's own text can't be edited (cover it with a white box and type on top).
-- Typed text uses the standard PDF fonts; characters outside Western European sets can't be saved yet.
-- Scanned forms (pictures of paper) need OCR, not built yet.
+- Editing the PDF's own text works one line at a time; text doesn't reflow into the next line. On screen the closest included font is shown; the saved file uses the PDF's own font when it has every character.
+- Standard PDF fonts (Helvetica, Times, Courier) only store Western European characters; choose an included font (e.g. Noto Sans) for other scripts.
+- Certificate signing: RSA certificates only; signing saves a new copy (signatures already in the file stop being valid there). Signature checks don't use trust lists or revocation.
+- Text recognition: English and German; the single offline file (`Nib-E.html`) has no recognition files (use the desktop app or the website).
+- Adobe XFA forms and DRM-protected PDFs can't be shown; Nib-E says so.
+- Interface translations are new; some messages are still English.
 - Spelling uses the browser's own checker and only for text you type.
 - Very large PDFs can stutter while pages render.
 - Saving changes to a digitally signed PDF invalidates its signature (Nib-E warns first).
@@ -137,4 +147,5 @@ Design: edits are kept as a plan on top of the opened file; Save builds a new PD
 
 Nib-E is **MIT licensed** (see [LICENSE](LICENSE)). Desktop app: Tauri (MIT / Apache-2.0).
 Third-party parts: PDFium (BSD-3 / Apache-2.0), EmbedPDF (MIT), pdf-lib (MIT), fflate (MIT),
-perfect-freehand (MIT), fonts via Fontsource (SIL OFL 1.1).
+perfect-freehand (MIT), node-forge (BSD-3 / GPL-2.0 dual, used under BSD-3), Tesseract, tesseract.js and
+tessdata_best (Apache-2.0), fonts via Fontsource and `src/assets/fonts` (SIL OFL 1.1, see LICENSES.md there).

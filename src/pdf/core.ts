@@ -91,9 +91,20 @@ export interface RawDoc {
 
 export const PDF_ERR_PASSWORD = 4;
 
+export const PDF_ERR_FORMAT = 3;
+export const PDF_ERR_SECURITY = 5;
+
 export class PdfOpenError extends Error {
   constructor(public code: number) {
-    super(code === PDF_ERR_PASSWORD ? 'This PDF needs a password.' : `PDFium could not open this file (error ${code}).`);
+    super(
+      code === PDF_ERR_PASSWORD
+        ? 'This PDF needs a password.'
+        : code === PDF_ERR_SECURITY
+          ? 'This PDF is locked with digital rights management (DRM) or a certificate. It opens only in the software and account it was issued for, and the key is not in the file. Nib-E cannot open it, and removing such locks is not allowed.'
+          : code === PDF_ERR_FORMAT
+            ? 'This file is damaged or is not really a PDF, so it cannot be opened.'
+            : `PDFium could not open this file (error ${code}).`,
+    );
   }
 }
 

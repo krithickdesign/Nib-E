@@ -2,6 +2,7 @@
 // to pixels (see model.pageMatrix). Text layout here is also used by the PDF
 // writer, so line breaks on screen and in the saved file are the same.
 import { drawInk } from '../ink/stroke';
+import { cssFamily, FONTS, fontDef, hasItalic, isBundled, type StdFont } from '../fonts';
 import {
   contentSize,
   fillTokens,
@@ -23,17 +24,19 @@ import {
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
 // Metric-compatible stacks: Arial = Helvetica, Times New Roman = Times, Courier New = Courier.
-const STACKS: Record<FontFamily, string> = {
+const STACKS: Record<StdFont, string> = {
   sans: 'Arial, Helvetica, "Liberation Sans", Arimo, sans-serif',
   serif: '"Times New Roman", Times, "Liberation Serif", Tinos, serif',
   mono: '"Courier New", Courier, "Liberation Mono", Cousine, monospace',
 };
 
 export function cssFont(font: FontFamily, size: number, bold: boolean, italic: boolean): string {
-  return `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${size}px ${STACKS[font]}`;
+  const def = fontDef(font);
+  const stack = isBundled(def.id) ? `${cssFamily(def.id)}, ${STACKS[def.look]}` : STACKS[def.id as StdFont];
+  return `${italic && hasItalic(def.id) ? 'italic ' : ''}${bold ? 'bold ' : ''}${size}px ${stack}`;
 }
 
-export const FONT_LABEL: Record<FontFamily, string> = { sans: 'Arial / Helvetica', serif: 'Times', mono: 'Courier' };
+export const FONT_LABEL: Record<FontFamily, string> = Object.fromEntries(FONTS.map((f) => [f.id, f.label])) as Record<FontFamily, string>;
 
 let measureCtx: OffscreenCanvasRenderingContext2D | null = null;
 function measurer(): OffscreenCanvasRenderingContext2D {
@@ -109,17 +112,69 @@ function withContent(ctx: Ctx, r: Rect & { rot: Rot }, fn: (cw: number, ch: numb
   ctx.restore();
 }
 
+/** Fonts made from a PDF's own embedded fonts, for previews of replaced lines. */
+const pdfFaces = new Map<string, 'loading' | 'ok' | 'fail'>();
+
+/** Registers an embedded PDF font with the page. Resolves to its CSS family, or null if the browser can't read it. */
+export async function previewFont(data: Uint8Array, name: string): Promise<string | null> {
+  let h = 0;
+  for (let i = 0; i < data.length; i += Math.max(1, Math.floor(data.length / 4096))) h = (h * 31 + data[i]) | 0;
+  const family = `NibPdf ${name.replace(/[^A-Za-z0-9 -]/g, '')} ${(h >>> 0).toString(36)} ${data.length}`;
+  const state = pdfFaces.get(family);
+  if (state === 'ok') return `"${family}"`;
+  if (state === 'fail') return null;
+  if (typeof FontFace === 'undefined') return null;
+  pdfFaces.set(family, 'loading');
+  try {
+    const face = new FontFace(family, data.slice().buffer as ArrayBuffer);
+    await face.load();
+    document.fonts.add(face);
+    pdfFaces.set(family, 'ok');
+    return `"${family}"`;
+  } catch {
+    pdfFaces.set(family, 'fail');
+    return null;
+  }
+}
+
+/** A replaced line still uses its original look (font, size, bold, italic unchanged). */
+export function keepsPdfFont(t: TextItem): boolean {
+  const r = t.replace;
+  if (!r) return false;
+  return t.font === r.font0.font && t.bold === r.font0.bold && t.italic === r.font0.italic;
+}
+
+/** CSS font for a text box (the PDF's own font for an unchanged replaced line, when available). */
+export function textCss(t: TextItem, size: number): string {
+  const css = t.replace?.css;
+  if (css && keepsPdfFont(t) && pdfFaces.get(css.slice(1, -1)) === 'ok') return `${size}px ${css}, ${cssFont(t.font, size, t.bold, t.italic).replace(/^.*?px /, '')}`;
+  return cssFont(t.font, size, t.bold, t.italic);
+}
+
 export function drawText(ctx: Ctx, t: TextItem): void {
   const lay = layoutText(t);
+  if (t.replace) {
+    // Hide the original line until saving removes it for real.
+    const h = t.replace.hide;
+    ctx.fillStyle = t.replace.bg;
+    ctx.fillRect(h.x - 0.6, h.y - 0.6, h.w + 1.2, h.h + 1.2);
+  }
   withContent(ctx, t, (cw, ch) => {
     if (t.cover) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, cw, ch);
     }
-    ctx.font = cssFont(t.font, t.size, t.bold, t.italic);
+    ctx.font = textCss(t, t.size);
     ctx.fillStyle = t.color;
     ctx.textBaseline = 'alphabetic';
-    lay.lines.forEach((line, i) => ctx.fillText(line, lay.padX, lay.base + i * lay.lineH));
+    lay.lines.forEach((line, i) => {
+      let x = lay.padX;
+      if (t.align && t.align !== 'left') {
+        const free = cw - lay.padX * 2 - ctx.measureText(line).width;
+        x += t.align === 'center' ? free / 2 : free;
+      }
+      ctx.fillText(line, x, lay.base + i * lay.lineH);
+    });
   });
 }
 

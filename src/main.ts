@@ -1,3 +1,4 @@
+import { setLanguage } from './i18n';
 import '@fontsource/hanken-grotesk/latin-400.css';
 import '@fontsource/hanken-grotesk/latin-500.css';
 import '@fontsource/hanken-grotesk/latin-600.css';
@@ -23,6 +24,7 @@ import {
 import { afterOpen, discardRecovery, dropRecovery, flush, flushAll, listBooks, pendingRecovery, restoreRecovery, setRecoveryIdle, setRestoreNotice, startAutosave } from './library';
 import { uid, type Template } from './model';
 import { startPdfium } from './pdf/pdfium';
+import { loadScreenFonts } from './fonts';
 import { checkImages } from './pdf/verify';
 import { invoke, isDesktop, listen } from './platform/env';
 import { droppedRefs, hasSaveWindow, pickPdfs, prepareSaving, readPath, setDownloadNotice, type FileRef } from './platform/files';
@@ -33,6 +35,7 @@ import { HelpMenu } from './ui/helpmenu';
 import { APP_NAME, landingUrl } from './config';
 import { MAX_TABS, store, type DocState, type Tool } from './store';
 import { ContextBar } from './ui/contextbar';
+import { copySelection, cutSelection, duplicateSelection, hasClip, pasteClipboard } from './ui/clipboard';
 import { ask } from './ui/dialog';
 import { Dock } from './ui/dock';
 import { helpSeen, openHelp } from './ui/help';
@@ -567,6 +570,20 @@ async function merge(files: File[]): Promise<void> {
 }
 
 function afterOpened(): void {
+  const report = store.doc?.reports[0]?.report;
+  if (report?.xfaDynamic) {
+    void ask({
+      title: 'This is an Adobe XFA form',
+      body: `<p>The form was made in Adobe's XFA format, which many government forms use. Its real pages are built by Adobe software when the file opens. Every other app, Nib-E included, only sees the stand-in page the file carries for them, often a notice to use Adobe Reader.</p><p>Nib-E can't show or fill the real form yet. Ask the sender for a normal PDF version, or fill this one in the free Adobe Reader.</p>`,
+      actions: [{ label: 'OK', value: true, kind: 'primary' }],
+    });
+    return;
+  }
+  if (report?.portfolio) {
+    store.setPanel('attachments');
+    toast('This is a PDF Portfolio: the first page is a cover, the documents are attached. Open them from the list on the right.', 'info', 8000);
+    return;
+  }
   const blocked = (store.doc?.reports ?? []).reduce((n, r) => n + r.report.findings.filter((f) => f.level === 'blocked').length, 0);
   if (blocked) {
     store.setPanel('check');
@@ -841,6 +858,16 @@ function setupKeys(): void {
     } else if (mod && k === '0') {
       e.preventDefault();
       viewer.fit('width');
+    } else if (mod && !e.shiftKey && (k === 'c' || k === 'x') && store.sel && !String(window.getSelection() ?? '')) {
+      e.preventDefault();
+      if (k === 'c') copySelection();
+      else cutSelection();
+    } else if (mod && !e.shiftKey && k === 'v' && hasClip() && store.doc) {
+      e.preventDefault();
+      pasteClipboard();
+    } else if (mod && !e.shiftKey && k === 'd' && store.sel) {
+      e.preventDefault();
+      duplicateSelection();
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && store.sel) {
       e.preventDefault();
       activeViewer().deleteSelection();
@@ -854,10 +881,12 @@ function setupKeys(): void {
       openHelp();
     } else if (!mod && !e.altKey && toolKeys[k]) {
       store.setTool(toolKeys[k]);
-    } else if (!mod && (e.key === 'PageDown' || e.key === 'PageUp' || (store.fullpage && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')))) {
+    } else if (!mod && !e.altKey && store.doc && (e.key === 'PageDown' || e.key === 'PageUp' || ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && (store.fullpage || !viewer.scrollsSideways())))) {
+      // Page turns: Page Down / Up and the arrow keys, which is what page-turn
+      // pedals send. Two-page views turn a whole spread.
       e.preventDefault();
       const dir = e.key === 'PageDown' || e.key === 'ArrowRight' ? 1 : -1;
-      viewer.scrollToPage(Math.max(0, Math.min(store.pages.length - 1, store.current + dir)));
+      viewer.scrollToPage(viewer.turn(store.current, dir));
     }
   });
   // Closing or reloading the browser tab with unsaved files: the browser asks first.
@@ -976,6 +1005,7 @@ async function boot(): Promise<void> {
   // Tell the start-up watchdog in index.html that the app code is running.
   (window as unknown as { __nibStarted: boolean }).__nibStarted = true;
   document.getElementById('nib-not-started')?.remove();
+  setLanguage(store.prefs.lang);
   setupChrome();
   setupMeta();
   setupTabs();
@@ -987,6 +1017,7 @@ async function boot(): Promise<void> {
   new Sidebar($('sidebar'), viewer, withBusy);
   new Dock($('dock'), {
     zoomBy: (f) => activeViewer().zoomBy(f),
+    zoomTo: (z) => viewer.zoomBy(z / Math.max(0.01, store.zoom)),
     fit: (m) => {
       viewer.fit(m);
       if (store.study) notebook.fit('width');
@@ -1017,6 +1048,8 @@ async function boot(): Promise<void> {
   }
   $('boot').hidden = true;
   app.classList.add('ready');
+  // Included fonts for typed text: drawn once they are ready.
+  void loadScreenFonts().then(() => store.emit('items'));
   app.classList.toggle('no-save-window', !hasSaveWindow());
   if (!helpSeen()) openHelp();
   else void offerRecovery();

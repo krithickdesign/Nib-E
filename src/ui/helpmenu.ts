@@ -1,7 +1,7 @@
 // Help menu (top right): tour, shortcuts, what's new, feedback, privacy, about.
 // Feedback is never sent by Nib-E: it opens the project's issue form in the
 // browser (filled in), or copies the text to paste anywhere.
-import { APP_NAME, buildLabel, FORM_URL, PUBLISHER, REPO_URL, updateNote } from '../config';
+import { APP_NAME, buildLabel, EDITION, FORM_URL, PUBLISHER, REPO_URL, updateNote } from '../config';
 import { invoke, isDesktop } from '../platform/env';
 import { VERSION } from '../version';
 import { openHelp } from './help';
@@ -12,7 +12,7 @@ function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
 
-type HelpAction = 'tour' | 'keys' | 'new' | 'feedback' | 'survey' | 'privacy' | 'about';
+type HelpAction = 'tour' | 'keys' | 'new' | 'feedback' | 'survey' | 'rate' | 'privacy' | 'about';
 
 const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
 
@@ -64,21 +64,23 @@ function shortcuts(): void {
 function whatsNew(): void {
   void modal(`<h2>What's new in ${APP_NAME} ${esc(VERSION)}</h2>
     <ul class="help-points compact">
-      <li>${icon('settings')}<span><strong>Toolbox</strong> sorted into Write, Pages, Protect and Convert, with clearer tool names (Content editor, Page manager, PDF redaction…).</span></li>
-      <li>${icon('offline')}<span><strong>Microsoft Store</strong>: install Nib-E without the Windows warning and get updates automatically.</span></li>
-      <li>${icon('book')}<span>Study note backups are now <strong>.nibe</strong> files (older .nib backups still open).</span></li>
-      <li>${icon('help')}<span><strong>Help menu</strong> with feedback, shortcuts and this list. Light / dark switch in Settings.</span></li>
-      <li>${icon('save')}<span>Save writes over the file you opened; earlier version can be restored. Study notes come back with the book.</span></li>
-      <li>${icon('network')}<span>Network: none, on the web and in the desktop app.</span></li>
+      <li>${icon('edit')}<span><strong>Edit existing text</strong>: Content editor → Edit existing text, click a line, type. Font, size, colour and alignment stay the same.</span></li>
+      <li>${icon('certificate')}<span><strong>Digital signatures</strong>: sign with your own certificate (.p12/.pfx) and check the signatures in a PDF.</span></li>
+      <li>${icon('ocr')}<span><strong>Text recognition</strong> makes scanned pages searchable and copyable, on this device.</span></li>
+      <li>${icon('print')}<span><strong>Print check</strong>: fonts, image sharpness, colours and bleed before printing.</span></li>
+      <li>${icon('pageTwo')}<span><strong>Two-page view</strong> with an optional title page: click the zoom number at the bottom. Page Down / Page Up and page-turn pedals turn pages.</span></li>
+      <li>${icon('text')}<span>More fonts, alignment, copy and paste (Ctrl+C / Ctrl+V), duplicate (Ctrl+D). Point at the font or size menu and turn the mouse wheel.</span></li>
+      <li>${icon('settings')}<span><strong>Languages</strong>: English, Deutsch, Español, Français, Português, Italiano (Settings → Language).</span></li>
+      <li>${icon('attach')}<span>Attachments and PDF portfolios; clear messages for Adobe XFA forms and protected files. Linux: fixes a crash at start on some graphics drivers.</span></li>
     </ul>`);
 }
 
 function about(): void {
   void modal(`<div class="about-head"><span class="brand-mark big">${icon('nib')}</span><div><h2>${APP_NAME}</h2><p class="muted mono">${esc(VERSION)} · ${buildLabel(isDesktop())}</p></div></div>
     <p>The all-in-one PDF editor from the Desk-E line, published by ${esc(PUBLISHER)}. Every feature is free, and your files never leave this device.</p>
-    <div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The app has no permission to use the internet.' : 'This page is blocked from connecting anywhere once loaded.'} ${updateNote(isDesktop())}</small></span></div>
+    <div class="net-row">${icon('network')}<span><strong>Network: none</strong><small>${isDesktop() ? 'The app has no permission to use the internet.' : 'This page is blocked from connecting to other websites once loaded. Only Text recognition loads its own files from this site.'} ${updateNote(isDesktop())}</small></span></div>
     <p class="muted small">Nib-E is an independent project, not affiliated with any other PDF software maker. PDF is an open standard (ISO 32000).</p>
-    <p class="muted small">MIT licence. Built on PDFium (the PDF engine inside Chrome) via EmbedPDF, pdf-lib, perfect-freehand and fflate.${REPO_URL && !isDesktop() ? ` Source code: <a href="${esc(REPO_URL)}" target="_blank" rel="noopener noreferrer">${esc(REPO_URL.replace(/^https:\/\//, ''))}</a>` : ''}</p>`);
+    <p class="muted small">MIT licence. Built on PDFium (the PDF engine inside Chrome) via EmbedPDF, pdf-lib, perfect-freehand, fflate, node-forge (certificate signing) and Tesseract (text recognition). Fonts under the SIL Open Font License.${REPO_URL && !isDesktop() ? ` Source code: <a href="${esc(REPO_URL)}" target="_blank" rel="noopener noreferrer">${esc(REPO_URL.replace(/^https:\/\//, ''))}</a>` : ''}</p>`);
 }
 
 // ---------- feedback ----------
@@ -243,6 +245,7 @@ export class HelpMenu {
       `<div class="menu-sep" role="separator"></div>` +
       item('feedback', 'comment', 'Send feedback', 'Report a problem or share an idea') +
       (FORM_URL ? item('survey', 'check', 'Take the survey', 'How you use PDF tools · 5 minutes') : '') +
+      (EDITION === 'store' && isDesktop() ? item('rate', 'star', 'Rate Nib-E', 'In the Microsoft Store · helps others find it') : '') +
       `<div class="menu-sep" role="separator"></div>` +
       item('privacy', 'lock', 'Privacy and safe mode') +
       item('about', 'info', `About ${APP_NAME}`);
@@ -279,6 +282,9 @@ export class HelpMenu {
         break;
       case 'survey':
         openForm();
+        break;
+      case 'rate':
+        void invoke('open_review').catch(() => toast('Could not open the Microsoft Store.', 'error'));
         break;
       case 'privacy':
         openHelp(1);

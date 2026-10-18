@@ -26,11 +26,12 @@ import {
   type StampItem,
   type TextItem,
 } from '../model';
-import { baseName, pageChars } from '../doc';
+import { baseName, lineAt, lineBackground, pageChars } from '../doc';
+import { removalArea } from '../pdf/retype';
 import type { DetectedField } from '../pdf/detect';
 import { lineRects, type PChar } from '../pdf/text';
 import { store, type Tool } from '../store';
-import { cssFont, drawDecor, drawItems, images, layoutText, measure, stampLayout } from './draw';
+import { drawDecor, drawItems, images, layoutText, measure, previewFont, stampLayout, textCss } from './draw';
 import { FormLayer } from './forms';
 import { bitmapKey, cancelRender, PT_TO_PX, requestRender } from './render';
 import { getSignature, placeSignature } from './signature';
@@ -84,6 +85,9 @@ function fitScale(e: PageEntry, scale: number): number {
   return area > MAX_CANVAS_PX ? Math.sqrt(MAX_CANVAS_PX / (e.w * e.h)) : scale;
 }
 
+/** The first-time hint for Edit text was shown. */
+let retypeTold = false;
+
 /** The text box being edited (shared by both viewers and the text toolbar). */
 let editing: (EditState & { viewer: Viewer }) | null = null;
 
@@ -92,7 +96,7 @@ export function editingText(): TextItem | null {
 }
 
 /** Applies font changes from the text toolbar to the box being edited or the selected one. */
-export function applyTextStyle(patch: Partial<Pick<TextItem, 'font' | 'size' | 'bold' | 'italic' | 'color'>>): void {
+export function applyTextStyle(patch: Partial<Pick<TextItem, 'font' | 'size' | 'bold' | 'italic' | 'color' | 'align'>>): void {
   if (editing) {
     editing.viewer.restyleEdit(patch);
     return;
@@ -118,7 +122,12 @@ function fitText(t: TextItem): TextItem {
   const lay = layoutText({ ...t, wrap: false });
   const cw = Math.max(t.size * 2, lay.needW + 2);
   const ch = Math.max(t.size * 1.4, lay.needH);
-  // Grow from the top-left corner of the upright content box.
+  // Grow from the top-left corner of the upright content box; right-aligned
+  // text grows to the left and centred text both ways (upright boxes).
+  if (!t.rot && t.align && t.align !== 'left') {
+    const dx = t.align === 'right' ? t.w - cw : (t.w - cw) / 2;
+    return { ...t, x: t.x + dx, w: cw, h: ch };
+  }
   return t.rot % 2 ? { ...t, w: ch, h: cw } : { ...t, w: cw, h: ch };
 }
 
@@ -150,7 +159,10 @@ export class Viewer {
       else if (why === 'pages' || why === 'items' || why === 'notes') this.sync();
       else if (why === 'decor') this.repaintAll();
       else if (why === 'zoom' && this.isMain()) this.layout();
-      else if (why === 'tool' || why === 'prefs') this.applyTool();
+      else if (why === 'tool' || why === 'prefs') {
+        this.applyTool();
+        if (why === 'prefs' && this.isMain()) this.applySpread();
+      }
       else if (why === 'selection') this.renderSelection();
       else if (why === 'fields') this.renderAllFields();
     });
@@ -171,6 +183,51 @@ export class Viewer {
       if (store.tool !== 'hand' && store.tool !== 'select') e.preventDefault();
     });
     this.applyTool();
+    this.applySpread();
+  }
+
+  private spreadOn = 'single';
+
+  /** Two pages side by side (main viewer only), optionally with the title page alone. */
+  private applySpread(): void {
+    const s = this.isMain() ? store.prefs.spread : 'single';
+    if (s === this.spreadOn) return;
+    this.spreadOn = s;
+    this.pagesEl.classList.toggle('spread', s !== 'single');
+    this.pagesEl.classList.toggle('spread-cover', s === 'cover');
+    const mode = store.fitMode;
+    if (mode) this.fit(mode);
+    requestAnimationFrame(() => this.scrollToPage(store.current, false));
+  }
+
+  /** Pages shown next to each other in a row. */
+  private perRow(): number {
+    return this.spreadOn === 'single' ? 1 : 2;
+  }
+
+  /** First page of the row (spread) that page i is in. */
+  spreadStart(i: number): number {
+    if (this.spreadOn === 'two') return i - (i % 2);
+    if (this.spreadOn === 'cover') return i === 0 ? 0 : i - ((i - 1) % 2);
+    return i;
+  }
+
+  /** The pages are wider than the pane (left/right arrows then scroll instead of turning pages). */
+  scrollsSideways(): boolean {
+    return this.scroller.scrollWidth > this.scroller.clientWidth + 2;
+  }
+
+  /** Index of the next (dir 1) or previous (dir -1) row's first page. */
+  turn(from: number, dir: 1 | -1): number {
+    const n = this.entries().length;
+    if (this.spreadOn === 'single') return Math.max(0, Math.min(n - 1, from + dir));
+    const start = this.spreadStart(from);
+    if (dir > 0) {
+      const next = this.spreadOn === 'cover' && start === 0 ? 1 : start + 2;
+      return next < n ? next : start;
+    }
+    if (start === 0) return 0;
+    return this.spreadStart(start - 1);
   }
 
   private isMain(): boolean {
@@ -323,17 +380,20 @@ export class Viewer {
     const pages = this.entries();
     if (!pages.length) return;
     const cs = getComputedStyle(this.pagesEl);
-    const availW = this.scroller.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+    const n = this.perRow();
+    const gap = n > 1 ? parseFloat(cs.columnGap) || 0 : 0;
+    const availW = (this.scroller.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2 - gap * (n - 1)) / n;
     if (mode === 'page') {
       const p = pages[Math.min(store.current, pages.length - 1)];
       const { w, h } = shownSize(p);
-      const availH = this.scroller.clientHeight - 40;
+      // Room for the page number under each page.
+      const availH = this.scroller.clientHeight - 40 - (n > 1 ? 20 : 0);
       this.setZoom(Math.max(0.2, Math.min(availW / (w * PT_TO_PX), availH / (h * PT_TO_PX))), 'page');
       return;
     }
     const widest = Math.max(...pages.map((p) => shownSize(p).w)) * PT_TO_PX;
     // Fill the width on small screens, but stop at a comfortable reading size on wide ones.
-    this.setZoom(Math.max(0.25, Math.min(1.25, availW / widest)), 'width');
+    this.setZoom(Math.max(0.25, Math.min(n > 1 ? 1.5 : 1.25, availW / widest)), 'width');
   }
 
   // ---------- painting ----------
@@ -568,6 +628,75 @@ export class Viewer {
     ta.setSelectionRange(ta.value.length, ta.value.length);
   }
 
+  /** Edit text: turns the line of PDF text under (x, y) into an editable box that looks the same. */
+  private retypeAt(c: Card, x: number, y: number): void {
+    if (c.entry.src === null) {
+      toast('This page was added in Nib-E and has no text of its own. Use Add text.');
+      return;
+    }
+    let line;
+    try {
+      line = lineAt(c.entry, x, y);
+    } catch (e) {
+      console.warn(e);
+      line = null;
+    }
+    if (!line) {
+      toast(pageChars(c.entry).length ? 'No text right here. Click on a line of text.' : 'This page has no text to edit (it may be a scan or a picture).');
+      return;
+    }
+    if (line.problem) {
+      toast(line.problem, 'info', 6000);
+      return;
+    }
+    const size = line.size;
+    const padX = Math.max(1.5, size * 0.18);
+    const first = line.chars[0];
+    const hide = { x: line.x0, y: line.top, w: line.x1 - line.x0, h: line.bottom - line.top };
+    const item: TextItem = {
+      id: uid('rt'),
+      type: 'text',
+      x: line.x0 - padX,
+      y: line.baseline - size * 1.07,
+      w: line.x1 - line.x0 + padX * 2,
+      h: size * 1.4,
+      rot: 0,
+      text: line.text,
+      font: line.font,
+      size,
+      bold: line.bold,
+      italic: line.italic,
+      color: line.color,
+      valign: 'top',
+      wrap: false,
+      align: line.align,
+      replace: {
+        area: removalArea(line),
+        hide,
+        orig: line.text,
+        glyphs: line.glyphs,
+        pdfFont: line.pdfFont,
+        font0: { font: line.font, size, bold: line.bold, italic: line.italic },
+        probe: [(first.x0 + first.x1) / 2, (first.y0 + first.y1) / 2],
+        bg: lineBackground(c.entry, hide),
+      },
+    };
+    this.startEdit(c, item, true);
+    if (line.fontData) {
+      void previewFont(line.fontData, line.pdfFont).then((css) => {
+        if (!css) return;
+        const patch = (t: TextItem): TextItem => ({ ...t, replace: t.replace ? { ...t.replace, css } : t.replace });
+        if (editing?.item.id === item.id) {
+          editing.item = patch(editing.item);
+          this.placeEditor();
+        } else {
+          const hit = store.findItem(c.key, item.id);
+          if (hit?.type === 'text') store.replaceItem(c.key, patch(hit));
+        }
+      });
+    }
+  }
+
   restyleEdit(patch: Partial<TextItem>): void {
     if (!editing) return;
     editing.item = fitText({ ...editing.item, ...patch });
@@ -586,14 +715,15 @@ export class Viewer {
       top: `${r.y * k}px`,
       width: `${Math.max(r.w, item.size * 2) * k}px`,
       height: `${Math.max(r.h, lay.needH) * k}px`,
-      font: cssFont(item.font, item.size * k, item.bold, item.italic),
+      font: textCss(item, item.size * k),
+      textAlign: item.align ?? 'left',
       lineHeight: `${lay.lineH * k}px`,
       color: item.color,
       paddingLeft: `${lay.padX * k}px`,
       paddingRight: `${lay.padX * k}px`,
       paddingTop: `${Math.max(0, lay.base - lay.lineH / 2 - item.size * 0.36) * k}px`,
       whiteSpace: item.wrap ? 'pre-wrap' : 'pre',
-      background: item.cover ? '#ffffff' : 'transparent',
+      background: item.cover ? '#ffffff' : item.replace ? item.replace.bg : 'transparent',
     });
   }
 
@@ -606,6 +736,27 @@ export class Viewer {
     ed.card.hide.delete(ed.item.id);
     store.setEditing(null);
     const text = ed.item.text.replace(/\s+$/, '');
+    if (commit && ed.item.replace) {
+      // Edited PDF text: an unchanged new line is no edit; an emptied line removes the original.
+      const item = { ...ed.item, text };
+      if (ed.isNew && text === ed.item.replace.orig) {
+        this.paintInk(ed.card, true);
+        store.select(null);
+      } else if (ed.isNew) {
+        store.addItems(ed.card.key, [item]);
+        if (!text.trim()) toast('Line removed. Undo brings it back.', 'ok');
+        else if (!retypeTold) {
+          retypeTold = true;
+          toast("Text changed. Saving removes the old words and writes the new ones in the PDF's own font where it can.", 'ok', 6000);
+        }
+      } else {
+        const old = store.findItem(ed.card.key, item.id);
+        if (JSON.stringify(old) !== JSON.stringify(item)) store.replaceItem(ed.card.key, item);
+        else this.paintInk(ed.card, true);
+      }
+      this.renderFields(ed.card);
+      return;
+    }
     if (commit) {
       const item = { ...ed.item, text };
       if (!text.trim()) {
@@ -726,7 +877,7 @@ export class Viewer {
   }
 
   private onDouble(e: MouseEvent): void {
-    if (store.tool !== 'select' && store.tool !== 'text') return;
+    if (store.tool !== 'select' && store.tool !== 'text' && store.tool !== 'retype') return;
     const c = this.cardAt(e.target);
     if (!c) return;
     const [x, y] = this.pagePoint(c, e);
@@ -850,7 +1001,7 @@ export class Viewer {
       if (this.fingersScroll(e)) return;
     }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
-    if (e.pointerType === 'touch' && (tool === 'hand' || tool === 'select' || tool === 'text')) this.startHold(e);
+    if (e.pointerType === 'touch' && (tool === 'hand' || tool === 'select' || tool === 'text' || tool === 'retype')) this.startHold(e);
     if (this.session) return;
 
     if (tool === 'hand') {
@@ -869,6 +1020,16 @@ export class Viewer {
     }
     const [x, y] = this.pagePoint(c, e);
 
+    if (tool === 'retype') {
+      const hit = this.hitItem(c, x, y);
+      if (hit?.type === 'text') {
+        e.preventDefault();
+        this.startEdit(c, hit, false);
+        return;
+      }
+      this.session = { kind: 'tap', id: e.pointerId, card: c, tool, x, y, cx: e.clientX, cy: e.clientY };
+      return;
+    }
     if (tool === 'select' || tool === 'text') {
       const hit = this.hitItem(c, x, y);
       if (tool === 'text' && hit?.type === 'text') {
@@ -1353,6 +1514,10 @@ export class Viewer {
 
   private async tap(c: Card, tool: Tool, x: number, y: number): Promise<void> {
     const upright = uprightRot(c.entry);
+    if (tool === 'retype') {
+      this.retypeAt(c, x, y);
+      return;
+    }
     if (tool === 'text') {
       const p = store.prefs;
       const item: TextItem = fitText({

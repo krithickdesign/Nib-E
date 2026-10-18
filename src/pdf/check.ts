@@ -18,6 +18,11 @@ export interface CheckReport {
   encrypted: boolean;
   pagesScanned: number;
   pageCount: number;
+  /** Dynamic XFA form: its real pages are drawn by Adobe software; others show a placeholder page. */
+  xfaDynamic: boolean;
+  /** PDF Portfolio: a cover page with the actual files attached. */
+  portfolio: boolean;
+  attachments: number;
 }
 
 const ACTION_REMOTEGOTO = 2;
@@ -28,7 +33,7 @@ const MAX_LINK_PAGES = 400;
 
 /** Counts PDF name tokens in the raw file (like the classic pdfid tool). */
 function keywordCounts(bytes: Uint8Array): Record<string, number> {
-  const keys = ['/JavaScript', '/JS', '/OpenAction', '/AA', '/Launch', '/EmbeddedFile', '/RichMedia', '/SubmitForm', '/ImportData', '/XFA', '/GoToR', '/GoToE'];
+  const keys = ['/JavaScript', '/JS', '/OpenAction', '/AA', '/Launch', '/EmbeddedFile', '/RichMedia', '/SubmitForm', '/ImportData', '/XFA', '/GoToR', '/GoToE', '/Collection'];
   const out: Record<string, number> = Object.fromEntries(keys.map((k) => [k, 0]));
   const chunk = 1 << 20;
   for (let off = 0; off < bytes.length; off += chunk) {
@@ -103,7 +108,7 @@ export function checkDocument(bytes: Uint8Array, password = ''): CheckReport {
       findings.push({ id: 'submit', level: 'blocked', count: kw['/SubmitForm'] + kw['/ImportData'], title: 'Form submission', detail: 'Buttons that send form data to a server. Nib-E never sends anything.' });
     }
     if (attachments || kw['/EmbeddedFile']) {
-      findings.push({ id: 'attachments', level: 'blocked', count: Math.max(attachments, kw['/EmbeddedFile'] ? 1 : 0), title: 'Attached files', detail: 'Files hidden inside this PDF. Nib-E does not open or extract them.' });
+      findings.push({ id: 'attachments', level: 'blocked', count: Math.max(attachments, kw['/EmbeddedFile'] ? 1 : 0), title: 'Attached files', detail: 'Files inside this PDF. Nib-E never opens them by itself. You can open attached PDFs or save a copy from Toolbox → Attachments.' });
     }
     if (kw['/RichMedia']) {
       findings.push({ id: 'media', level: 'blocked', count: kw['/RichMedia'], title: 'Embedded media', detail: 'Video, audio or Flash content. Nib-E does not play it.' });
@@ -117,12 +122,24 @@ export function checkDocument(bytes: Uint8Array, password = ''): CheckReport {
     if (formType === 1) {
       findings.push({ id: 'form', level: 'note', count: 1, title: 'Fillable form', detail: 'Text fields and checkboxes you can fill with the hand tool.' });
     } else if (formType === 2 || formType === 3 || kw['/XFA']) {
-      findings.push({ id: 'xfa', level: 'note', count: 1, title: 'XFA form', detail: 'An older dynamic form type. Nib-E shows it but cannot fill it yet.' });
+      findings.push({
+        id: 'xfa',
+        level: 'note',
+        count: 1,
+        title: 'XFA form',
+        detail:
+          formType === 2
+            ? 'A dynamic Adobe form (XFA). Its real pages are built by Adobe software when it opens; other apps, Nib-E included, see only the page the file carries for them (often a "please open in Adobe Reader" notice). Nib-E cannot show or fill the real form yet.'
+            : 'An Adobe XML form (XFA) with normal fields as well. Nib-E shows the normal pages and fields.',
+      });
+    }
+    if (kw['/Collection']) {
+      findings.push({ id: 'portfolio', level: 'note', count: Math.max(1, attachments), title: 'PDF Portfolio', detail: 'A cover page with the real files attached. Open them from Toolbox → Attachments.' });
     }
     if (signatures) {
-      findings.push({ id: 'signatures', level: 'note', count: signatures, title: 'Digital signatures', detail: 'Nib-E shows signed files but does not verify signatures yet. Saving changes breaks an existing signature.' });
+      findings.push({ id: 'signatures', level: 'note', count: signatures, title: 'Digital signatures', detail: 'Check them in Toolbox → Digital signatures. Saving changes breaks an existing signature.' });
     }
-    return { findings, encrypted: false, pagesScanned, pageCount };
+    return { findings, encrypted: false, pagesScanned, pageCount, xfaDynamic: formType === 2, portfolio: kw['/Collection'] > 0, attachments };
   } finally {
     raw.close();
   }

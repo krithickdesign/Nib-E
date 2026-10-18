@@ -15,6 +15,8 @@ import { COLOR_NAMES, MARKUP_COLORS, NOTE_COLORS, QUICK_TOOLS, SHAPE_COLORS, TEX
 
 export interface DockHost {
   zoomBy(f: number): void;
+  /** Sets the zoom of the document view (1 = 100 %). */
+  zoomTo(z: number): void;
   fit(mode: 'width' | 'page'): void;
   applyRedactions(): void;
 }
@@ -50,7 +52,7 @@ export class Dock {
       <span class="dock-sep dock-zoom-sep" aria-hidden="true"></span>
       <div class="dock-group dock-zoom">
         <button class="icon-btn" type="button" data-act="zout" title="Zoom out (Ctrl −)" aria-label="Zoom out">${icon('minus')}</button>
-        <button class="zoom-label" type="button" data-act="fit" title="Fit to width (Ctrl 0)"></button>
+        <button class="zoom-label" type="button" data-act="view" title="View: zoom, fit, two pages" aria-haspopup="dialog" aria-expanded="false"></button>
         <button class="icon-btn" type="button" data-act="zin" title="Zoom in (Ctrl +)" aria-label="Zoom in">${icon('plus')}</button>
       </div>`;
     this.toolsEl = root.querySelector('.dock-tools')!;
@@ -58,6 +60,32 @@ export class Dock {
     this.undoBtn = root.querySelector('[data-act="undo"]')!;
     this.redoBtn = root.querySelector('[data-act="redo"]')!;
     this.zoomLabel = root.querySelector('.zoom-label')!;
+    // View options float above the dock (the dock itself scrolls sideways on small screens).
+    this.pop = document.createElement('div');
+    this.pop.className = 'view-pop';
+    this.pop.hidden = true;
+    this.pop.setAttribute('role', 'dialog');
+    this.pop.setAttribute('aria-label', 'View');
+    root.parentElement!.append(this.pop);
+    this.pop.addEventListener('input', (e) => {
+      const el = e.target as HTMLInputElement;
+      if (el.id === 'vp-zoom') this.host.zoomTo(Number(el.value) / 100);
+    });
+    this.pop.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('button');
+      if (!b) return;
+      if (b.dataset.fit) this.host.fit(b.dataset.fit as 'width' | 'page');
+      if (b.dataset.spread) store.setPrefs({ spread: b.dataset.spread as 'single' | 'two' | 'cover' });
+      this.renderPop();
+    });
+    document.addEventListener('pointerdown', (e) => {
+      if (this.pop.hidden) return;
+      const t = e.target as HTMLElement;
+      if (!this.pop.contains(t) && !t.closest('.zoom-label')) this.togglePop(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !this.pop.hidden) this.togglePop(false);
+    });
 
     root.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest('button');
@@ -83,8 +111,8 @@ export class Dock {
         case 'zout':
           this.host.zoomBy(1 / 1.2);
           break;
-        case 'fit':
-          this.host.fit(store.fitMode === 'width' ? 'page' : 'width');
+        case 'view':
+          this.togglePop(this.pop.hidden);
           break;
         case 'finger':
           store.setPrefs({ fingerDraws: !store.prefs.fingerDraws });
@@ -123,11 +151,49 @@ export class Dock {
       if (why === 'history' || why === 'doc') this.renderHistory();
       if (why === 'zoom' || why === 'doc') {
         this.zoomLabel.textContent = `${Math.round(store.zoom * 100)}%`;
-        this.zoomLabel.title = store.fitMode === 'width' ? 'Fit whole page' : 'Fit to width (Ctrl 0)';
+        if (!this.pop.hidden) this.renderPop();
       }
+      if (why === 'prefs' && !this.pop.hidden) this.renderPop();
     });
     this.renderTools();
     this.renderHistory();
+  }
+
+  private pop: HTMLDivElement;
+
+  private togglePop(open: boolean): void {
+    this.pop.hidden = !open;
+    this.zoomLabel.setAttribute('aria-expanded', String(open));
+    if (open) {
+      this.renderPop();
+      // The floating layer is scaled with the interface size (CSS zoom): work in screen pixels, then divide.
+      const ui = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1;
+      const r = this.zoomLabel.getBoundingClientRect();
+      const host = this.pop.parentElement!.getBoundingClientRect();
+      const w = this.pop.offsetWidth * ui;
+      const left = Math.max(8, Math.min(host.width - w - 8, r.left + r.width / 2 - host.left - w / 2));
+      this.pop.style.left = `${left / ui}px`;
+      this.pop.style.bottom = `${(host.bottom - r.top + 10) / ui}px`;
+    }
+  }
+
+  private renderPop(): void {
+    const z = Math.round(store.zoom * 100);
+    const sp = store.prefs.spread;
+    const opt = (v: string, ic: string, label: string) => `<button type="button" class="vp-opt" data-spread="${v}" aria-pressed="${sp === v}">${icon(ic)}<span>${label}</span></button>`;
+    const active = document.activeElement as HTMLElement | null;
+    const sliding = active?.id === 'vp-zoom';
+    if (sliding) {
+      (this.pop.querySelector('#vp-zoom-out') as HTMLElement).textContent = `${z}%`;
+      return;
+    }
+    this.pop.innerHTML = `
+      <label class="vp-row"><span>Zoom</span><output id="vp-zoom-out">${z}%</output></label>
+      <input type="range" id="vp-zoom" min="20" max="400" step="5" value="${Math.min(400, Math.max(20, z))}" aria-label="Zoom"/>
+      <div class="vp-fit"><button type="button" class="btn sm" data-fit="width">${icon('fitWidth')}Fit width</button><button type="button" class="btn sm" data-fit="page">${icon('fitPage')}Fit page</button></div>
+      <div class="vp-title">Pages</div>
+      <div class="vp-spread">${opt('single', 'pageSingle', 'One page')}${opt('two', 'pageTwo', 'Two pages')}${opt('cover', 'pageCover', 'Two + title page')}</div>
+      <p class="vp-hint">Page Down / Page Up, arrow keys and page-turn pedals turn ${sp === 'single' ? 'one page' : 'two pages'}.</p>`;
   }
 
   private setPref(prop: string, val: string): void {
@@ -242,6 +308,9 @@ export class Dock {
         break;
       case 'link':
         html = `<span class="dock-hint">Drag a box, then enter a web address</span>`;
+        break;
+      case 'retype':
+        html = `<span class="dock-hint">Click a line of the PDF's text to change it</span>`;
         break;
       case 'redact': {
         const n = pendingRedactions();

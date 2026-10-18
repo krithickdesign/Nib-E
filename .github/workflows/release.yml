@@ -156,6 +156,38 @@ jobs:
           VITE_NIB_REPO: https://github.com/${{ github.repository }}
         run: npm run tauri build -- ${{ matrix.args }}
 
+      # Linux: start the AppImage once on a virtual screen. The release stops if it
+      # crashes before the page has loaded (the app removes its "starting" marker
+      # once the page is up; see linux_gfx in src-tauri/src/lib.rs).
+      - name: Start the Linux app once (stops the release if it crashes)
+        if: matrix.platform == 'ubuntu-22.04'
+        shell: bash
+        run: |
+          sudo apt-get install -y xvfb dbus-x11 > /dev/null
+          f=$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -1)
+          chmod +x "$f"
+          dir="$HOME/.local/share/app.nib.pdfeditor"
+          rm -rf "$dir"
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          timeout 120 xvfb-run -a -s "-screen 0 1400x900x24" dbus-run-session -- "$f" > app.log 2>&1 &
+          pid=$!
+          ok=""
+          for i in $(seq 1 90); do
+            sleep 1
+            if [[ -d "$dir" && ! -e "$dir/starting" ]]; then ok=1; break; fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+          done
+          sleep 5
+          alive=""; kill -0 "$pid" 2>/dev/null && alive=1
+          pkill -f "$(basename "$f")" || true
+          kill "$pid" 2>/dev/null || true
+          cat app.log | tail -40
+          if [[ -z "$ok" || -z "$alive" ]]; then
+            echo "::error::The Linux app did not start (page not loaded, or it crashed). See the log above."
+            exit 1
+          fi
+          echo "Linux app started and kept running."
+
       # Uploaded by this script (not by a third-party action), so every file is
       # checked and a missing upload stops the release.
       - name: Upload the installers to the release

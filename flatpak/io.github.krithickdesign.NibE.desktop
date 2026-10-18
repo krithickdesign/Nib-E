@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Nib-E
+GenericName=PDF Editor
+Comment=The all-in-one PDF editor, every feature free
+Exec=nib %F
+Icon=io.github.krithickdesign.NibE
+Terminal=false
+Categories=Office;Viewer;Graphics;
+MimeType=application/pdf;
+Keywords=PDF;editor;sign;redact;form;annotate;OCR;
+StartupWMClass=nib

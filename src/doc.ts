@@ -10,10 +10,14 @@ import { buildPdf } from './pdf/export';
 import { imagesToPdf, pagesToImages, zip, type PageImage } from './pdf/images';
 import { normaliseImage } from './pdf/raster';
 import { findText, readPageChars, type PChar } from './pdf/text';
-import { engine, openRaw, PDF_ERR_PASSWORD, PdfOpenError, type RawDoc } from './pdf/pdfium';
+import { backgroundAround, findLine, type FoundLine } from './pdf/retype';
+import { engine, free, heap, malloc, openRaw, pdfium, PDF_ERR_PASSWORD, PdfOpenError, type RawDoc } from './pdf/pdfium';
 import { saveFile, type FileRef, type SaveResult } from './platform/files';
 import { readBookData, type BookData } from './pdf/nibdata';
 import { flattenPdf } from './pdf/redact';
+import { checkSignatures, type SignatureReport } from './pdf/signatures';
+import { signPdf, type SignOptions } from './pdf/sign';
+import { ocrPdf, type OcrOptions, type OcrResult } from './pdf/ocr';
 import { MAX_TABS, store, tabState, type DocState } from './store';
 import { images } from './ui/draw';
 
@@ -103,6 +107,90 @@ export function pageChars(p: PageEntry): PChar[] {
     charCache.set(key, c);
   }
   return c;
+}
+
+// ---------- attached files (also PDF Portfolios) ----------
+
+export interface Attachment {
+  index: number;
+  name: string;
+  size: number;
+}
+
+/** Files attached to the open document (Nib-E never opens them by itself). */
+export function listAttachments(state: DocState | null = store.doc): Attachment[] {
+  if (!state) return [];
+  const r = rawFor(state.primary);
+  if (!r) return [];
+  const m = pdfium();
+  const n = Math.max(0, m.FPDFDoc_GetAttachmentCount(r.doc));
+  const out: Attachment[] = [];
+  for (let i = 0; i < Math.min(n, 500); i++) {
+    const a = m.FPDFDoc_GetAttachment(r.doc, i);
+    if (!a) continue;
+    const len = m.FPDFAttachment_GetName(a, 0, 0);
+    let name = `Attachment ${i + 1}`;
+    if (len > 2) {
+      const buf = malloc(len);
+      try {
+        m.FPDFAttachment_GetName(a, buf, len);
+        name = new TextDecoder('utf-16le').decode(heap().slice(buf, buf + len - 2)) || name;
+      } finally {
+        free(buf);
+      }
+    }
+    const sizePtr = malloc(8);
+    let size = 0;
+    try {
+      if (m.FPDFAttachment_GetFile(a, 0, 0, sizePtr)) size = new Uint32Array(heap().buffer, sizePtr, 1)[0];
+    } finally {
+      free(sizePtr);
+    }
+    out.push({ index: i, name, size });
+  }
+  return out;
+}
+
+/** The bytes of one attached file. */
+export function attachmentBytes(index: number, state: DocState | null = store.doc): Uint8Array {
+  if (!state) throw new Error('Open a PDF first.');
+  const r = rawFor(state.primary);
+  if (!r) throw new Error('The file is no longer open.');
+  const m = pdfium();
+  const a = m.FPDFDoc_GetAttachment(r.doc, index);
+  if (!a) throw new Error('This attachment could not be read.');
+  const sizePtr = malloc(8);
+  try {
+    if (!m.FPDFAttachment_GetFile(a, 0, 0, sizePtr)) throw new Error('This attachment is empty or damaged.');
+    const size = new Uint32Array(heap().buffer, sizePtr, 1)[0];
+    const buf = malloc(Math.max(1, size));
+    try {
+      if (!m.FPDFAttachment_GetFile(a, buf, size, sizePtr)) throw new Error('This attachment could not be read.');
+      return heap().slice(buf, buf + size);
+    } finally {
+      free(buf);
+    }
+  } finally {
+    free(sizePtr);
+  }
+}
+
+/** The line of the PDF's own text at (x, y) on a page, with its look (Edit text). */
+export function lineAt(p: PageEntry, x: number, y: number): FoundLine | null {
+  if (p.src === null) return null;
+  const r = rawFor(p.src);
+  return r ? findLine(r.doc, p.index, pageChars(p), x, y) : null;
+}
+
+/** Colour behind an area of a page (white if it can't be worked out). */
+export function lineBackground(p: PageEntry, area: Rect): string {
+  if (p.src === null) return '#ffffff';
+  const r = rawFor(p.src);
+  try {
+    return r ? backgroundAround(r.doc, p.index, `${p.src}:${p.index}`, { ...area, pad: 1.2 }) : '#ffffff';
+  } catch {
+    return '#ffffff';
+  }
 }
 
 /** Frees the engine memory of a closed document. */
@@ -469,4 +557,61 @@ export async function exportImages(opts: { dpi: number; mime: 'image/png' | 'ima
   const files = await pagesToImages(bytes, Array.from({ length: n }, (_, i) => i), opts.dpi, opts.mime, baseName(), onProgress);
   if (files.length === 1) return saveFile(files[0].name, files[0].bytes, opts.mime);
   return saveFile(`${baseName()} (images).zip`, zip(files), 'application/zip');
+}
+
+// ---------- digital signatures ----------
+
+const sigCache = new Map<string, Promise<SignatureReport[]>>();
+
+/** Checks the signatures of the primary file, as it was opened (cached). */
+export function documentSignatures(state: DocState | null = store.doc): Promise<SignatureReport[]> {
+  if (!state) return Promise.resolve([]);
+  const src = state.sources.get(state.primary);
+  if (!src) return Promise.resolve([]);
+  let p = sigCache.get(src.id);
+  if (!p) {
+    p = checkSignatures(src.bytes, passwords.get(src.id) ?? '');
+    sigCache.set(src.id, p);
+  }
+  return p;
+}
+
+/** Signs the document as it is now with a certificate file and saves a signed copy. */
+export async function signAndSave(opts: SignOptions): Promise<{ saved: SaveResult; name: string; bytes: Uint8Array }> {
+  const bytes = await exportPdf({ includeNotes: false });
+  const signed = await signPdf(bytes, opts);
+  const name = outputName('signed');
+  const saved = await saveFile(name, signed);
+  return { saved, name, bytes: signed };
+}
+
+// ---------- text recognition ----------
+
+/** Pages (0-based) that look scanned: little or no text. */
+export function scannedPages(state: DocState | null = store.doc): number[] {
+  if (!state) return [];
+  return state.plan.pages.map((p, i) => [i, pageChars(p).filter((c) => !/\s/.test(c.ch)).length] as const).filter(([, n]) => n <= 20).map(([i]) => i);
+}
+
+/** Recognises text on the chosen pages; the result replaces the open document (unsaved). */
+export async function ocrNow(opts: Omit<OcrOptions, 'pages'> & { pages?: number[] }): Promise<Omit<OcrResult, 'bytes'>> {
+  const state = store.doc;
+  if (!state) throw new Error('Open a PDF first.');
+  const pages = opts.pages ?? state.plan.pages.map((_, i) => i);
+  const bytes = await exportPdf({ includeNotes: false, fillable: false });
+  const result = await ocrPdf(bytes, { ...opts, pages });
+  if (!result.pagesRead) return result;
+  const name = state.name;
+  const loaded = await load(name, result.bytes);
+  const next = newState(name, loaded.source, loaded.report, false);
+  next.plan = { ...next.plan, notes: state.plan.notes };
+  next.saveName = state.saveName;
+  next.file = state.file;
+  next.dirty = true;
+  next.fieldsOn = state.fieldsOn;
+  store.replaceTab(state, next);
+  release(state);
+  void detectSource(next, loaded.source.id);
+  store.emit('dirty');
+  return result;
 }

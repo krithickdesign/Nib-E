@@ -17,6 +17,8 @@ export interface PChar {
   obj: number;
   /** Luminance of the text colour (0 black … 1 white). */
   lum: number;
+  /** Text colour as #rrggbb. */
+  rgb: string;
 }
 
 export interface FontInfo {
@@ -69,11 +71,13 @@ export class PageText {
         if (!(right > left) && code !== 32) continue;
         let faint = false;
         let lum = 0;
+        let rgb = '#000000';
         const obj = m.FPDFText_GetTextObject(this.tp, i);
         if (code > 32) {
           if (m.FPDFText_GetFillColor(this.tp, i, col, col + 4, col + 8, col + 12)) {
             const [cr, cg, cb, ca] = Array.from(new Uint32Array(heap().buffer, col, 4));
             lum = (0.2126 * cr + 0.7152 * cg + 0.0722 * cb) / 255;
+            rgb = `#${[cr, cg, cb].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
             faint = ca < 20 || lum > 0.95;
           }
           if (obj && m.FPDFTextObj_GetTextRenderMode(obj) === 3) faint = true;
@@ -82,6 +86,7 @@ export class PageText {
           faint,
           obj,
           lum,
+          rgb,
           i,
           ch: String.fromCodePoint(code),
           x0: left - this.box.left,
@@ -122,6 +127,48 @@ export class PageText {
     }
     this.fonts.set(c.i, f);
     return f;
+  }
+
+  /** Baseline origin of a character, in page points. */
+  origin(c: PChar): [number, number] | null {
+    const m = pdfium();
+    const p = malloc(16);
+    try {
+      if (!m.FPDFText_GetCharOrigin(this.tp, c.i, p, p + 8)) return null;
+      const [x, y] = new Float64Array(heap().buffer.slice(p, p + 16));
+      return [x - this.box.left, this.box.top - y];
+    } finally {
+      free(p);
+    }
+  }
+
+  /** Angle of a character's baseline (radians, 0 = horizontal). */
+  angle(c: PChar): number {
+    const a = pdfium().FPDFText_GetCharAngle(this.tp, c.i);
+    return a < 0 ? 0 : a;
+  }
+
+  /** The font file embedded for a character, when the PDF has one. */
+  fontData(c: PChar): Uint8Array | null {
+    const m = pdfium();
+    const obj = m.FPDFText_GetTextObject(this.tp, c.i);
+    const font = obj ? m.FPDFTextObj_GetFont(obj) : 0;
+    if (!font || !m.FPDFFont_GetIsEmbedded(font)) return null;
+    const lenPtr = malloc(8);
+    try {
+      if (!m.FPDFFont_GetFontData(font, 0, 0, lenPtr)) return null;
+      const len = new Uint32Array(heap().buffer, lenPtr, 1)[0];
+      if (!len || len > 30_000_000) return null;
+      const buf = malloc(len);
+      try {
+        if (!m.FPDFFont_GetFontData(font, buf, len, lenPtr)) return null;
+        return heap().slice(buf, buf + len);
+      } finally {
+        free(buf);
+      }
+    } finally {
+      free(lenPtr);
+    }
   }
 
   close(): void {
