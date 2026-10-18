@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.6.2
+
+**New**
+- Select and copy the PDF's own text: with the Select tool, drag across text (it turns blue), then Ctrl+C or the Copy button. Double-click picks a word, triple-click a line, Ctrl+A the whole page. Works on scanned pages after Text recognition.
+- Page layout button next to the zoom: one page → two pages → two pages with a title page.
+- Rename changes the file itself: the name at the top renames the file on disk in the desktop app (never replaces another file), and in Chrome / Edge where the browser allows it. Otherwise the new name is used at the next Save as, and Nib-E says so.
+- Form fields:
+  - Clicking a field with the Text, Select or Hand tool (or Checkmark) fills the field. Before, the Text tool put loose text on top of it.
+  - Fields have a faint tint with every tool, so a form is recognisable; drawing tools still draw over them.
+  - Comb fields (one character per box): typing happens in the boxes.
+  - Dropdowns show a ▼; list boxes show their rows to click, several where the field allows it.
+  - Multi-line fields get a multi-line box (Enter adds a line).
+  - Tab goes to the next field.
+  - Reset buttons work (a standard form action, after a confirm).
+  - Forms without default font settings get Helvetica on save, so other apps (Edge, Acrobat) draw the answers correctly.
+
+**Changed**
+- Message after Text recognition explains how to select the text.
+
+## 0.6.1
+
+**Microsoft Store**
+- Icons in every size Windows asks for (up to 256 px): PDF files in File Explorer get their own large icon (a page with the Nib-E badge) instead of a small app icon in the middle of the tile; sharper taskbar, Start and Alt+Tab icons. Made by `scripts/msix/make-icons.py`.
+- The Store package declares all six languages, so the Store lists them.
+
 ## 0.6.0
 
 **New**
@@ -15,10 +40,6 @@
 - Interface languages: German, Spanish, French, Portuguese (Brazil), Italian (Settings → Language; follows the system by default). Some messages are still English.
 - Rate Nib-E in the help menu (Microsoft Store edition).
 - Flathub files (`flatpak/`), Store listing texts for Spanish, French, Portuguese and Italian.
-
-**Microsoft Store**
-- Icons in every size Windows asks for (up to 256 px): PDF files in File Explorer get their own large icon (a page with the Nib-E badge) instead of a small app icon in the middle of the tile; sharper taskbar, Start and Alt+Tab icons. Made by `scripts/msix/make-icons.py`.
-- The Store package declares all six languages, so the Store lists them.
 
 **Changed**
 - Settings, Image to PDF and Study mode work before a PDF is open; other tools are greyed out with "Open a PDF to use this".

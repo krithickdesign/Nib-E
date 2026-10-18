@@ -171,6 +171,7 @@ export type Change =
   | 'history'
   | 'dirty'
   | 'fields'
+  | 'formvalues'
   | 'panel'
   | 'mode'
   | 'editing'

@@ -390,6 +390,77 @@ def make_retype():
     c.save()
 
 
+def make_form_fields():
+    """Real form fields of every common kind, like the GemBox sample a tester sent:
+    text, comb (10 boxes), radio, checkbox, dropdown, multi-select list, multi-line
+    text and a Reset button. Default font settings (/DA, /DR) are removed on purpose:
+    many forms in the wild lack them."""
+    path = FIX / "form-fields.pdf"
+    w, h = LETTER
+    c = canvas.Canvas(str(path), pagesize=LETTER)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, h - 60, "PDF Form Example")
+    c.setFont("Helvetica", 11)
+    c.drawString(50, h - 76, "Fields of every common kind.")
+    f = c.acroForm
+    rows = [("Full name:", 675), ("Name:", 635), ("Gender:", 595), ("Married:", 555), ("City:", 515), ("Language:", 480), ("Notes:", 400)]
+    for label, y in rows:
+        c.drawRightString(195, y + 6, label)
+    f.textfield(name="FullName", x=203, y=675, width=150, height=20, borderWidth=0, fillColor=None, fontSize=12)
+    f.textfield(name="ID", x=203, y=635, width=150, height=20, maxlen=10, fieldFlags="comb", borderColor=INK, fontSize=12)
+    f.radio(name="Gender", value="Male", x=203, y=595, size=20, buttonStyle="circle", selected=False, borderColor=INK, fillColor=None)
+    f.radio(name="Gender", value="Female", x=278, y=595, size=20, buttonStyle="circle", selected=False, borderColor=INK, fillColor=None)
+    c.drawString(228, 601, "Male")
+    c.drawString(303, 601, "Female")
+    f.checkbox(name="Married", x=203, y=555, size=20, buttonStyle="check", borderColor=INK, fillColor=None)
+    f.textfield(name="Notes", x=203, y=332, width=150, height=80, fieldFlags="multiline", fontSize=12, borderWidth=0, fillColor=None)
+    c.setFillColor(HexColor("#bfbfbf"))
+    c.rect(203, 292, 150, 20, fill=1, stroke=0)
+    c.setFillColor(INK)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(278, 298, "Reset")
+    c.showPage()
+    c.save()
+    # The Reset button (a push button with a ResetForm action), and no default font settings.
+    with pikepdf.open(path, allow_overwriting_input=True) as pdf:
+        page = pdf.pages[0]
+        btn = pdf.make_indirect(pikepdf.Dictionary(
+            Type=pikepdf.Name.Annot, Subtype=pikepdf.Name.Widget, FT=pikepdf.Name.Btn, Ff=65536,
+            T=pikepdf.String("ResetButton"), Rect=[203, 292, 353, 312], F=4, P=page.obj,
+            A=pikepdf.Dictionary(S=pikepdf.Name.ResetForm),
+        ))
+        page.obj.Annots.append(btn)
+        af = pdf.Root.AcroForm
+        af.Fields.append(btn)
+        # Dropdown (with typing allowed) and a multi-select list, as in the sample.
+        def choice(name, rect, flags, opts, ap):
+            stream = pikepdf.Stream(pdf, ap)
+            stream.Type = pikepdf.Name.XObject
+            stream.Subtype = pikepdf.Name.Form
+            stream.BBox = [0, 0, rect[2] - rect[0], rect[3] - rect[1]]
+            stream.Resources = pikepdf.Dictionary(Font=pikepdf.Dictionary(Helv=pikepdf.Dictionary(Type=pikepdf.Name.Font, Subtype=pikepdf.Name.Type1, BaseFont=pikepdf.Name.Helvetica)))
+            d = pdf.make_indirect(pikepdf.Dictionary(
+                Type=pikepdf.Name.Annot, Subtype=pikepdf.Name.Widget, FT=pikepdf.Name.Ch, Ff=flags,
+                T=pikepdf.String(name), Rect=rect, F=4, P=page.obj, Opt=[pikepdf.String(o) for o in opts],
+                AP=pikepdf.Dictionary(N=stream),
+            ))
+            page.obj.Annots.append(d)
+            af.Fields.append(d)
+        choice("City", [203, 515, 353, 535], 393216, ["New York", "London", "Berlin", "Paris", "Rome"], b"/Tx BMC q 1 1 148 18 re W n Q EMC")
+        choice("Language", [203, 432, 353, 492], 2097152, ["English", "German", "French", "Italian"], b"/Tx BMC q 1 1 148 58 re W n BT /Helv 12 Tf 0 g 2 47.4 Td (English) Tj 0 -14.28 Td (German) Tj 0 -14.28 Td (French) Tj 0 -14.28 Td (Italian) Tj ET Q EMC")
+        for key in ("/DA", "/DR", "/NeedAppearances"):
+            if key in af:
+                del af[key]
+        def strip(d):
+            if "/DA" in d:
+                del d["/DA"]
+            for k in d.get("/Kids", []):
+                strip(k)
+        for fld in af.Fields:
+            strip(fld)
+        pdf.save(path)
+
+
 if __name__ == "__main__":
     make_sample()
     make_retype()
@@ -399,6 +470,7 @@ if __name__ == "__main__":
     make_report()
     make_photos()
     make_form()
+    make_form_fields()
     make_mixed()
     for p in [SAMPLE, *sorted(FIX.glob("*.pdf"))]:
         print(p.relative_to(ROOT), p.stat().st_size, "bytes")

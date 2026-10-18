@@ -32,7 +32,7 @@ import type { DetectedField } from '../pdf/detect';
 import { lineRects, type PChar } from '../pdf/text';
 import { store, type Tool } from '../store';
 import { drawDecor, drawItems, images, layoutText, measure, previewFont, stampLayout, textCss } from './draw';
-import { FormLayer } from './forms';
+import { FIELD_TOOLS, FormLayer } from './forms';
 import { bitmapKey, cancelRender, PT_TO_PX, requestRender } from './render';
 import { getSignature, placeSignature } from './signature';
 import { spelling } from './spelling';
@@ -67,6 +67,7 @@ type Session =
   | { kind: 'resize'; id: number; card: Card; item: Item; handle: string; start: Rect; x0: number; y0: number }
   | { kind: 'rect'; id: number; card: Card; tool: Tool; x0: number; y0: number; x1: number; y1: number; band: HTMLDivElement }
   | { kind: 'markup'; id: number; card: Card; chars: PChar[]; from: number; to: number; raf: number }
+  | { kind: 'textsel'; id: number; card: Card; chars: PChar[]; from: number; to: number; cx: number; cy: number; moved: boolean; clicks: number }
   | { kind: 'tap'; id: number; card: Card; tool: Tool; x: number; y: number; cx: number; cy: number };
 
 interface EditState {
@@ -74,6 +75,28 @@ interface EditState {
   item: TextItem;
   isNew: boolean;
   ta: HTMLTextAreaElement;
+}
+
+/** Puts text on the clipboard (with a fallback for older web views). */
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch {
+      ok = false;
+    }
+    ta.remove();
+    return ok;
+  }
 }
 
 function dpr(): number {
@@ -142,6 +165,10 @@ export class Viewer {
   private scrollRaf = 0;
   private pinnedUntil = 0;
   private selBox: HTMLDivElement;
+  /** Selected PDF text (Select tool): one page at a time. */
+  private textSel: { card: Card; chars: PChar[]; from: number; to: number } | null = null;
+  private textSelEl: HTMLDivElement | null = null;
+  private lastDown = { t: 0, x: 0, y: 0, n: 0 };
   private notePop: HTMLDivElement | null = null;
 
   constructor(
@@ -165,6 +192,7 @@ export class Viewer {
       }
       else if (why === 'selection') this.renderSelection();
       else if (why === 'fields') this.renderAllFields();
+      else if (why === 'formvalues') for (const c of this.cards.values()) if (c.visible) c.forms?.refresh();
     });
     scroller.addEventListener('scroll', () => this.onScroll(), { passive: true });
     scroller.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
@@ -271,6 +299,7 @@ export class Viewer {
     const target = this.isMain() ? store.current : 0;
     this.finishEdit(false);
     this.closeNote();
+    this.clearTextSelection();
     for (const c of this.cards.values()) this.dropCard(c);
     this.cards.clear();
     this.pagesEl.textContent = '';
@@ -357,6 +386,7 @@ export class Viewer {
     const mode = this.isMain() ? store.fitMode : this.ownFit;
     if (mode) this.fit(mode);
     this.renderSelection();
+    if (this.textSel) this.renderTextSelection();
   }
 
   private size(c: Card): void {
@@ -373,6 +403,7 @@ export class Viewer {
       c.forms?.layout();
     }
     this.renderSelection();
+    this.renderTextSelection();
     if (editing && editing.viewer === this) this.placeEditor();
   }
 
@@ -955,11 +986,12 @@ export class Viewer {
     const scrolls = t === 'hand' || t === 'select' || t === 'text';
     this.pagesEl.style.touchAction = scrolls ? 'pan-x pan-y' : 'none';
     for (const c of this.cards.values()) {
-      c.forms?.setActive(t === 'hand');
+      c.forms?.setActive(FIELD_TOOLS.has(t));
       c.fieldsEl.classList.toggle('active', this.fieldsActive());
       if (c.visible) this.paintInk(c);
     }
     if (t !== 'text' && t !== 'select' && editing?.viewer === this) this.finishEdit(true);
+    if (t !== 'select') this.clearTextSelection();
   }
 
   private cardAt(target: EventTarget | null): Card | null {
@@ -1040,10 +1072,15 @@ export class Viewer {
       if (tool === 'select') {
         if (hit) {
           e.preventDefault();
+          this.clearTextSelection();
           store.select({ key: c.key, id: hit.id });
           this.pagesEl.setPointerCapture(e.pointerId);
           this.session = { kind: 'move', id: e.pointerId, card: c, item: hit, x0: x, y0: y, moved: false };
-        } else store.select(null);
+        } else {
+          store.select(null);
+          // The PDF's own text: drag to select, double-click a word, triple-click a line.
+          if (e.pointerType !== 'touch') this.startTextSelection(c, e, x, y);
+        }
         return;
       }
       // Text tool on empty space: tap to create (a drag scrolls on touch).
@@ -1247,6 +1284,16 @@ export class Viewer {
         if (!s.raf) s.raf = requestAnimationFrame(() => this.drawMarkupPreview());
         return;
       }
+      case 'textsel': {
+        if (!s.moved && Math.hypot(e.clientX - s.cx, e.clientY - s.cy) < 4) return;
+        s.moved = true;
+        if (!s.chars.length) return;
+        const [x, y] = this.pagePoint(s.card, e);
+        s.to = this.nearestChar(s.chars, x, y);
+        this.textSel = { card: s.card, chars: s.chars, from: s.from, to: s.to };
+        this.renderTextSelection(false);
+        return;
+      }
       case 'tap':
         if (Math.hypot(e.clientX - s.cx, e.clientY - s.cy) > 10) this.session = null;
         return;
@@ -1313,6 +1360,18 @@ export class Viewer {
         cancelAnimationFrame(s.raf);
         this.clearLive(s.card);
         if (!cancelled) this.finishMarkup(s);
+        return;
+      case 'textsel':
+        if (cancelled) return;
+        if (!s.chars.length) {
+          if (s.moved) toast(s.card.entry.src === null ? 'This page has no text of its own.' : 'No selectable text on this page. For a scan, use Toolbox → Text recognition first.');
+          return;
+        }
+        if (!s.moved && s.clicks < 2) {
+          this.clearTextSelection();
+          return;
+        }
+        this.renderTextSelection(true);
         return;
       case 'tap':
         if (!cancelled) void this.tap(s.card, s.tool, s.x, s.y);
@@ -1472,6 +1531,152 @@ export class Viewer {
     const item: FieldItem = { id: uid('f'), type: 'field', kind, ...r, name: `${kind === 'check' ? 'Checkbox' : 'Text field'} ${n}` };
     store.addItems(c.key, [item]);
     if (!store.prefs.fillable) store.setPrefs({ fillable: true });
+  }
+
+  // ---------- selecting the PDF's own text ----------
+
+  private startTextSelection(c: Card, e: PointerEvent, x: number, y: number): void {
+    const now = performance.now();
+    const near = now - this.lastDown.t < 450 && Math.hypot(e.clientX - this.lastDown.x, e.clientY - this.lastDown.y) < 6;
+    const clicks = near ? Math.min(3, this.lastDown.n + 1) : 1;
+    this.lastDown = { t: now, x: e.clientX, y: e.clientY, n: clicks };
+    const chars = pageChars(c.entry).filter((ch) => ch.x1 > ch.x0 && ch.y1 > ch.y0);
+    this.session = { kind: 'textsel', id: e.pointerId, card: c, chars, from: 0, to: 0, cx: e.clientX, cy: e.clientY, moved: false, clicks };
+    if (!chars.length) return;
+    e.preventDefault();
+    this.pagesEl.setPointerCapture(e.pointerId);
+    const at = this.nearestChar(chars, x, y);
+    const s = this.session;
+    if (clicks >= 2) {
+      const [a, b] = clicks === 2 ? this.wordAround(chars, at) : this.lineAround(chars, at);
+      s.from = a;
+      s.to = b;
+      this.textSel = { card: c, chars, from: a, to: b };
+      this.renderTextSelection(true);
+      return;
+    }
+    s.from = s.to = at;
+    this.clearTextSelection();
+  }
+
+  private wordAround(chars: PChar[], at: number): [number, number] {
+    const word = (i: number) => i >= 0 && i < chars.length && /[\p{L}\p{N}_@.\-'’]/u.test(chars[i].ch) && this.sameLine(chars[i], chars[at]);
+    let a = at;
+    let b = at;
+    while (word(a - 1) && chars[a].x0 - chars[a - 1].x1 < chars[a].size * 0.25) a--;
+    while (word(b + 1) && chars[b + 1].x0 - chars[b].x1 < chars[b].size * 0.25) b++;
+    return [a, b];
+  }
+
+  private lineAround(chars: PChar[], at: number): [number, number] {
+    let a = at;
+    let b = at;
+    while (a > 0 && this.sameLine(chars[a - 1], chars[at])) a--;
+    while (b < chars.length - 1 && this.sameLine(chars[b + 1], chars[at])) b++;
+    return [a, b];
+  }
+
+  private sameLine(p: PChar, q: PChar): boolean {
+    const h = Math.max(q.y1 - q.y0, 1);
+    return Math.abs((p.y0 + p.y1) / 2 - (q.y0 + q.y1) / 2) < h * 0.5;
+  }
+
+  /** The selected text, with spaces and line breaks where the PDF has them. */
+  selectedText(): string {
+    const t = this.textSel;
+    if (!t) return '';
+    const [a, b] = t.from <= t.to ? [t.from, t.to] : [t.to, t.from];
+    const lo = t.chars[a].i;
+    const hi = t.chars[b].i;
+    const all = pageChars(t.card.entry).filter((c) => c.i >= lo && c.i <= hi);
+    let out = '';
+    let prev: PChar | null = null;
+    for (const c of all) {
+      if (c.ch === '\r' || c.ch === '\n') {
+        if (!out.endsWith('\n')) out += '\n';
+        prev = null;
+        continue;
+      }
+      if (prev && c.x1 > c.x0 && !/\s/.test(c.ch)) {
+        if (!this.sameLine(c, prev)) {
+          if (!out.endsWith('\n')) out += '\n';
+        } else if (c.x0 - prev.x1 > Math.min(prev.size, c.size) * 0.2 && !/\s$/.test(out)) out += ' ';
+      }
+      out += c.ch;
+      if (c.x1 > c.x0 && !/\s/.test(c.ch)) prev = c;
+    }
+    return out.replace(/[ \t]+\n/g, '\n').replace(/[ \t]{2,}/g, ' ').trim();
+  }
+
+  /** Copies the selected PDF text. False when nothing is selected. */
+  copyTextSelection(): boolean {
+    const text = this.selectedText();
+    if (!text) return false;
+    void copyToClipboard(text).then((ok) => toast(ok ? 'Copied.' : 'Could not copy. Select the text and try Ctrl+C again.', ok ? 'ok' : 'error', 1800));
+    return true;
+  }
+
+  hasTextSelection(): boolean {
+    return !!this.textSel;
+  }
+
+  /** Ctrl+A with the Select tool: all text of the current page. */
+  selectAllText(): boolean {
+    const p = this.entries()[this.isMain() ? store.current : 0];
+    const c = p && this.cards.get(p.key);
+    if (!c) return false;
+    const chars = pageChars(c.entry).filter((ch) => ch.x1 > ch.x0 && ch.y1 > ch.y0);
+    if (!chars.length) return false;
+    this.textSel = { card: c, chars, from: 0, to: chars.length - 1 };
+    this.renderTextSelection(true);
+    return true;
+  }
+
+  clearTextSelection(): void {
+    this.textSel = null;
+    this.textSelEl?.remove();
+    this.textSelEl = null;
+  }
+
+  private renderTextSelection(withCopy = !!this.textSelEl?.querySelector('.tsel-copy')): void {
+    const t = this.textSel;
+    if (!t || !this.cards.has(t.card.key)) {
+      this.clearTextSelection();
+      return;
+    }
+    const c = this.cards.get(t.card.key)!;
+    t.card = c;
+    const [a, b] = t.from <= t.to ? [t.from, t.to] : [t.to, t.from];
+    const rects = lineRects(t.chars.slice(a, b + 1));
+    let el = this.textSelEl;
+    if (!el || el.parentElement !== c.paper) {
+      el?.remove();
+      el = document.createElement('div');
+      el.className = 'layer-tsel';
+      c.paper.append(el);
+      this.textSelEl = el;
+    }
+    const k = this.k;
+    let last = { x: 0, y: 0 };
+    el.innerHTML = rects
+      .map((r) => {
+        const q = rectToScreen(c.entry, { x: r.x - 0.5, y: r.y - 0.5, w: r.w + 1, h: r.h + 1 });
+        last = { x: (q.x + q.w) * k, y: (q.y + q.h) * k };
+        return `<span class="tsel-rect" style="left:${q.x * k}px;top:${q.y * k}px;width:${q.w * k}px;height:${q.h * k}px"></span>`;
+      })
+      .join('');
+    if (withCopy && rects.length) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tsel-copy';
+      btn.innerHTML = 'Copy';
+      btn.title = 'Copy (Ctrl+C)';
+      btn.style.left = `${Math.max(0, last.x - 60)}px`;
+      btn.style.top = `${last.y + 6}px`;
+      btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      btn.addEventListener('click', () => this.copyTextSelection());
+      el.append(btn);
+    }
   }
 
   private nearestChar(chars: PChar[], x: number, y: number): number {

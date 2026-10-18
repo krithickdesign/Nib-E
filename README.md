@@ -39,9 +39,10 @@ Fill forms, sign, write and draw, redact, organise pages and study, in your brow
 
 | Area | What it does |
 |---|---|
-| **Tabs** | Several PDFs open at once (up to 8). Double-click the file name to rename. Asks before closing unsaved work; offers unsaved work back after a crash. |
+| **Tabs** | Several PDFs open at once (up to 8). Double-click the file name to rename (renames the file on disk in the desktop app, and in Chrome / Edge where supported). Asks before closing unsaved work; offers unsaved work back after a crash. |
 | **Save** | Save writes over the opened file (desktop app, Chrome, Edge), keeps the earlier version (restorable). Save menu: Save as, Export (with notes, flattened, notes only, images, text), Print. |
-| **Fill forms** | Real form fields, *and* forms without fields: Nib-E finds boxes, lines and tick boxes and asks whether to make them fillable. Text uses the form's font and size; `Tab` jumps to the next box. Works alongside real fields in the same file. |
+| **Fill forms** | Real form fields (text, boxes for single characters, checkboxes, radio buttons, dropdowns, multi-choice lists, multi-line text, Reset buttons; the Text, Select and Hand tools all fill them), *and* forms without fields: Nib-E finds boxes, lines and tick boxes and asks whether to make them fillable. Text uses the form's font and size; `Tab` jumps to the next box. Works alongside real fields in the same file. |
+| **Select text** | Select tool: drag across the PDF's text, Ctrl+C or Copy; double-click a word, triple-click a line, Ctrl+A the page. |
 | **Edit text** | Edit existing text: click a line of the PDF, type the new text. Saving removes the old characters and writes the new line in the PDF's own font (if it has every character) or the closest included font, same size, colour and alignment. |
 | **Sign** | Handwritten: draw once, place anywhere, optionally remembered on this device. Certificate: sign with your own .p12/.pfx (RSA, SHA-256, visible or invisible). |
 | **Check signatures** | Every signature in a PDF checked offline (hash, signature value, certificate chain in the file): Intact / Changed after / Not valid. No trust-list or revocation check. |
@@ -54,7 +55,7 @@ Fill forms, sign, write and draw, redact, organise pages and study, in your brow
 | **Stamps** | Ready-made stamps, your own text, a **stamp designer** (drag-and-drop text, shapes, logo, date), or any PNG. Saved in the browser. |
 | **Redact** | Removes text and erases picture pixels under the marks, optional removal of hidden data, then verifies nothing is left. |
 | **Pages and files** | Insert, rotate, reorder, delete, extract; combine PDFs and images; compress; password (AES-256); export pages as images. |
-| **View** | One page, two pages, or two pages with a title page; zoom slider, fit width / page; Page Down / Up, arrow keys and page-turn pedals. |
+| **View** | One page, two pages, or two pages with a title page (button next to the zoom); zoom slider, fit width / page; Page Down / Up, arrow keys and page-turn pedals. |
 | **Languages** | English, German, Spanish, French, Portuguese (Brazil), Italian (Settings → Language, follows the system by default). |
 | **Comfort** | Interface size 100–200 % (default 150 %; phones 100 %), light/dark theme, full-page reading, keyboard shortcuts, Help tour. Phone layout: bottom tool bar, tools sheet, PDF/Notes tabs, two-finger scroll while writing. |
 

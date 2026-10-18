@@ -21,13 +21,13 @@ import {
   setPasswordAsker,
   TooManyTabs,
 } from './doc';
-import { afterOpen, discardRecovery, dropRecovery, flush, flushAll, listBooks, pendingRecovery, restoreRecovery, setRecoveryIdle, setRestoreNotice, startAutosave } from './library';
+import { afterOpen, discardRecovery, dropRecovery, flush, flushAll, listBooks, pendingRecovery, restoreRecovery, setRecoveryIdle, setRestoreNotice, startAutosave, writeBook } from './library';
 import { uid, type Template } from './model';
 import { startPdfium } from './pdf/pdfium';
 import { loadScreenFonts } from './fonts';
 import { checkImages } from './pdf/verify';
 import { invoke, isDesktop, listen } from './platform/env';
-import { droppedRefs, hasSaveWindow, pickPdfs, prepareSaving, readPath, setDownloadNotice, type FileRef } from './platform/files';
+import { droppedRefs, hasSaveWindow, pickPdfs, prepareSaving, readPath, renameRef, setDownloadNotice, type FileRef } from './platform/files';
 import { exportBackup, exportFlattened, exportNotesOnly, exportText, exportWithNotes, printDoc, restoreBackup, saveDoc, saveDocAs } from './saving';
 import { LibraryView } from './ui/libraryview';
 import { askPrint, saveHint, SaveMenu, type MenuAction } from './ui/savemenu';
@@ -415,10 +415,7 @@ function startRename(doc: DocState | null = store.doc): void {
     const name = cleanName(input.value);
     input.remove();
     el.textContent = doc.name;
-    if (keep && name && name !== doc.name) {
-      store.rename(doc, name);
-      toast(`Renamed. Save uses “${name}”.`, 'ok');
-    }
+    if (keep && name && name !== doc.name) void renameDoc(doc, name);
   };
   input.addEventListener('keydown', (e) => {
     e.stopPropagation();
@@ -426,6 +423,29 @@ function startRename(doc: DocState | null = store.doc): void {
     if (e.key === 'Escape') finish(false);
   });
   input.addEventListener('blur', () => finish(true));
+}
+
+/** Renames the document, and the file on disk when Nib-E opened it from there. */
+async function renameDoc(doc: DocState, name: string): Promise<void> {
+  if (!doc.file) {
+    store.rename(doc, name);
+    toast(`Renamed. Save uses “${name}”.`, 'ok');
+    return;
+  }
+  try {
+    const ref = await renameRef(doc.file, name);
+    store.rename(doc, name);
+    if (!ref) {
+      toast(`Renamed in Nib-E. This browser cannot rename files: use Save as to save it as “${name}”.`, 'info', 7000);
+      return;
+    }
+    doc.file = ref;
+    store.emit('file');
+    if (doc.bookId) void writeBook(doc);
+    toast(`Renamed the file to “${name}”.`, 'ok');
+  } catch (e) {
+    toast((e as Error).message || 'Could not rename the file.', 'error', 7000);
+  }
 }
 
 function renderTabs(): void {
@@ -858,6 +878,13 @@ function setupKeys(): void {
     } else if (mod && k === '0') {
       e.preventDefault();
       viewer.fit('width');
+    } else if (mod && !e.shiftKey && k === 'c' && !store.sel && (viewer.hasTextSelection() || notebook.hasTextSelection())) {
+      // The PDF's own text, selected with the Select tool.
+      e.preventDefault();
+      if (!viewer.copyTextSelection()) notebook.copyTextSelection();
+    } else if (mod && !e.shiftKey && k === 'a' && store.tool === 'select' && store.doc) {
+      e.preventDefault();
+      if (!viewer.selectAllText()) toast('No selectable text on this page.');
     } else if (mod && !e.shiftKey && (k === 'c' || k === 'x') && store.sel && !String(window.getSelection() ?? '')) {
       e.preventDefault();
       if (k === 'c') copySelection();
@@ -872,7 +899,8 @@ function setupKeys(): void {
       e.preventDefault();
       activeViewer().deleteSelection();
     } else if (e.key === 'Escape') {
-      if (store.sel) store.select(null);
+      if (viewer.hasTextSelection()) viewer.clearTextSelection();
+      else if (store.sel) store.select(null);
       else if (store.fullpage) store.setFullpage(false);
     } else if (!mod && !e.altKey && k === 'f') {
       if (store.doc) store.setFullpage(!store.fullpage);

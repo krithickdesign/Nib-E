@@ -70,7 +70,10 @@ Nib-E is free and open source (MIT licence).
 
 **What's new in this version** (≤ 1500 characters; update every release):
 ```
-Version 0.6.0
+Version 0.6.2
+• Select and copy text with the Select tool, also on scans after text recognition.
+• Forms: every field kind works (character boxes, dropdowns, lists, multi-line, Reset); typing on a field always fills it.
+• Rename changes the file itself. Page layout button next to the zoom. Sharper icons.
 • Edit existing text: click a line in the PDF and type. Font, size, colour and alignment stay the same.
 • Digital signatures: sign with your own certificate (.p12/.pfx) and check the signatures in a PDF.
 • Text recognition (OCR) makes scanned pages searchable.
@@ -211,7 +214,10 @@ Nib-E ist kostenlos und Open Source (MIT-Lizenz).
 
 **Neuigkeiten in dieser Version** (≤ 1500 Zeichen; bei jedem Release aktualisieren):
 ```
-Version 0.6.0
+Version 0.6.2
+• Text mit dem Auswahlwerkzeug markieren und kopieren, auch bei Scans nach der Texterkennung.
+• Formulare: alle Feldarten funktionieren (Zeichenkästchen, Auswahllisten, Mehrfachauswahl, mehrzeilig, Zurücksetzen); Tippen auf ein Feld füllt es immer aus.
+• Umbenennen ändert die Datei selbst. Seitenlayout-Knopf neben dem Zoom. Schärfere Symbole.
 • Nib-E gibt es jetzt auf Deutsch (und auf Spanisch, Französisch, Portugiesisch und Italienisch).
 • Vorhandenen Text bearbeiten: Zeile im PDF anklicken und tippen. Schrift, Größe, Farbe und Ausrichtung bleiben gleich.
 • Digitale Signaturen: mit eigenem Zertifikat (.p12/.pfx) signieren und Signaturen prüfen.
@@ -342,7 +348,8 @@ Idiomas: español, inglés, alemán, francés, portugués (Brasil), italiano. Ni
 
 **Novedades de esta versión:**
 ```
-Versión 0.6.0
+Versión 0.6.2
+• Selecciona y copia texto con la herramienta de selección; formularios con todos los tipos de campo; renombrar cambia el archivo.
 • Nib-E ahora está en español (y en alemán, francés, portugués e italiano).
 • Edita el texto existente del PDF con su propia fuente.
 • Firmas digitales: firma con certificado y comprueba firmas.
@@ -423,7 +430,8 @@ Langues : français, anglais, allemand, espagnol, portugais (Brésil), italien. 
 
 **Nouveautés de cette version :**
 ```
-Version 0.6.0
+Version 0.6.2
+• Sélectionnez et copiez le texte avec l'outil de sélection ; formulaires avec tous les types de champs ; renommer change le fichier.
 • Nib-E est maintenant en français (et en allemand, espagnol, portugais et italien).
 • Modifiez le texte existant du PDF dans sa propre police.
 • Signatures numériques : signer avec un certificat, vérifier les signatures.
@@ -504,7 +512,8 @@ Idiomas: português (Brasil), inglês, alemão, espanhol, francês, italiano. O 
 
 **Novidades desta versão:**
 ```
-Versão 0.6.0
+Versão 0.6.2
+• Selecione e copie texto com a ferramenta de seleção; formulários com todos os tipos de campo; renomear altera o arquivo.
 • O Nib-E agora está em português (e em alemão, espanhol, francês e italiano).
 • Edite o texto existente do PDF na própria fonte dele.
 • Assinaturas digitais: assine com certificado e verifique assinaturas.
@@ -585,7 +594,8 @@ Lingue: italiano, inglese, tedesco, spagnolo, francese, portoghese (Brasile). Ni
 
 **Novità di questa versione:**
 ```
-Versione 0.6.0
+Versione 0.6.2
+• Seleziona e copia il testo con lo strumento di selezione; moduli con tutti i tipi di campo; rinominare cambia il file.
 • Nib-E ora è in italiano (e in tedesco, spagnolo, francese e portoghese).
 • Modifica il testo esistente del PDF con il suo carattere.
 • Firme digitali: firma con certificato e verifica le firme.

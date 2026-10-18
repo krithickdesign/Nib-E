@@ -53,6 +53,11 @@
     <category>Office</category>
   </categories>
   <releases>
+    <release version="0.6.2" date="2026-10-18">
+      <description>
+        <p>Select and copy text, all kinds of form fields (character boxes, dropdowns, lists, multi-line, Reset), rename the file from the title, page layout button.</p>
+      </description>
+    </release>
     <release version="0.6.0" date="2026-10-17">
       <description>
         <p>Edit existing text, certificate signing and signature checks, text recognition (OCR), print check, two-page view, more fonts, copy and paste, and five new languages. Linux: fixes a start-up crash on some graphics drivers.</p>

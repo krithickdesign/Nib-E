@@ -64,14 +64,11 @@ function shortcuts(): void {
 function whatsNew(): void {
   void modal(`<h2>What's new in ${APP_NAME} ${esc(VERSION)}</h2>
     <ul class="help-points compact">
-      <li>${icon('edit')}<span><strong>Edit existing text</strong>: Content editor → Edit existing text, click a line, type. Font, size, colour and alignment stay the same.</span></li>
-      <li>${icon('certificate')}<span><strong>Digital signatures</strong>: sign with your own certificate (.p12/.pfx) and check the signatures in a PDF.</span></li>
-      <li>${icon('ocr')}<span><strong>Text recognition</strong> makes scanned pages searchable and copyable, on this device.</span></li>
-      <li>${icon('print')}<span><strong>Print check</strong>: fonts, image sharpness, colours and bleed before printing.</span></li>
-      <li>${icon('pageTwo')}<span><strong>Two-page view</strong> with an optional title page: click the zoom number at the bottom. Page Down / Page Up and page-turn pedals turn pages.</span></li>
-      <li>${icon('text')}<span>More fonts, alignment, copy and paste (Ctrl+C / Ctrl+V), duplicate (Ctrl+D). Point at the font or size menu and turn the mouse wheel.</span></li>
-      <li>${icon('settings')}<span><strong>Languages</strong>: English, Deutsch, Español, Français, Português, Italiano (Settings → Language).</span></li>
-      <li>${icon('attach')}<span>Attachments and PDF portfolios; clear messages for Adobe XFA forms and protected files. Linux: fixes a crash at start on some graphics drivers.</span></li>
+      <li>${icon('select')}<span><strong>Select and copy text</strong>: with the Select tool, drag across the PDF's text, then Ctrl+C. Double-click a word, triple-click a line. Also on scans after Text recognition.</span></li>
+      <li>${icon('form')}<span><strong>Forms</strong>: clicking a field with the Text, Select or Hand tool fills it. Boxes for single characters, dropdowns, lists with several choices, multi-line fields, Tab to the next field, Reset buttons.</span></li>
+      <li>${icon('pageTwo')}<span><strong>Page layout button</strong> next to the zoom: one page, two pages, two pages with a title page.</span></li>
+      <li>${icon('rename')}<span><strong>Rename</strong> (double-click the name at the top) now renames the file itself.</span></li>
+      <li>${icon('edit')}<span>From 0.6: edit existing text, digital signatures, text recognition, print check, more fonts, six languages.</span></li>
     </ul>`);
 }
 

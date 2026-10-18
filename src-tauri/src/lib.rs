@@ -140,6 +140,13 @@ impl Files {
         *self.store.lock().unwrap() = Some(file);
     }
 
+    /// Drops a path that no longer exists (after a rename).
+    fn forget(&self, p: &Path) {
+        let n = normal(p);
+        self.allowed.lock().unwrap().remove(&n);
+        self.recent.lock().unwrap().retain(|x| x != &n && x != p);
+    }
+
     fn check(&self, p: &Path) -> Result<PathBuf, String> {
         let n = normal(p);
         if self.allowed.lock().unwrap().contains(&n) {
@@ -324,6 +331,31 @@ fn write_file(files: State<'_, Files>, request: Request<'_>) -> Result<(), Strin
     Ok(())
 }
 
+/// Renames a file Nib-E opened (the name at the top of the window). Stays in the
+/// same folder; refuses names with folder parts and never replaces another file.
+#[tauri::command]
+fn rename_file(files: State<'_, Files>, path: String, name: String) -> Result<String, String> {
+    let from = files.check(Path::new(&path))?;
+    let bad = name.is_empty()
+        || name.len() > 240
+        || name.starts_with('.')
+        || name.chars().any(|c| matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') || c.is_control());
+    if bad || !is_pdf(Path::new(&name)) {
+        return Err("That name cannot be used for a file.".into());
+    }
+    let dir = from.parent().ok_or("Bad file path")?;
+    let to = dir.join(&name);
+    // Same file (only upper/lower case changes on Windows and macOS) is fine; another file is not.
+    let same = normal(&to) == from;
+    if to.exists() && !same {
+        return Err(format!("A file named “{name}” already exists in that folder."));
+    }
+    fs::rename(&from, &to).map_err(|e| format!("Could not rename the file: {e}"))?;
+    files.forget(&from);
+    files.allow(std::slice::from_ref(&to));
+    Ok(normal(&to).to_string_lossy().into_owned())
+}
+
 /// Files Nib-E was started with (double-click on a PDF, Open with…).
 #[tauri::command]
 fn startup_files(files: State<'_, Files>) -> Vec<String> {
@@ -450,7 +482,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, startup_files, print_page, open_website, open_review, open_form, close_app, new_window])
+        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, rename_file, startup_files, print_page, open_website, open_review, open_form, close_app, new_window])
         .build(tauri::generate_context!())
         .expect("error while starting Nib-E")
         .run(|app, event| {

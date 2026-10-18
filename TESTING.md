@@ -14,6 +14,11 @@ The Help tour (top right, **?**) explains the basics in a minute.
 
 ## Things to try
 
+**New in 0.6.2**
+- [ ] Select tool: drag across text, Ctrl+C, paste somewhere. Double-click a word, triple-click a line.
+- [ ] A real form (from an authority, a bank): fill every field with the Text tool, save, open in Edge or Acrobat.
+- [ ] Double-click the name at the top, rename: is the file renamed in your folder?
+
 **New in 0.6.0**
 - [ ] Content editor → Edit existing text: click a line, change it, save. Does it look the same as the rest of the page in another reader?
 - [ ] Toolbox → Digital signatures: open a signed PDF (from a bank, an authority, a contract tool). Is the result plausible?

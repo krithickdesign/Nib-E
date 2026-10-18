@@ -31,12 +31,19 @@ function choice(prop: string, current: string, opts: { val: string; icon: string
 
 const sep = '<span class="dock-mini-sep" aria-hidden="true"></span>';
 
+const LAYOUTS: { id: 'single' | 'two' | 'cover'; icon: string; label: string }[] = [
+  { id: 'single', icon: 'pageSingle', label: 'One page' },
+  { id: 'two', icon: 'pageTwo', label: 'Two pages' },
+  { id: 'cover', icon: 'pageCover', label: 'Two + title page' },
+];
+
 export class Dock {
   private toolsEl: HTMLElement;
   private optsEl: HTMLElement;
   private undoBtn: HTMLButtonElement;
   private redoBtn: HTMLButtonElement;
   private zoomLabel: HTMLButtonElement;
+  private layoutBtn: HTMLButtonElement;
 
   constructor(root: HTMLElement, private host: DockHost) {
     root.innerHTML = `
@@ -54,12 +61,14 @@ export class Dock {
         <button class="icon-btn" type="button" data-act="zout" title="Zoom out (Ctrl −)" aria-label="Zoom out">${icon('minus')}</button>
         <button class="zoom-label" type="button" data-act="view" title="View: zoom, fit, two pages" aria-haspopup="dialog" aria-expanded="false"></button>
         <button class="icon-btn" type="button" data-act="zin" title="Zoom in (Ctrl +)" aria-label="Zoom in">${icon('plus')}</button>
+        <button class="icon-btn dock-layout" type="button" data-act="layout"></button>
       </div>`;
     this.toolsEl = root.querySelector('.dock-tools')!;
     this.optsEl = root.querySelector('.dock-opts')!;
     this.undoBtn = root.querySelector('[data-act="undo"]')!;
     this.redoBtn = root.querySelector('[data-act="redo"]')!;
     this.zoomLabel = root.querySelector('.zoom-label')!;
+    this.layoutBtn = root.querySelector('.dock-layout')!;
     // View options float above the dock (the dock itself scrolls sideways on small screens).
     this.pop = document.createElement('div');
     this.pop.className = 'view-pop';
@@ -114,6 +123,12 @@ export class Dock {
         case 'view':
           this.togglePop(this.pop.hidden);
           break;
+        case 'layout': {
+          const next = LAYOUTS[(LAYOUTS.findIndex((l) => l.id === store.prefs.spread) + 1) % LAYOUTS.length];
+          store.setPrefs({ spread: next.id });
+          toast(next.label, 'info', 1500);
+          break;
+        }
         case 'finger':
           store.setPrefs({ fingerDraws: !store.prefs.fingerDraws });
           break;
@@ -154,7 +169,9 @@ export class Dock {
         if (!this.pop.hidden) this.renderPop();
       }
       if (why === 'prefs' && !this.pop.hidden) this.renderPop();
+      if (why === 'prefs' || why === 'doc') this.renderLayout();
     });
+    this.renderLayout();
     this.renderTools();
     this.renderHistory();
   }
@@ -214,6 +231,16 @@ export class Dock {
   private renderHistory(): void {
     this.undoBtn.disabled = !store.canUndo;
     this.redoBtn.disabled = !store.canRedo;
+  }
+
+  /** The page layout button next to zoom: shows the current layout, a click switches to the next. */
+  private renderLayout(): void {
+    const i = Math.max(0, LAYOUTS.findIndex((l) => l.id === store.prefs.spread));
+    const cur = LAYOUTS[i];
+    const next = LAYOUTS[(i + 1) % LAYOUTS.length];
+    this.layoutBtn.innerHTML = icon(cur.icon);
+    this.layoutBtn.title = `${cur.label}. Click for ${next.label.toLowerCase()}`;
+    this.layoutBtn.setAttribute('aria-label', `Page layout: ${cur.label}`);
   }
 
   private renderTools(): void {

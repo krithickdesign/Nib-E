@@ -20,7 +20,7 @@ modules:
       - type: file
         dest-filename: nib-e.deb
         # Update url and sha256 for every release (SHA256SUMS.txt in the release lists it).
-        url: https://github.com/krithickdesign/Nib-E/releases/download/v0.6.0/Nib-E_0.6.0_amd64.deb
+        url: https://github.com/krithickdesign/Nib-E/releases/download/v0.6.2/Nib-E_0.6.2_amd64.deb
         sha256: REPLACE_WITH_SHA256_FROM_SHA256SUMS_TXT
         only-arches: [x86_64]
         # Lets the Flathub bot open a pull request for every new GitHub release.

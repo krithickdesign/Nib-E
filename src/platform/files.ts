@@ -21,6 +21,8 @@ export interface FsHandle {
   queryPermission?(o: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
   requestPermission?(o: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
   isSameEntry?(other: FsHandle): Promise<boolean>;
+  /** Chrome / Edge: renames the file in its folder (not in every version). */
+  move?(newName: string): Promise<void>;
 }
 
 interface PickerType {
@@ -171,6 +173,29 @@ export async function writeRef(ref: FileRef, bytes: Uint8Array): Promise<void> {
     await w.abort?.().catch(() => undefined);
     throw e;
   }
+}
+
+/**
+ * Renames the file on disk, in the same folder. Returns the new reference, or
+ * null when this browser cannot rename files (the new name is then used at the
+ * next Save as). Throws with a readable message when renaming failed.
+ */
+export async function renameRef(ref: FileRef, name: string): Promise<FileRef | null> {
+  if (ref.kind === 'path') {
+    const path = await invoke<string>('rename_file', { path: ref.path, name });
+    return { kind: 'path', path };
+  }
+  if (typeof ref.handle.move !== 'function' || inFrame()) return null;
+  if (!(await ensureWritable(ref.handle))) throw new Error('Nib-E was not allowed to rename this file.');
+  try {
+    await ref.handle.move(name);
+  } catch (e) {
+    const n = (e as DOMException)?.name;
+    if (n === 'NotSupportedError' || n === 'TypeError') return null;
+    if (n === 'InvalidModificationError') throw new Error(`A file named “${name}” already exists in that folder.`);
+    throw new Error(`Could not rename the file (${(e as Error)?.message || n}).`);
+  }
+  return ref;
 }
 
 /** Reads the current bytes of a file on disk (for backups and checks). */

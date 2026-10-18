@@ -1027,7 +1027,7 @@ export class ToolPanel {
         };
         store.setPanel('ocr');
         this.render();
-        if (r.pagesRead) toast('Text recognised. You can now select and copy it.', 'ok');
+        if (r.pagesRead) toast('Text recognised. Select it with the Select tool (V) and press Ctrl+C, or highlight it.', 'ok', 6000);
         break;
       }
       case 'print-run': {

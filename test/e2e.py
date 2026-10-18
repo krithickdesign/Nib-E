@@ -1106,7 +1106,7 @@ def main():
         fctx.close()
 
         # ---------- 0.6.0: edit text, fonts, clipboard, two pages, attachments, signatures, print check, OCR, languages ----------
-        vctx = browser.new_context(viewport={"width": 1400, "height": 1000}, device_scale_factor=1, accept_downloads=True, bypass_csp=True)
+        vctx = browser.new_context(viewport={"width": 1400, "height": 1000}, device_scale_factor=1, accept_downloads=True, bypass_csp=True, permissions=["clipboard-read", "clipboard-write"])
         vctx.add_init_script(NO_PICKER)
         v = vctx.new_page()
         v.on("pageerror", lambda e: errors.append(str(e)))
@@ -1213,7 +1213,124 @@ def main():
             with pdfplumber.open(io.BytesIO(out)) as pdf:
                 txt = pdf.pages[0].extract_text() or ""
             check(f"Text recognition makes {fx} searchable", "Heat Transfer" in txt and "furnace" in txt, txt[:80].replace("\n", " | "))
+            if fx == "scan.pdf":
+                # The recognised text can be selected and copied in Nib-E itself.
+                tool(v, "select")
+                bring(v, 0, 0.08)
+                pb = paper(v, 0).bounding_box()
+                v.mouse.move(pb["x"] + 0.1 * pb["width"], pb["y"] + 0.076 * pb["height"])
+                v.mouse.down()
+                v.mouse.move(pb["x"] + 0.7 * pb["width"], pb["y"] + 0.08 * pb["height"], steps=6)
+                v.mouse.up()
+                v.keyboard.press("Control+c")
+                v.wait_for_timeout(300)
+                clip = v.evaluate("navigator.clipboard.readText()")
+                check("...and its text can be selected and copied with the Select tool", "Heat Transfer" in clip, repr(clip[:60]))
             close_tab(v)
+
+        # Selecting the PDF's own text: drag, double-click a word, triple-click a line, Ctrl+A.
+        open_fixture(v, FIX / "retype.pdf")
+        tool(v, "select")
+        bring(v, 0, 0.17)
+        pb = paper(v, 0).bounding_box()
+        X = lambda x: pb["x"] + x / A4W * pb["width"]
+        Y = lambda y: pb["y"] + y / A4H * pb["height"]
+        v.mouse.move(X(58), Y(127))
+        v.mouse.down()
+        v.mouse.move(X(300), Y(146), steps=8)
+        v.mouse.up()
+        check("Select tool: dragging over text marks it and offers Copy", v.locator(".tsel-rect").count() >= 1 and v.locator(".tsel-copy").count() == 1)
+        v.keyboard.press("Control+c")
+        v.wait_for_timeout(300)
+        clip = v.evaluate("navigator.clipboard.readText()")
+        check("...Ctrl+C copies the selected text", clip == "Customer: Hartmann GmbH, Regensburg", repr(clip))
+        v.mouse.click(X(120), Y(145))
+        v.mouse.click(X(120), Y(145))
+        v.locator(".tsel-copy").click()
+        v.wait_for_timeout(300)
+        check("...double-click selects a word", v.evaluate("navigator.clipboard.readText()") == "due")
+        for _ in range(3):
+            v.mouse.click(X(120), Y(145))
+        v.keyboard.press("Control+c")
+        v.wait_for_timeout(300)
+        check("...triple-click selects the line", v.evaluate("navigator.clipboard.readText()") == "Amount due: 1,250.00 EUR")
+        v.keyboard.press("Control+a")
+        v.keyboard.press("Control+c")
+        v.wait_for_timeout(300)
+        check("...Ctrl+A selects the whole page", v.evaluate("navigator.clipboard.readText()").count("\n") >= 6)
+        v.keyboard.press("Escape")
+        check("...Esc clears the selection", v.locator(".tsel-rect").count() == 0 and len(items(v)) == 0)
+        # Page layout button next to zoom.
+        v.evaluate("window.__nib.store.setPrefs({ rightOpen: false })")
+        v.wait_for_timeout(300)
+        v.locator(".dock-layout").click()
+        two = v.evaluate("window.__nib.store.prefs.spread")
+        v.locator(".dock-layout").click()
+        v.locator(".dock-layout").click()
+        check("layout button next to zoom: one page → two pages → title page → one page", two == "two" and v.evaluate("window.__nib.store.prefs.spread") == "single")
+        v.evaluate("window.__nib.store.setPrefs({ rightOpen: true })")
+        close_tab(v)
+
+        # Real form fields of every kind (like the GemBox sample a tester sent).
+        open_fixture(v, FIX / "form-fields.pdf")
+        v.wait_for_timeout(600)
+        fld = lambda t, i=0: v.locator(f'#pages .layer-forms > [title="{t}"]').nth(i)
+        tool(v, "pen")
+        v.wait_for_timeout(200)
+        check("form fields are tinted with every tool (pen here) but let the pen through", v.evaluate("window.__nib.store.tool") == "pen" and v.locator("#pages .layer-forms > .field").count() >= 8 and v.locator("#pages .layer-forms.active").count() == 0)
+        tool(v, "text")
+        fld("FullName").click()
+        check("Text tool on a field fills the field (no loose text)", "field-input" in v.evaluate("document.activeElement.className"))
+        v.keyboard.type("Krithick Naik")
+        v.keyboard.press("Tab")
+        v.wait_for_timeout(900)
+        check("...Tab opens the next field; comb boxes type into their cells", "field-input-comb" in v.evaluate("document.activeElement.className") and v.evaluate("document.activeElement.maxLength") == 10)
+        v.keyboard.type("123456789012")
+        v.keyboard.press("Enter")
+        v.wait_for_timeout(800)
+        fld("Gender", 1).click()
+        v.wait_for_timeout(600)
+        fld("Married").click()
+        v.wait_for_timeout(600)
+        check("dropdown shows a ▼ chip", v.locator('#pages .layer-forms > [title="City"] .field-chip').count() == 1)
+        fld("City").locator("select").select_option(label="Paris")
+        v.wait_for_timeout(700)
+        rows = v.locator('#pages .layer-forms > [title^="Language"] .field-row')
+        check("list box shows its rows", rows.count() == 4)
+        rows.nth(1).click()
+        v.wait_for_timeout(700)
+        v.locator('#pages .layer-forms > [title^="Language"] .field-row').nth(2).click()
+        v.wait_for_timeout(700)
+        fld("Notes").click()
+        check("multi-line field opens a multi-line box", v.evaluate("document.activeElement.tagName") == "TEXTAREA")
+        v.keyboard.type("First line")
+        v.keyboard.press("Enter")
+        v.keyboard.type("Second line")
+        v.mouse.click(1300, 950)
+        v.wait_for_timeout(900)
+        check("no loose text was added on the form", len(items(v)) == 0)
+        out = export(v)
+        (OUT / "form-fields-filled.pdf").write_bytes(out)
+        with pikepdf.open(io.BytesIO(out)) as pdf:
+            af = pdf.Root.AcroForm
+            vals = {str(f.T): f.get("/V") for f in af.Fields}
+            da = str(af.get("/DA", ""))
+            helv = "/DR" in af and "/Helv" in af.DR.Font
+        check("saved: text, comb, radio, checkbox, dropdown, two list choices, two-line notes",
+              str(vals["FullName"]) == "Krithick Naik" and str(vals["ID"]) == "1234567890" and str(vals["Gender"]) == "/Female" and str(vals["Married"]) == "/Yes"
+              and str(vals["City"]) == "Paris" and [str(x) for x in vals["Language"]] == ["German", "French"] and str(vals["Notes"]).replace("\r\n", "\n").replace("\r", "\n") == "First line\nSecond line",
+              str({k: str(x) for k, x in vals.items()}))
+        check("saved: a form without default font settings gets Helvetica (/DA, /DR)", "/Helv" in da and helv, da)
+        txt = subprocess.run(["pdftotext", "-layout", str(OUT / "form-fields-filled.pdf"), "-"], capture_output=True, text=True).stdout
+        check("...another PDF engine (poppler) shows the answers", "Krithick Naik" in txt and "Paris" in txt and "Second line" in txt)
+        fld("Reset the form").click()
+        v.get_by_role("button", name="Reset", exact=True).click()
+        v.wait_for_timeout(1200)
+        out = export(v)
+        with pikepdf.open(io.BytesIO(out)) as pdf:
+            vals = {str(f.T): f.get("/V") for f in pdf.Root.AcroForm.Fields}
+        check("Reset button clears the form (standard action, after a confirm)", not str(vals.get("FullName") or "") and str(vals.get("Married")) == "/Off" and not vals.get("City"), str({k: str(x) for k, x in vals.items()}))
+        close_tab(v)
         vctx.close()
 
         # Interface language follows the system (German) and can be switched in Settings.

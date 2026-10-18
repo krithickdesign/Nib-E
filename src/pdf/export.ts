@@ -5,6 +5,7 @@
 // delete the pages the plan dropped, then move everything into plan order.
 // Rotation, ruling, header/footer, watermark and items are applied last.
 // The documents shown on screen are never modified.
+import { ensureFormDefaults } from './formactions';
 import { decimate, HIGHLIGHT_ALPHA, outline } from '../ink/stroke';
 import {
   contentSize,
@@ -263,6 +264,8 @@ export async function buildPdf(input: ExportInput): Promise<Uint8Array> {
     for (const r of open.reverse()) r.close();
   }
   if (input.fillable && out.length) bytes = await addFillableFields(bytes, out);
+  // Forms without a default font: add one, so other apps can draw the answers.
+  bytes = await ensureFormDefaults(bytes);
   return bytes;
 }
 
