@@ -2101,11 +2101,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nib"
-<<<<<<< HEAD
 version = "0.6.2"
-=======
-version = "0.6.1"
->>>>>>> 46f11a081efddf58ab04eef163416b57e45a7386
 dependencies = [
  "percent-encoding",
  "serde",

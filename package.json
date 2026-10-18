@@ -1,10 +1,6 @@
 {
   "name": "nib",
-<<<<<<< HEAD
   "version": "0.6.2",
-=======
-  "version": "0.6.1",
->>>>>>> 46f11a081efddf58ab04eef163416b57e45a7386
   "description": "Nib-E - the all-in-one PDF editor, every feature free, works offline",
   "scripts": {
     "dev": "vite",
