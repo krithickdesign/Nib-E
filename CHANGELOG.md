@@ -16,6 +16,10 @@
 - Rate Nib-E in the help menu (Microsoft Store edition).
 - Flathub files (`flatpak/`), Store listing texts for Spanish, French, Portuguese and Italian.
 
+**Microsoft Store**
+- Icons in every size Windows asks for (up to 256 px): PDF files in File Explorer get their own large icon (a page with the Nib-E badge) instead of a small app icon in the middle of the tile; sharper taskbar, Start and Alt+Tab icons. Made by `scripts/msix/make-icons.py`.
+- The Store package declares all six languages, so the Store lists them.
+
 **Changed**
 - Settings, Image to PDF and Study mode work before a PDF is open; other tools are greyed out with "Open a PDF to use this".
 - "Signature" in Form filling is now "Handwritten signature", with a pointer to Digital signatures.

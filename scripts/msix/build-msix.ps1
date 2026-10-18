@@ -21,10 +21,11 @@ Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force (Join-Path $stage 'Assets') | Out-Null
 
 Copy-Item $exe (Join-Path $stage 'Nib-E.exe')
-$icons = Join-Path $root 'src-tauri\icons'
-foreach ($f in 'StoreLogo.png', 'Square44x44Logo.png', 'Square150x150Logo.png') {
-  Copy-Item (Join-Path $icons $f) (Join-Path $stage "Assets\$f")
-}
+# Icons in every size Windows asks for (made by scripts/msix/make-icons.py):
+# taskbar and File Explorer sizes up to 256 px, the PDF file icon, Start tiles per display scaling.
+$icons = Join-Path $root 'src-tauri\icons\msix'
+if (-not (Test-Path (Join-Path $icons 'FileLogo.targetsize-256.png'))) { throw "Icons missing: run python3 scripts/msix/make-icons.py and commit src-tauri/icons/msix." }
+Copy-Item (Join-Path $icons '*.png') (Join-Path $stage 'Assets')
 
 # Escape for XML (the publisher name may contain & or quotes).
 function Esc([string]$s) { [System.Security.SecurityElement]::Escape($s) }
@@ -42,10 +43,10 @@ $bin = Get-ChildItem $kits -Directory | Where-Object { Test-Path (Join-Path $_.F
 if (-not $bin) { throw 'Windows SDK (makeappx.exe) not found.' }
 $tools = Join-Path $bin.FullName 'x64'
 
-# Resource index (lets Windows pick the right icon sizes).
+# Resource index (lets Windows pick the right icon size; lists the app's six languages).
 Push-Location $stage
 try {
-  & (Join-Path $tools 'makepri.exe') createconfig /cf priconfig.xml /dq en-US /o | Out-Null
+  & (Join-Path $tools 'makepri.exe') createconfig /cf priconfig.xml /dq en-US_de-DE_es-ES_fr-FR_pt-BR_it-IT /o | Out-Null
   & (Join-Path $tools 'makepri.exe') new /pr . /cf priconfig.xml /mn AppxManifest.xml /of resources.pri /o | Out-Null
   Remove-Item priconfig.xml -ErrorAction SilentlyContinue
 } finally { Pop-Location }

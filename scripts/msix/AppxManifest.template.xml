@@ -17,6 +17,11 @@
   </Dependencies>
   <Resources>
     <Resource Language="en-us" />
+    <Resource Language="de-de" />
+    <Resource Language="es-es" />
+    <Resource Language="fr-fr" />
+    <Resource Language="pt-br" />
+    <Resource Language="it-it" />
   </Resources>
   <Applications>
     <Application Id="NibE" Executable="Nib-E.exe" EntryPoint="Windows.FullTrustApplication">
@@ -30,6 +35,7 @@
         <uap:Extension Category="windows.fileTypeAssociation">
           <uap:FileTypeAssociation Name="pdf">
             <uap:DisplayName>PDF document</uap:DisplayName>
+            <uap:Logo>Assets\FileLogo.png</uap:Logo>
             <uap:SupportedFileTypes>
               <uap:FileType ContentType="application/pdf">.pdf</uap:FileType>
             </uap:SupportedFileTypes>

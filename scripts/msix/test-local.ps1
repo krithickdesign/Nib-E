@@ -27,3 +27,6 @@ Add-AppxPackage -Register $manifest
 Write-Host "Installed $name for testing. Open Nib-E from the Start menu."
 Write-Host 'Check: opens, Settings shows "Microsoft Store edition", no "Get the latest version" button,'
 Write-Host 'a PDF opens with right-click -> Open with -> Nib-E, Save writes over the file.'
+# Windows caches file icons; refresh them so PDFs show the new Nib-E file icon.
+try { & "$env:WINDIR\System32\ie4uinit.exe" -show } catch { }
+Write-Host 'PDF files should show a page with the Nib-E badge in File Explorer (large icons view).'

@@ -54,7 +54,8 @@ run page → **Artifacts** → download `Nib-E-<version>-store-msix` and unzip i
 2. PowerShell in the unzipped folder:
    `powershell -ExecutionPolicy Bypass -File .\test-local.ps1`
 3. Open Nib-E from the Start menu. Check: Settings shows *Microsoft Store edition*,
-   no *Get the latest version* button, a PDF opens with *Open with → Nib-E*, Save works.
+   no *Get the latest version* button, a PDF opens with *Open with → Nib-E*, Save works,
+   PDF files show the large page-with-badge icon in File Explorer (after `ie4uinit.exe -show`).
 4. Remove the test install: `powershell -ExecutionPolicy Bypass -File .\test-local.ps1 -Remove`
 
 ### 6. First submission (you, ~30 min, then 1–3 days review)
@@ -78,6 +79,13 @@ All texts are ready in [store/STORE-LISTING.md](store/STORE-LISTING.md), screens
 3. Partner Center → Nib-E → **Start update** → Packages → replace the file →
    update *What's new* → **Submit**.
 4. After approval, the Store updates everyone's Nib-E by itself.
+
+## Icons and languages (since 0.6.0)
+- Package icons live in `src-tauri/icons/msix/` (72 files, all sizes Windows uses). After changing
+  `src-tauri/icons/icon.png`, run `python3 scripts/msix/make-icons.py` and commit the folder.
+- The package declares en-us, de-de, es-es, fr-fr, pt-br and it-it. Partner Center then expects a Store
+  listing for each of them before you can submit (texts in store/STORE-LISTING.md).
+- Windows caches file icons: after a test install, run `ie4uinit.exe -show` (or sign out and in) to see the new ones.
 
 ## Notes and risks
 - GitHub installers (`.exe`, `.msi`) stay available for people who don't use the Store.
