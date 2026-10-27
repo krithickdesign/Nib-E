@@ -53,8 +53,8 @@ Fill forms, sign, write and draw, redact, organise pages and study, in your brow
 | **Study mode** | PDF beside a notebook; note pages lined, grid or blank. Notes kept on the device as you write and restored (with the last page) when the book is opened again; or written into the book file. Library on the start screen, `.nibe` backup. |
 | **Comments** | Sticky notes, highlight / underline / strike text, shapes, links, header and footer, watermark. |
 | **Stamps** | Ready-made stamps, your own text, a **stamp designer** (drag-and-drop text, shapes, logo, date), or any PNG. Saved in the browser. |
-| **Redact** | Removes text and erases picture pixels under the marks, optional removal of hidden data, then verifies nothing is left. |
-| **Pages and files** | Insert, rotate, reorder, delete, extract; combine PDFs and images; compress; password (AES-256); export pages as images. |
+| **Redact** | Removes text and erases picture pixels under the marks (also the same area on every page), optional removal of hidden data, then verifies nothing is left. Beta: check the saved copy before sharing. |
+| **Pages and files** | Insert, rotate, crop, reorder, delete, extract; combine PDFs and images; compress; password (AES-256); export pages as images. |
 | **View** | One page, two pages, or two pages with a title page (button next to the zoom); zoom slider, fit width / page; Page Down / Up, arrow keys and page-turn pedals. |
 | **Languages** | English, German, Spanish, French, Portuguese (Brazil), Italian (Settings → Language, follows the system by default). |
 | **Comfort** | Interface size 100–200 % (default 150 %; phones 100 %), light/dark theme, full-page reading, keyboard shortcuts, Help tour. Phone layout: bottom tool bar, tools sheet, PDF/Notes tabs, two-finger scroll while writing. |

@@ -23,6 +23,7 @@ export type Tool =
   | 'image'
   | 'link'
   | 'redact'
+  | 'crop'
   | 'field';
 
 export type PanelView =
@@ -249,7 +250,8 @@ class Store {
   /** Open documents, in tab order. */
   tabs: DocState[] = [];
   doc: DocState | null = null;
-  tool: Tool = 'pen';
+  /** Starts on Select: a pen on open made people draw on their PDF by accident. */
+  tool: Tool = 'select';
   prefs: Prefs = loadPrefs();
   zoom = 1;
   fitMode: 'width' | 'page' | null = 'width';
@@ -307,6 +309,7 @@ class Store {
     this.sel = null;
     this.editing = null;
     this.pendingImage = null;
+    this.redactAllPages = false;
     this.emit('doc');
     this.emit('tabs');
   }
@@ -494,6 +497,11 @@ class Store {
     this.commit({ pages: this.pages.map(fn), notes: this.notes.map(fn) });
   }
 
+  /** Several document pages at once (not the notebook), as one undo step. */
+  updateDocPages(fn: (p: PageEntry) => PageEntry): void {
+    this.commit({ pages: this.pages.map(fn) }, 'pages');
+  }
+
   select(sel: Selection | null): void {
     this.sel = sel;
     this.emit('selection');
@@ -543,10 +551,33 @@ class Store {
     this.emit('current');
   }
 
+  /** Redaction: each new mark also goes on every page (same spot). Off by default, and off again for every file. */
+  redactAllPages = false;
+  /** Crop tool: which pages a dragged area applies to. */
+  cropScope: 'page' | 'selected' | 'all' = 'page';
+
+  setRedactAll(on: boolean): void {
+    this.redactAllPages = on;
+    this.emit('tool');
+  }
+
+  setCropScope(s: 'page' | 'selected' | 'all'): void {
+    this.cropScope = s;
+    this.emit('tool');
+  }
+
+  /** Removes the crop from pages (all when `keys` is empty). */
+  uncrop(keys: string[] = []): void {
+    const set = new Set(keys);
+    this.updateDocPages((p) => (p.crop && (!keys.length || set.has(p.key)) ? { ...p, crop: undefined } : p));
+  }
+
   setStudy(on: boolean): void {
     if (this.study === on) return;
     this.study = on;
     this.emit('mode');
+    // Study mode is for writing: it starts with the pen.
+    if (on && (this.tool === 'select' || this.tool === 'hand')) this.setTool('pen');
   }
 
   setFullpage(on: boolean): void {

@@ -344,6 +344,9 @@ export class Dock {
         html = `<span class="dock-hint">Drag over anything to mark it</span>${n ? `<button class="pill danger" type="button" data-act="redactApply">Apply ${n} mark${n > 1 ? 's' : ''}</button>` : ''}`;
         break;
       }
+      case 'crop':
+        html = `<span class="dock-hint">Drag over the part of the page to keep</span>`;
+        break;
       case 'field':
         html = choice('fieldKind', p.fieldKind, [
           { val: 'text', icon: 'text', label: 'Text field' },

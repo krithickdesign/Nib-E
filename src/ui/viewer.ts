@@ -4,6 +4,7 @@
 // links, redaction marks, text markup and selection (move / resize / delete).
 import { drawLive, inkHits, segmentHits, Smoother, type PenFeel } from '../ink/stroke';
 import {
+  contentSize,
   isBoxItem,
   itemBounds,
   moveItem,
@@ -11,9 +12,13 @@ import {
   rectToPage,
   rectToScreen,
   shownSize,
+  sameSpot,
   toPage,
+  totalRot,
   uid,
   uprightRot,
+  visibleShown,
+  visibleSize,
   type FieldItem,
   type InkItem,
   type Item,
@@ -309,6 +314,15 @@ export class Viewer {
     if (target > 0 && target < this.entries().length) this.scrollToPage(target, false);
   }
 
+  /** Scroll position, to come back to it after the document is replaced (redaction). */
+  get scrollPos(): { top: number; left: number } {
+    return { top: this.scroller.scrollTop, left: this.scroller.scrollLeft };
+  }
+
+  restoreScroll(pos: { top: number; left: number }): void {
+    requestAnimationFrame(() => requestAnimationFrame(() => this.scroller.scrollTo({ top: pos.top, left: pos.left })));
+  }
+
   /** Key of the page in view (the one at the upper third of the pane). */
   visibleKey(): string | null {
     const mid = this.scroller.scrollTop + this.scroller.clientHeight / 3;
@@ -368,7 +382,7 @@ export class Viewer {
         c = this.makeCard(entry);
         this.cards.set(entry.key, c);
       }
-      const resized = c.entry.rot !== entry.rot || c.entry.w !== entry.w || c.entry.h !== entry.h;
+      const resized = c.entry.rot !== entry.rot || c.entry.w !== entry.w || c.entry.h !== entry.h || c.entry.crop !== entry.crop;
       c.entry = entry;
       const expected: Element | null = prev ? prev.nextElementSibling : this.pagesEl.firstElementChild;
       if (expected !== c.wrap) {
@@ -391,8 +405,27 @@ export class Viewer {
 
   private size(c: Card): void {
     const { w, h } = shownSize(c.entry);
-    c.paper.style.width = `${w * this.k}px`;
-    c.paper.style.height = `${h * this.k}px`;
+    const k = this.k;
+    c.paper.style.width = `${w * k}px`;
+    c.paper.style.height = `${h * k}px`;
+    // A cropped page shows only its visible part; with the Crop tool the whole page shows, the rest dimmed.
+    const crop = c.entry.crop;
+    const cropping = store.tool === 'crop' && this.isMain();
+    const v = visibleShown(c.entry);
+    const ins = [v.y, w - v.x - v.w, h - v.y - v.h, v.x].map((n) => `${Math.max(0, n) * k}px`);
+    c.paper.classList.toggle('cropped', !!crop && !cropping);
+    c.paper.style.clipPath = crop && !cropping ? `inset(${ins.join(' ')})` : '';
+    c.paper.style.margin = crop && !cropping ? ins.map((x) => `-${x}`).join(' ') : '';
+    let frame = c.paper.querySelector<HTMLElement>(':scope > .crop-frame');
+    if (cropping) {
+      if (!frame) {
+        frame = document.createElement('div');
+        frame.className = 'crop-frame';
+        c.paper.append(frame);
+      }
+      Object.assign(frame.style, { left: `${v.x * k}px`, top: `${v.y * k}px`, width: `${v.w * k}px`, height: `${v.h * k}px` });
+      frame.classList.toggle('none', !crop);
+    } else frame?.remove();
   }
 
   private layout(): void {
@@ -416,13 +449,13 @@ export class Viewer {
     const availW = (this.scroller.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2 - gap * (n - 1)) / n;
     if (mode === 'page') {
       const p = pages[Math.min(store.current, pages.length - 1)];
-      const { w, h } = shownSize(p);
+      const { w, h } = store.tool === 'crop' ? shownSize(p) : visibleSize(p);
       // Room for the page number under each page.
       const availH = this.scroller.clientHeight - 40 - (n > 1 ? 20 : 0);
       this.setZoom(Math.max(0.2, Math.min(availW / (w * PT_TO_PX), availH / (h * PT_TO_PX))), 'page');
       return;
     }
-    const widest = Math.max(...pages.map((p) => shownSize(p).w)) * PT_TO_PX;
+    const widest = Math.max(...pages.map((p) => (store.tool === 'crop' ? shownSize(p) : visibleSize(p)).w)) * PT_TO_PX;
     // Fill the width on small screens, but stop at a comfortable reading size on wide ones.
     this.setZoom(Math.max(0.25, Math.min(n > 1 ? 1.5 : 1.25, availW / widest)), 'width');
   }
@@ -741,11 +774,21 @@ export class Viewer {
     const k = this.k;
     const r = rectToScreen(card.entry, item);
     const lay = layoutText(item);
+    // The box is typed in the direction its text runs on screen: on a turned
+    // page (or for turned text) the editor is turned with it.
+    const turn = (totalRot(card.entry) + item.rot) % 4;
+    const cs = contentSize(item);
+    const w = Math.max(cs.w, item.size * 2) * k;
+    const h = Math.max(cs.h, lay.needH) * k;
+    const cx = (r.x + r.w / 2) * k;
+    const cy = (r.y + r.h / 2) * k;
     Object.assign(ta.style, {
-      left: `${r.x * k}px`,
-      top: `${r.y * k}px`,
-      width: `${Math.max(r.w, item.size * 2) * k}px`,
-      height: `${Math.max(r.h, lay.needH) * k}px`,
+      left: turn ? `${cx - w / 2}px` : `${r.x * k}px`,
+      top: turn ? `${cy - h / 2}px` : `${r.y * k}px`,
+      width: `${w}px`,
+      height: `${h}px`,
+      transform: turn ? `rotate(${turn * 90}deg)` : '',
+      transformOrigin: 'center',
       font: textCss(item, item.size * k),
       textAlign: item.align ?? 'left',
       lineHeight: `${lay.lineH * k}px`,
@@ -980,9 +1023,16 @@ export class Viewer {
 
   // ---------- input ----------
 
+  private cropShown = false;
+
   private applyTool(): void {
     const t = store.tool;
     this.pagesEl.dataset.tool = t;
+    if ((t === 'crop') !== this.cropShown) {
+      this.cropShown = t === 'crop';
+      for (const c of this.cards.values()) this.size(c);
+      this.renderSelection();
+    }
     const scrolls = t === 'hand' || t === 'select' || t === 'text';
     this.pagesEl.style.touchAction = scrolls ? 'pan-x pan-y' : 'none';
     for (const c of this.cards.values()) {
@@ -1110,7 +1160,7 @@ export class Viewer {
       this.session = { kind: 'markup', id: e.pointerId, card: c, chars, from: at, to: at, raf: 0 };
       return;
     }
-    if (tool === 'shape' || tool === 'link' || tool === 'redact' || tool === 'field') {
+    if (tool === 'shape' || tool === 'link' || tool === 'redact' || tool === 'field' || tool === 'crop') {
       const band = document.createElement('div');
       band.className = `band band-${tool}`;
       c.paper.append(band);
@@ -1498,7 +1548,13 @@ export class Viewer {
       return;
     }
     if (s.tool === 'redact') {
-      store.addItems(c.key, [{ id: uid('r'), type: 'redact', ...r }]);
+      if (store.redactAllPages && store.pages.length > 1) {
+        // The same spot on every page (as it is seen on screen), in one undo step.
+        store.updateDocPages((p) => ({ ...p, items: [...p.items, { id: uid('r'), type: 'redact', ...sameSpot(c.entry, r, p) }] }));
+        toast('Marked the same area on all pages.', 'ok');
+      } else store.addItems(c.key, [{ id: uid('r'), type: 'redact', ...r }]);
+    } else if (s.tool === 'crop') {
+      this.applyCrop(c, r);
     } else if (s.tool === 'field') {
       this.addField(c, r);
     } else if (s.tool === 'link') {
@@ -1523,6 +1579,25 @@ export class Viewer {
         store.addItems(c.key, [{ id: uid('l'), type: 'link', ...r, url }]);
       });
     }
+  }
+
+  /** Crop tool: the dragged area becomes the visible part of this page, the chosen pages, or all pages. */
+  private applyCrop(c: Card, r: Rect): void {
+    const min = 36; // half an inch: smaller is almost always a slip
+    if (r.w < min || r.h < min) {
+      toast('That area is very small. Drag over the part of the page you want to keep.');
+      return;
+    }
+    const scope = store.cropScope;
+    const keys = new Set(scope === 'all' ? store.pages.map((p) => p.key) : scope === 'selected' && store.selected.size ? [...store.selected] : [c.key]);
+    keys.add(c.key);
+    const clamp = (p: PageEntry, q: Rect): Rect => {
+      const x = Math.max(0, q.x);
+      const y = Math.max(0, q.y);
+      return { x, y, w: Math.min(p.w, q.x + q.w) - x, h: Math.min(p.h, q.y + q.h) - y };
+    };
+    store.updateDocPages((p) => (keys.has(p.key) ? { ...p, crop: clamp(p, sameSpot(c.entry, r, p)) } : p));
+    toast(keys.size > 1 ? 'Pages cropped. Undo brings the full pages back.' : 'Page cropped. Undo brings the full page back.', 'ok');
   }
 
   private addField(c: Card, r: Rect): void {

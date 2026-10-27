@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nib-E promo: we listened</title>
+    <!--
+      "We listened to your feedback" promo (Reddit / social). Time-driven like
+      store/trailer/trailer.html: render.py calls window.renderAt(seconds) for
+      every frame. Formats: ?f=16x9 (1920x1080), ?f=4x5 (1080x1350), ?f=1x1 (1080x1080).
+      Footage: frames/*.png from the real app (capture.py).
+
+      Each feature: full-screen "You asked for" title (demo dimmed behind it),
+      then the demo with one short caption at a time.
+    -->
+    <style>
+      @font-face { font-family: "Brico"; font-weight: 700; src: url("../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2"); }
+      @font-face { font-family: "Brico"; font-weight: 800; src: url("../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2"); }
+      @font-face { font-family: "Hanken"; font-weight: 500; src: url("../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-500-normal.woff2"); }
+      @font-face { font-family: "Hanken"; font-weight: 600; src: url("../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-600-normal.woff2"); }
+      @font-face { font-family: "Plex"; font-weight: 500; src: url("../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2"); }
+      :root { --ink: #171a26; --muted: #5a6075; --accent: #2f3fd6; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; overflow: hidden; background: #eef0f7; }
+      #stage {
+        position: relative; overflow: hidden;
+        font-family: "Hanken", system-ui, sans-serif; color: var(--ink);
+        background:
+          radial-gradient(1200px 900px at 85% -10%, rgba(47, 63, 214, 0.12), transparent 60%),
+          radial-gradient(900px 700px at -10% 110%, rgba(47, 63, 214, 0.07), transparent 60%),
+          linear-gradient(165deg, #f6f7fc 0%, #e8ebf5 100%);
+      }
+      .layer { position: absolute; inset: 0; }
+      .center { position: absolute; left: 0; right: 0; text-align: center; }
+      .wordmark { font-family: "Brico"; font-weight: 800; letter-spacing: -0.03em; }
+      .display { font-family: "Brico"; font-weight: 800; letter-spacing: -0.025em; line-height: 1.04; }
+      .tagline { font-family: "Brico"; font-weight: 700; letter-spacing: -0.015em; line-height: 1.12; }
+      .sub { color: var(--muted); font-weight: 500; line-height: 1.35; }
+      .kicker { display: inline-flex; align-items: center; gap: 0.6em; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+      .kicker .num { font-family: "Plex"; letter-spacing: 0; background: var(--accent); color: #fff; border-radius: 0.5em; padding: 0.12em 0.5em; }
+      .pill {
+        display: inline-flex; align-items: center; gap: 0.5em; padding: 0.5em 1.05em; border-radius: 999px;
+        background: #fff; border: 1px solid rgba(23, 26, 38, 0.1); font-weight: 600; box-shadow: 0 6px 18px rgba(23, 26, 38, 0.08);
+      }
+      .pill.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .mono { font-family: "Plex"; font-weight: 500; }
+      #card { position: absolute; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 2px 6px rgba(23, 26, 38, 0.08), 0 30px 80px rgba(23, 26, 38, 0.22); }
+      #card canvas { display: block; }
+      .caption {
+        position: absolute; left: 50%; display: flex; align-items: center; gap: 0.6em;
+        background: rgba(23, 26, 38, 0.92); color: #fff; font-weight: 600; white-space: nowrap;
+        padding: 0.62em 1.15em; border-radius: 999px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
+      }
+      .caption .n { font-family: "Plex"; font-size: 0.8em; background: var(--accent); border-radius: 50%; width: 1.65em; height: 1.65em; display: grid; place-items: center; }
+      .quote { display: inline-block; font-weight: 600; color: var(--muted); font-style: italic; }
+      .tile {
+        display: flex; align-items: center; gap: 0.7em; background: #fff; border-radius: 0.7em; padding: 0.8em 1em;
+        border: 1px solid rgba(23, 26, 38, 0.08); box-shadow: 0 10px 30px rgba(23, 26, 38, 0.1); font-weight: 600; text-align: left;
+      }
+      .tile .ic { flex: none; width: 1.9em; height: 1.9em; border-radius: 0.5em; background: rgba(47, 63, 214, 0.1); color: var(--accent); display: grid; place-items: center; }
+      .tile small { display: block; color: var(--muted); font-weight: 500; font-size: 0.72em; margin-top: 0.15em; }
+      .brandtop { position: absolute; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script>
+      // ---------------- format ----------------
+      const Q = new URLSearchParams(location.search);
+      const FMT = Q.get('f') || '16x9';
+      const F = {
+        '16x9': { W: 1920, H: 1080, card: [200, 70, 1520, 940], title: 96, sub: 34, kick: 26, cap: 30, brand: 120, big: 118, tile: 30, cols: 3, top: null },
+        '4x5': { W: 1080, H: 1350, card: [36, 150, 1008, 1150], title: 84, sub: 32, kick: 24, cap: 30, brand: 110, big: 96, tile: 28, cols: 2, top: 72 },
+        '1x1': { W: 1080, H: 1080, card: [36, 120, 1008, 924], title: 80, sub: 30, kick: 22, cap: 28, brand: 100, big: 88, tile: 26, cols: 2, top: 58 },
+      }[FMT];
+      const stage = document.getElementById('stage');
+      stage.style.width = F.W + 'px';
+      stage.style.height = F.H + 'px';
+      const vertical = FMT !== '16x9';
+
+      // ---------------- helpers ----------------
+      const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+      const lerp = (a, b, u) => a + (b - a) * u;
+      const seg = (t, a, b) => clamp((t - a) / (b - a));
+      const eo = (u) => 1 - Math.pow(1 - u, 3);
+      const eio = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+      const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
+      const win = (t, a, b, i = 0.4, o = 0.35) => eo(seg(t, a, a + i)) * (1 - eio(seg(t, b - o, b)));
+      const pad = (r, p, py = p) => [r[0] - p, r[1] - py, r[2] + 2 * p, r[3] + 2 * py];
+      const IMG = { W: 3200, H: 2000 };
+      const FULL = [0, 0, 3200, 2000];
+      const NIB = (s) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path d="M12 21.5 5.5 12 8 4.5h8l2.5 7.5z" fill="#2f3fd6"/><path d="M12 21.5V13" stroke="#fff" stroke-width="1.4"/><circle cx="12" cy="11.6" r="1.6" fill="#fff"/></svg>`;
+      const ICON = {
+        print: '<path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"/>',
+        rename: '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3zM14 8l3 3"/>',
+        font: '<path d="M4 20 10 4h1l6 16M6.5 14h8"/><path d="M17 20v-6a2.5 2.5 0 0 1 5 0v6M17 17h5"/>',
+        globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+        linux: '<path d="M12 3a4 4 0 0 0-4 4v3c0 2-3 4-3 8h14c0-4-3-6-3-8V7a4 4 0 0 0-4-4z"/><path d="M10 8h.01M14 8h.01"/>',
+        win: '<path d="M3 5.5 10.5 4.5v7H3zM12.5 4.2 21 3v8.5h-8.5zM3 13h7.5v7L3 19zM12.5 13H21v8l-8.5-1.2z"/>',
+        copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+        pages: '<rect x="3" y="5" width="8" height="14" rx="1"/><rect x="13" y="5" width="8" height="14" rx="1"/>',
+      };
+      const ic = (k, s) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+
+      // ---------------- assets ----------------
+      const names = ['edit0', 'edit1', 'edit3', 'ocr0', 'ocr1', 'sel1', 'sel2', 'sel3', 'sel4', 'sel_done', 'sel_copied',
+        'form0', 'form1', 'form2_0', 'form2_1', 'form2_2', 'form2_3', 'form3', 'form4', 'form4b', 'form5', 'form6', 'form7',
+        'lay0', 'lay1', 'lay2', 'sig0', 'sig1', 'sig2'];
+      const imgs = {};
+      let M = null;
+      window.ready = (async () => {
+        M = await (await fetch('frames/meta.json')).json();
+        await Promise.all(names.map((n) => new Promise((res, rej) => { const im = new Image(); im.onload = () => { imgs[n] = im; res(); }; im.onerror = rej; im.src = `frames/${n}.png`; })));
+        for (const f of ['800 40px Brico', '700 40px Brico', '600 20px Hanken', '500 20px Hanken', '500 20px Plex']) await document.fonts.load(f);
+        build();
+        return true;
+      })();
+
+      // ---------------- timeline ----------------
+      const SC = [
+        ['hook', 4.6],
+        ['edit', 6.6],
+        ['select', 8.2],
+        ['forms', 11.6],
+        ['layout', 5.6],
+        ['sigs', 6.6],
+        ['more', 5.6],
+        ['outro', 5.2],
+      ];
+      let acc = 0;
+      const T0 = {};
+      for (const [n, d] of SC) { T0[n] = acc; acc += d; }
+      window.DURATION = acc;
+      const TITLE_END = 1.7;
+      const FEATURES = ['edit', 'select', 'forms', 'layout', 'sigs'];
+
+      const TITLES = {
+        edit: ['Edit the PDF’s own text', 'Not just add text on top.'],
+        select: ['Select & copy text', 'Even from scanned pages.'],
+        forms: ['Forms that just work', 'Number boxes, dropdowns, lists, multi-line.'],
+        layout: ['Two-page view, easy to find', 'Right next to the zoom.'],
+        sigs: ['Digital signatures', 'Check them, or sign with your certificate.'],
+      };
+
+      // Each feature scene, in local seconds (0 = scene start; demo starts at TITLE_END).
+      // shots: [t, frame, fade]; cam: [t, rect]; cur: [t, x, y]; caps: [a, b, text, 'top'?]; rings: [a, b, rect]
+      let SCENES = null;
+      let MENU = null;
+      function scenes() {
+        const e = M.edit_rect;
+        const selR = [M.sel_from[0] - 90, M.sel_from[1] - 42, 1300, 480];
+        const cr = M.f_city_rect;
+        MENU = { x: cr[0], y: cr[1] + cr[3] + 4, w: cr[2], h: 62, items: M.f_city_opts || [], row: (i) => cr[1] + cr[3] + 4 + 6 + (i + 0.5) * 62 };
+        const formTop = [950, 330, 1500, 820];
+        const formMid = [950, 760, 1500, 800];
+        const formLow = [950, 1050, 1500, 820];
+        return {
+          edit: {
+            shots: [[0, 'edit0', 0.6], [3.0, 'edit1', 0.2], [4.3, 'edit3', 0.35]],
+            cam: [[TITLE_END, [300, 120, 2600, 1500]], [2.9, pad(e, 60, 40)]],
+            cur: [[1.8, M.edit_line[0] + 500, M.edit_line[1] + 500], [2.85, M.edit_line[0], M.edit_line[1]], [3.6, M.edit_line[0], M.edit_line[1]], [4.2, M.edit_line[0] + 260, M.edit_line[1] + 160]],
+            clicks: [2.95],
+            caps: [[2.0, 4.15, 'Click any line of the PDF'], [4.25, 6.6, 'Retype it: saved in the PDF’s own font']],
+            rings: [[4.4, 6.4, [e[0] + 50, e[1] + 85, 520, 70]]],
+          },
+          select: {
+            shots: [[0, 'ocr0', 0.6], [3.15, 'ocr1', 0.3], [4.3, 'sel1', 0.25], [4.75, 'sel2', 0.12], [5.1, 'sel3', 0.12], [5.45, 'sel4', 0.12], [5.8, 'sel_done', 0.15], [6.9, 'sel_copied', 0.15]],
+            cam: [[TITLE_END, [700, 150, 2500, 1350]], [4.3, selR]],
+            cur: [[1.8, M.ocr_run[0] - 500, M.ocr_run[1] + 400], [2.7, M.ocr_run[0], M.ocr_run[1]], [3.4, M.ocr_run[0], M.ocr_run[1]], [4.1, M.sel_from[0], M.sel_from[1]], [5.75, M.sel_to[0], M.sel_to[1]], [6.6, M.sel_copy[0], M.sel_copy[1]], [7.4, M.sel_copy[0], M.sel_copy[1]], [8.2, M.sel_copy[0] + 200, M.sel_copy[1] + 150]],
+            clicks: [2.8, 6.75],
+            press: [4.2, 5.8],
+            caps: [[2.0, 4.0, 'Text recognition finds the words'], [4.1, 6.6, 'Drag to select, like in any reader'], [6.65, 8.2, 'Copy. Done.']],
+          },
+          forms: {
+            shots: [[0, 'form0', 0.6], [2.45, 'form1', 0.2], [3.0, 'form2_0', 0.15], [3.4, 'form2_1', 0.15], [3.8, 'form2_2', 0.15],
+              [4.6, 'form2_3', 0.15], [5.2, 'form3', 0.15], [7.15, 'form4', 0.2], [7.85, 'form4b', 0.15], [8.4, 'form5', 0.15], [9.45, 'form6', 0.25], [10.6, 'form7', 0.3]],
+            cam: [[TITLE_END, formTop], [5.25, formTop], [6.05, formMid], [8.45, formMid], [9.25, formLow]],
+            cur: [[1.8, M.f_name[0] + 380, M.f_name[1] + 260], [2.3, M.f_name[0], M.f_name[1]], [2.55, M.f_name[0], M.f_name[1]],
+              [3.0, M.f_id[0] + 330, M.f_id[1] + 60], [4.0, M.f_id[0] + 330, M.f_id[1] + 60],
+              [4.5, M.f_female[0], M.f_female[1]], [4.65, M.f_female[0], M.f_female[1]],
+              [5.05, M.f_married[0], M.f_married[1]], [5.25, M.f_married[0], M.f_married[1]],
+              [6.05, M.f_city[0] + 222, M.f_city[1]], [6.3, M.f_city[0] + 222, M.f_city[1]],
+              [6.95, MENU.x + 150, MENU.row(3)], [7.15, MENU.x + 150, MENU.row(3)],
+              [7.7, M.f_lang_rows[1][0] - 80, M.f_lang_rows[1][1]], [7.9, M.f_lang_rows[1][0] - 80, M.f_lang_rows[1][1]],
+              [8.25, M.f_lang_rows[2][0] - 80, M.f_lang_rows[2][1]], [8.45, M.f_lang_rows[2][0] - 80, M.f_lang_rows[2][1]],
+              [9.3, M.f_notes[0], M.f_notes[1]], [9.55, M.f_notes[0], M.f_notes[1]], [10.2, M.f_notes[0] + 330, M.f_notes[1] + 90], [11.6, M.f_notes[0] + 330, M.f_notes[1] + 90]],
+            clicks: [2.35, 4.55, 5.1, 6.15, 7.05, 7.75, 8.3, 9.35],
+            caps: [[2.0, 2.95, 'Click a field, type'], [3.0, 4.45, 'Number boxes: one digit per box'], [4.5, 5.75, 'Radio buttons and checkboxes'], [5.8, 8.9, 'Dropdowns and list boxes'], [8.95, 11.6, 'Multi-line notes · Tab to the next field']],
+            rings: [[3.0, 4.3, pad(M.f_id_rect, 14)], [7.55, 8.85, pad(M.f_lang_rect, 14)], [9.5, 11.2, pad(M.f_notes_rect, 14)]],
+            menu: { open: 6.2, close: 7.12 },
+          },
+          layout: {
+            shots: [[0, 'lay0', 0.6], [3.0, 'lay1', 0.4], [4.4, 'lay2', 0.4]],
+            cam: [[TITLE_END, [1000, 1250, 1900, 750]], [3.4, FULL]],
+            cur: [[1.8, M.lay_btn[0] - 500, M.lay_btn[1] - 300], [2.6, M.lay_btn[0], M.lay_btn[1]], [5.6, M.lay_btn[0], M.lay_btn[1]]],
+            clicks: [2.85, 4.25],
+            caps: [[1.95, 3.6, 'One click, next to the zoom', 'top'], [3.65, 5.6, 'One page · two pages · title page']],
+            rings: [[2.0, 3.0, pad([M.lay_btn[0] - 40, M.lay_btn[1] - 40, 80, 80], 10)]],
+          },
+          sigs: {
+            shots: [[0, 'sig0', 0.6], [4.0, 'sig2', 0.35]],
+            cam: [[TITLE_END, pad(M.sig_rows, 140, 60)], [4.1, pad(M.sig_modal, 140, 300)]],
+            caps: [[2.0, 3.9, 'Intact or changed after signing'], [4.0, 6.6, 'Sign with your own .p12 / .pfx']],
+            rings: [[2.2, 3.8, pad([M.sig_rows[0] + 20, M.sig_rows[1] + 20, M.sig_rows[2] - 40, M.sig_rows[3] - 40], 0)]],
+          },
+        };
+      }
+
+      // ---------------- DOM ----------------
+      let card, cv, ctx, hookEl, titleEl, capEl, moreEl, outroEl, brandTop;
+      const MORE = [
+        ['print', 'Print check', 'Fonts, image dpi, bleed'],
+        ['rename', 'Rename = real rename', 'Changes the file on disk'],
+        ['font', '6 included fonts', 'Full Unicode, embedded'],
+        ['globe', '6 languages', 'DE · ES · FR · PT · IT'],
+        ['linux', 'Linux start-up fix', 'No more AppImage crash'],
+        ['win', 'Sharper Windows icons', 'Taskbar, Start, Explorer'],
+      ];
+      function build() {
+        const R = (v) => v + 'px';
+        const [cx, cy, cw, ch] = F.card;
+        card = el(`<div id="card"></div>`);
+        Object.assign(card.style, { left: R(cx), top: R(cy), width: R(cw), height: R(ch) });
+        cv = document.createElement('canvas');
+        cv.width = cw; cv.height = ch;
+        card.append(cv);
+        ctx = cv.getContext('2d');
+        stage.append(card);
+
+        if (F.top) {
+          brandTop = el(`<div class="brandtop" style="top:${F.top - 36}px">${NIB(48)}<span class="wordmark" style="font-size:54px">nib-e</span></div>`);
+          stage.append(brandTop);
+        }
+
+        hookEl = el(`<div class="layer">
+            <div class="center" style="top:${F.H / 2 - F.big * 1.55}px;padding:0 60px">
+              <div class="h0" style="display:flex;justify-content:center;align-items:center;gap:${F.big * 0.12}px;margin-bottom:${F.big * 0.35}px">${NIB(F.big * 0.5)}<span class="wordmark" style="font-size:${F.big * 0.55}px">nib-e</span></div>
+              <div class="display h1" style="font-size:${F.big}px">We listened to<br/>your feedback.</div>
+              <div class="display h2" style="font-size:${F.big * 0.62}px;color:#2f3fd6;margin-top:${F.big * 0.28}px">And made Nib-E better.</div>
+              <div class="h3" style="margin-top:${F.big * 0.42}px"><span class="pill" style="font-size:${F.sub * 0.85}px">Version 0.6 · free update · still no Pro plan</span></div>
+            </div>
+          </div>`);
+        stage.append(hookEl);
+
+        titleEl = el(`<div class="layer" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:0 70px">
+            <div>
+              <div class="kicker" style="font-size:${F.kick}px"><span class="num"></span><span>You asked for</span></div>
+              <div class="display t" style="font-size:${F.title}px;margin-top:${F.title * 0.25}px"></div>
+              <div class="sub s" style="font-size:${F.sub}px;margin-top:${F.sub * 0.6}px"></div>
+            </div>
+          </div>`);
+        stage.append(titleEl);
+
+        capEl = el(`<div class="caption" style="font-size:${F.cap}px"><span class="n"></span><span class="c"></span></div>`);
+        stage.append(capEl);
+
+        const tw = FMT === '16x9' ? 470 : 470;
+        moreEl = el(`<div class="layer">
+            <div class="center ttl" style="top:${FMT === '16x9' ? 150 : F.H * 0.16}px;padding:0 50px">
+              <div class="kicker" style="font-size:${F.kick}px"><span>Also new</span></div>
+              <div class="display" style="font-size:${F.title * 0.8}px;margin-top:${F.title * 0.18}px">And a lot of small fixes</div>
+            </div>
+            <div class="grid" style="position:absolute;left:0;right:0;top:${FMT === '16x9' ? 420 : F.H * 0.38}px;display:grid;grid-template-columns:repeat(${F.cols}, ${tw}px);gap:22px;justify-content:center;font-size:${F.tile}px">
+              ${MORE.map(([k, a, b]) => `<div class="tile"><span class="ic">${ic(k, F.tile * 1.1)}</span><span>${a}<small>${b}</small></span></div>`).join('')}
+            </div>
+          </div>`);
+        stage.append(moreEl);
+
+        outroEl = el(`<div class="layer">
+            <div class="center" style="top:${F.H / 2 - F.brand * 1.75}px;padding:0 50px">
+              <div style="display:flex;justify-content:center;align-items:center;gap:${F.brand * 0.08}px">${NIB(F.brand * 0.55)}<span class="wordmark" style="font-size:${F.brand * 0.85}px">nib-e</span></div>
+              <div class="tagline" style="font-size:${F.brand * 0.46}px;margin-top:${F.brand * 0.2}px">Keep the feedback coming.</div>
+              <div class="sub" style="font-size:${F.sub}px;margin-top:${F.sub * 0.55}px">Every feature free. No paywalls, no Pro plan.<br/>Windows · macOS · Linux · web</div>
+              <div style="margin-top:${F.brand * 0.45}px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+                <span class="pill accent" style="font-size:${F.sub * 0.85}px">Microsoft Store</span>
+                <span class="pill mono" style="font-size:${F.sub * 0.78}px">krithickdesign.github.io/Nib-E</span>
+              </div>
+            </div>
+          </div>`);
+        stage.append(outroEl);
+        SCENES = scenes();
+      }
+
+      // ---------------- camera + drawing ----------------
+      function camera(rect, vw, vh) {
+        const [x, y, w, h] = rect;
+        const s = Math.min(vw / w, vh / h);
+        const sw = vw / s, sh = vh / s;
+        let ox = x + w / 2 - sw / 2, oy = y + h / 2 - sh / 2;
+        ox = sw <= IMG.W ? clamp(ox, 0, IMG.W - sw) : (IMG.W - sw) / 2;
+        oy = sh <= IMG.H ? clamp(oy, 0, IMG.H - sh) : (IMG.H - sh) / 2;
+        return { s, ox, oy };
+      }
+      const toScr = (cam, x, y) => [(x - cam.ox) * cam.s, (y - cam.oy) * cam.s];
+      function drawImg(name, cam, alpha = 1) {
+        if (alpha <= 0) return;
+        ctx.globalAlpha = alpha;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(imgs[name], -cam.ox * cam.s, -cam.oy * cam.s, IMG.W * cam.s, IMG.H * cam.s);
+        ctx.globalAlpha = 1;
+      }
+      function drawRing(cam, r, a) {
+        if (a <= 0) return;
+        const [x, y] = toScr(cam, r[0], r[1]);
+        const w = r[2] * cam.s, h = r[3] * cam.s;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.strokeStyle = '#2f3fd6';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = 'rgba(47,63,214,0.45)';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 12);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // The open dropdown list (a system menu, so the screenshots can't show it): drawn like Chrome's.
+      function drawMenu(cam, lt, m, cp) {
+        const a = eo(seg(lt, m.open, m.open + 0.12)) * (1 - seg(lt, m.close, m.close + 0.15));
+        if (a <= 0) return;
+        const n = MENU.items.length;
+        const [x, y] = toScr(cam, MENU.x, MENU.y);
+        const w = MENU.w * cam.s, rh = MENU.h * cam.s, h = (n * MENU.h + 12) * cam.s;
+        const grow = 0.92 + 0.08 * eo(seg(lt, m.open, m.open + 0.15));
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.shadowColor = 'rgba(23,26,38,0.28)';
+        ctx.shadowBlur = 24 * cam.s;
+        ctx.shadowOffsetY = 6 * cam.s;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h * grow, 8 * cam.s);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'rgba(23,26,38,0.18)';
+        ctx.lineWidth = 2 * cam.s;
+        ctx.stroke();
+        ctx.clip();
+        const hover = cp && cp[0] > MENU.x && cp[0] < MENU.x + MENU.w ? Math.floor((cp[1] - MENU.y - 6) / MENU.h) : -1;
+        ctx.font = `${34 * cam.s}px Arial, Helvetica, sans-serif`;
+        ctx.textBaseline = 'middle';
+        MENU.items.forEach((t, i) => {
+          const ry = y + (6 + i * MENU.h) * cam.s;
+          if (i === hover) {
+            ctx.fillStyle = '#2f3fd6';
+            ctx.beginPath();
+            ctx.roundRect(x + 6 * cam.s, ry, w - 12 * cam.s, rh, 6 * cam.s);
+            ctx.fill();
+          }
+          ctx.fillStyle = i === hover ? '#fff' : '#171a26';
+          ctx.fillText(t, x + 22 * cam.s, ry + rh / 2);
+        });
+        ctx.restore();
+      }
+      function drawCursor(cam, cur) {
+        if (!cur || cur.a <= 0) return;
+        const [x, y] = toScr(cam, cur.x, cur.y);
+        const k = vertical ? 1.3 : 1.15;
+        ctx.save();
+        ctx.globalAlpha = cur.a;
+        if (cur.click > 0 && cur.click < 1) {
+          ctx.beginPath();
+          ctx.arc(x, y, 14 * k + 34 * k * eo(cur.click), 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(47,63,214,${0.55 * (1 - cur.click)})`;
+          ctx.lineWidth = 4 * k;
+          ctx.stroke();
+          ctx.fillStyle = `rgba(47,63,214,${0.16 * (1 - cur.click)})`;
+          ctx.fill();
+        }
+        if (cur.press) {
+          ctx.beginPath();
+          ctx.arc(x, y, 12 * k, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(47,63,214,0.22)';
+          ctx.fill();
+        }
+        ctx.translate(x, y);
+        ctx.scale(k * 1.25, k * 1.25);
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.lineTo(5.5, 17); ctx.lineTo(9.5, 26); ctx.lineTo(13, 24.5); ctx.lineTo(9, 15.8); ctx.lineTo(16, 15.8); ctx.closePath();
+        ctx.fillStyle = '#171a26'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round';
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      // camera keys [[t, rect]]: each move takes `dur` and ends at its key
+      function camPath(list, t, dur = 1.0) {
+        let cur = list[0][1];
+        for (let i = 1; i < list.length; i++) {
+          const [tb, rb] = list[i];
+          const u = eio(seg(t, tb - dur, tb));
+          if (u <= 0) break;
+          cur = cur.map((v, j) => lerp(v, rb[j], u));
+        }
+        return cur;
+      }
+      function curAt(keys, t) {
+        if (t <= keys[0][0]) return keys[0].slice(1);
+        for (let i = 1; i < keys.length; i++) {
+          if (t <= keys[i][0]) {
+            const u = eio(seg(t, keys[i - 1][0], keys[i][0]));
+            return [lerp(keys[i - 1][1], keys[i][1], u), lerp(keys[i - 1][2], keys[i][2], u)];
+          }
+        }
+        return keys[keys.length - 1].slice(1);
+      }
+      const clickU = (t, clicks = []) => { for (const c of clicks) if (t >= c && t < c + 0.5) return (t - c) / 0.5; return 0; };
+      const lastOf = (key) => { const s = SCENES[key].shots; return s[s.length - 1][1]; };
+      const lastCam = (key) => { const c = SCENES[key].cam; return c[c.length - 1][1]; };
+
+      function paintCard(key, lt) {
+        const sc = SCENES[key];
+        const i = FEATURES.indexOf(key);
+        const prevKey = i > 0 ? FEATURES[i - 1] : null;
+        // camera: from the previous scene's last view while the title is up
+        const camKeys = prevKey ? [[0, lastCam(prevKey)], ...sc.cam] : [[0, sc.cam[0][1]], ...sc.cam];
+        const cam = camera(camPath(camKeys, lt, 1.0), cv.width, cv.height);
+        ctx.fillStyle = '#e7eaf2';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        // frames: newest shot whose time has come, faded over the one before it
+        let k = 0;
+        for (let j = 0; j < sc.shots.length; j++) if (lt >= sc.shots[j][0]) k = j;
+        const [t0, name, fade] = sc.shots[k];
+        const before = k > 0 ? sc.shots[k - 1][1] : prevKey ? lastOf(prevKey) : null;
+        const u = eo(seg(lt, t0, t0 + fade));
+        if (before && u < 1) drawImg(before, cam);
+        drawImg(name, cam, before ? u : 1);
+        for (const [a, b, r] of sc.rings || []) drawRing(cam, r, win(lt, a, b, 0.3, 0.3));
+        const cp = sc.cur ? curAt(sc.cur, lt) : null;
+        if (sc.menu && lt >= sc.menu.open && lt < sc.menu.close + 0.15) drawMenu(cam, lt, sc.menu, cp);
+        if (sc.cur) {
+          const [x, y] = cp;
+          const first = sc.cur[0][0], last = sc.cur[sc.cur.length - 1][0];
+          const press = (sc.press || []).length === 2 && lt >= sc.press[0] && lt < sc.press[1];
+          drawCursor(cam, { x, y, a: eo(seg(lt, first, first + 0.3)) * (1 - seg(lt, last - 0.3, last)), click: clickU(lt, sc.clicks), press });
+        }
+      }
+
+      // ---------------- render ----------------
+      window.renderAt = function (t) {
+        for (const e of [hookEl, titleEl, capEl, moreEl, outroEl]) e.style.opacity = '0';
+
+        if (t < T0.edit) {
+          const lt = t - T0.hook;
+          hookEl.style.opacity = String(1 - eio(seg(lt, 4.15, 4.6)));
+          [['.h0', 0.0], ['.h1', 0.35], ['.h2', 1.5], ['.h3', 2.4]].forEach(([s, a]) => {
+            const u = eo(seg(lt, a, a + 0.65));
+            const e = hookEl.querySelector(s);
+            e.style.opacity = String(u);
+            e.style.transform = `translateY(${(1 - u) * 30}px)`;
+          });
+        }
+
+        const cardFrom = T0.edit - 0.2, cardTo = T0.more + 0.8;
+        const cardOn = t >= cardFrom && t < cardTo;
+        card.style.display = cardOn ? 'block' : 'none';
+        if (brandTop) brandTop.style.opacity = String(win(t, cardFrom, cardTo, 0.6, 0.5));
+        if (cardOn) {
+          const key = FEATURES.slice().reverse().find((k) => t >= T0[k]) || 'edit';
+          const lt = t - T0[key];
+          const dim = eo(seg(lt, -0.4, 0.1)) * (1 - eio(seg(lt, TITLE_END - 0.3, TITLE_END + 0.3)));
+          const inU = eo(seg(t, cardFrom, T0.edit + 0.6));
+          const outU = eio(seg(t, T0.more, T0.more + 0.7));
+          const d = key === 'edit' ? Math.max(dim, 1 - seg(t, T0.edit, T0.edit + 0.01)) : dim;
+          card.style.opacity = String(inU * (1 - outU) * (1 - 0.74 * d));
+          card.style.filter = d > 0.01 ? `blur(${(d * 10).toFixed(2)}px)` : 'none';
+          card.style.transform = `translateY(${(1 - inU) * 60 + outU * 40}px) scale(${1 - 0.04 * d - 0.05 * outU})`;
+          paintCard(key, Math.max(0, lt));
+
+          // title
+          if (t >= T0.edit && lt <= TITLE_END + 0.2) {
+            const u = eo(seg(lt, 0, 0.45));
+            const o = eio(seg(lt, TITLE_END - 0.35, TITLE_END));
+            titleEl.style.opacity = String(u * (1 - o));
+            titleEl.firstElementChild.style.transform = `translateY(${(1 - u) * 26 - o * 18}px)`;
+            titleEl.querySelector('.num').textContent = String(FEATURES.indexOf(key) + 1).padStart(2, '0');
+            titleEl.querySelector('.t').textContent = TITLES[key][0];
+            titleEl.querySelector('.s').textContent = TITLES[key][1];
+          }
+          // one caption at a time
+          const caps = SCENES[key].caps;
+          const [cx, cy, cw, ch] = F.card;
+          caps.forEach(([a, b, text, pos], n) => {
+            if (t >= T0.more || lt < a || lt >= b) return;
+            const u = win(lt, a, b, 0.35, 0.3);
+            capEl.style.opacity = String(u);
+            capEl.querySelector('.n').textContent = String(n + 1);
+            capEl.querySelector('.c').textContent = text;
+            capEl.style.top = (pos === 'top' ? cy + 44 - (1 - u) * 14 : cy + ch - 52 - capEl.offsetHeight + (1 - u) * 14) + 'px';
+            capEl.style.left = cx + cw / 2 + 'px';
+            capEl.style.transform = 'translateX(-50%)';
+          });
+        }
+
+        if (t >= T0.more && t < T0.outro) {
+          const lt = t - T0.more;
+          moreEl.style.opacity = String(1 - eio(seg(lt, 5.1, 5.6)));
+          const tu = eo(seg(lt, 0.55, 1.15));
+          const ttl = moreEl.querySelector('.ttl');
+          ttl.style.opacity = String(tu);
+          ttl.style.transform = `translateY(${(1 - tu) * 26}px)`;
+          moreEl.querySelectorAll('.tile').forEach((e, n) => {
+            const u = eo(seg(lt, 1.0 + n * 0.18, 1.6 + n * 0.18));
+            e.style.opacity = String(u);
+            e.style.transform = `translateY(${(1 - u) * 30}px) scale(${0.96 + 0.04 * u})`;
+          });
+        }
+
+        if (t >= T0.outro) {
+          const lt = t - T0.outro;
+          const b = eo(seg(lt, 0.15, 0.95));
+          outroEl.style.opacity = String(b);
+          outroEl.style.transform = `translateY(${(1 - b) * 24}px)`;
+        }
+      };
+
+      // Thumbnail: the message beside the filled form.
+      window.renderPoster = function () {
+        window.renderAt(0);
+        hookEl.style.opacity = '0';
+        card.style.display = 'block';
+        card.style.opacity = '1';
+        card.style.filter = 'none';
+        card.style.transform = 'none';
+        const [cx, cy, cw, ch] = [880, 110, 960, 860];
+        Object.assign(card.style, { left: cx + 'px', top: cy + 'px', width: cw + 'px', height: ch + 'px' });
+        cv.width = cw; cv.height = ch;
+        const cam = camera([1150, 420, 1150, 1300], cw, ch);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, cw, ch);
+        drawImg('form7', cam);
+        const p = el(`<div style="position:absolute;left:100px;width:700px">
+            <div style="display:flex;align-items:center;gap:14px">${NIB(60)}<span class="wordmark" style="font-size:72px">nib-e</span></div>
+            <div class="display" style="font-size:84px;margin-top:22px">We listened to your feedback.</div>
+            <div class="tagline" style="font-size:44px;margin-top:18px;color:#2f3fd6">And made it better.</div>
+            <div style="margin-top:30px"><span class="pill" style="font-size:24px">Free PDF editor · no Pro plan</span></div>
+          </div>`);
+        stage.append(p);
+        p.style.top = (F.H - p.offsetHeight) / 2 + 'px';
+      };
+    </script>
+  </body>
+</html>

@@ -70,7 +70,12 @@ Nib-E is free and open source (MIT licence).
 
 **What's new in this version** (≤ 1500 characters; update every release):
 ```
-Version 0.6.2
+Version 0.6.3
+• Crop pages: drag over the part to keep, for one page or all pages.
+• Redaction: mark the same area on every page in one go (off by default). After redacting you stay on the same page.
+• Turned pages: answers in form fields now read the same way as the labels; text you edit turns with the page.
+• Nib-E opens with the Select tool, so nothing gets drawn by accident.
+• Full page mode: the tool bar hides and comes back at the bottom edge.
 • Select and copy text with the Select tool, also on scans after text recognition.
 • Forms: every field kind works (character boxes, dropdowns, lists, multi-line, Reset); typing on a field always fills it.
 • Rename changes the file itself. Page layout button next to the zoom. Sharper icons.
@@ -214,7 +219,12 @@ Nib-E ist kostenlos und Open Source (MIT-Lizenz).
 
 **Neuigkeiten in dieser Version** (≤ 1500 Zeichen; bei jedem Release aktualisieren):
 ```
-Version 0.6.2
+Version 0.6.3
+• Seiten zuschneiden: über den Teil ziehen, der bleiben soll, für eine oder alle Seiten.
+• Schwärzen: denselben Bereich auf allen Seiten auf einmal markieren (standardmäßig aus). Danach bleiben Sie auf derselben Seite.
+• Gedrehte Seiten: Antworten in Formularfeldern laufen wie die Beschriftungen; bearbeiteter Text dreht sich mit.
+• Nib-E startet mit dem Auswahlwerkzeug, damit nichts versehentlich gezeichnet wird.
+• Vollbild: die Werkzeugleiste blendet sich aus und erscheint am unteren Rand.
 • Text mit dem Auswahlwerkzeug markieren und kopieren, auch bei Scans nach der Texterkennung.
 • Formulare: alle Feldarten funktionieren (Zeichenkästchen, Auswahllisten, Mehrfachauswahl, mehrzeilig, Zurücksetzen); Tippen auf ein Feld füllt es immer aus.
 • Umbenennen ändert die Datei selbst. Seitenlayout-Knopf neben dem Zoom. Schärfere Symbole.
@@ -225,7 +235,6 @@ Version 0.6.2
 • Druckprüfung für Druckereien: Schriften, Bildschärfe, Farben, Anschnitt.
 • Zweiseitenansicht mit Titelseite, Zoom-Regler, Umblättern per Taste.
 • Mehr Schriften, Kopieren und Einfügen, Duplizieren, Ausrichtung.
-• Anhänge und PDF-Portfolios, klarere Hinweise bei speziellen PDF-Formularen.
 ```
 
 **Produktfunktionen** (eine pro Zeile, bis zu 20, je ≤ 200 Zeichen):
@@ -348,7 +357,8 @@ Idiomas: español, inglés, alemán, francés, portugués (Brasil), italiano. Ni
 
 **Novedades de esta versión:**
 ```
-Versión 0.6.2
+Versión 0.6.3
+• Recorta páginas; tacha la misma zona en todas las páginas a la vez; los campos de formulario en páginas giradas se leen derechos; Nib-E abre con la herramienta de selección; en pantalla completa la barra de herramientas se oculta.
 • Selecciona y copia texto con la herramienta de selección; formularios con todos los tipos de campo; renombrar cambia el archivo.
 • Nib-E ahora está en español (y en alemán, francés, portugués e italiano).
 • Edita el texto existente del PDF con su propia fuente.
@@ -430,7 +440,8 @@ Langues : français, anglais, allemand, espagnol, portugais (Brésil), italien. 
 
 **Nouveautés de cette version :**
 ```
-Version 0.6.2
+Version 0.6.3
+• Rognez les pages ; caviardez la même zone sur toutes les pages d'un coup ; les champs de formulaire des pages pivotées se lisent à l'endroit ; Nib-E s'ouvre avec l'outil de sélection ; en plein écran, la barre d'outils se masque.
 • Sélectionnez et copiez le texte avec l'outil de sélection ; formulaires avec tous les types de champs ; renommer change le fichier.
 • Nib-E est maintenant en français (et en allemand, espagnol, portugais et italien).
 • Modifiez le texte existant du PDF dans sa propre police.
@@ -512,7 +523,8 @@ Idiomas: português (Brasil), inglês, alemão, espanhol, francês, italiano. O 
 
 **Novidades desta versão:**
 ```
-Versão 0.6.2
+Versão 0.6.3
+• Recorte páginas; tarje a mesma área em todas as páginas de uma vez; campos de formulário em páginas giradas ficam na direção certa; o Nib-E abre com a ferramenta de seleção; em tela cheia a barra de ferramentas se esconde.
 • Selecione e copie texto com a ferramenta de seleção; formulários com todos os tipos de campo; renomear altera o arquivo.
 • O Nib-E agora está em português (e em alemão, espanhol, francês e italiano).
 • Edite o texto existente do PDF na própria fonte dele.
@@ -594,7 +606,8 @@ Lingue: italiano, inglese, tedesco, spagnolo, francese, portoghese (Brasile). Ni
 
 **Novità di questa versione:**
 ```
-Versione 0.6.2
+Versione 0.6.3
+• Ritaglia le pagine; oscura la stessa area su tutte le pagine in una volta; i campi dei moduli sulle pagine ruotate si leggono dritti; Nib-E si apre con lo strumento di selezione; a schermo intero la barra degli strumenti si nasconde.
 • Seleziona e copia il testo con lo strumento di selezione; moduli con tutti i tipi di campo; rinominare cambia il file.
 • Nib-E ora è in italiano (e in tedesco, spagnolo, francese e portoghese).
 • Modifica il testo esistente del PDF con il suo carattere.

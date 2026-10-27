@@ -7,6 +7,7 @@ import { VERSION } from '../version';
 import { openHelp } from './help';
 import { icon } from './icons';
 import { toast } from './toast';
+import { openRating } from './rateprompt';
 
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -64,11 +65,13 @@ function shortcuts(): void {
 function whatsNew(): void {
   void modal(`<h2>What's new in ${APP_NAME} ${esc(VERSION)}</h2>
     <ul class="help-points compact">
+      <li>${icon('crop')}<span><strong>Crop pages</strong> (Page manager): drag over the part to keep, for one page or all pages.</span></li>
+      <li>${icon('redact')}<span><strong>Redaction</strong>: mark the same area on all pages at once. After redacting you stay on your page.</span></li>
+      <li>${icon('rotR')}<span><strong>Turned pages</strong>: form answers read the same way as the labels; text you edit turns with the page.</span></li>
+      <li>${icon('select')}<span>Nib-E opens with the <strong>Select tool</strong>, so nothing gets drawn by accident. In full page mode the tool bar hides until you need it.</span></li>
       <li>${icon('select')}<span><strong>Select and copy text</strong>: with the Select tool, drag across the PDF's text, then Ctrl+C. Double-click a word, triple-click a line. Also on scans after Text recognition.</span></li>
       <li>${icon('form')}<span><strong>Forms</strong>: clicking a field with the Text, Select or Hand tool fills it. Boxes for single characters, dropdowns, lists with several choices, multi-line fields, Tab to the next field, Reset buttons.</span></li>
-      <li>${icon('pageTwo')}<span><strong>Page layout button</strong> next to the zoom: one page, two pages, two pages with a title page.</span></li>
-      <li>${icon('rename')}<span><strong>Rename</strong> (double-click the name at the top) now renames the file itself.</span></li>
-      <li>${icon('edit')}<span>From 0.6: edit existing text, digital signatures, text recognition, print check, more fonts, six languages.</span></li>
+      <li>${icon('edit')}<span>From 0.6: edit existing text, digital signatures, text recognition, print check, more fonts, six languages, rename, page layout button.</span></li>
     </ul>`);
 }
 
@@ -281,7 +284,7 @@ export class HelpMenu {
         openForm();
         break;
       case 'rate':
-        void invoke('open_review').catch(() => toast('Could not open the Microsoft Store.', 'error'));
+        openRating();
         break;
       case 'privacy':
         openHelp(1);

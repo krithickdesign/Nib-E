@@ -13,7 +13,7 @@ import {
   fillTokens,
   hexToRgb,
   NOTE_SIZE,
-  shownSize,
+  visibleShown,
   templateLines,
   TEMPLATE_RGB,
   toPage,
@@ -253,6 +253,12 @@ export async function buildPdf(input: ExportInput): Promise<Uint8Array> {
           w.item(it);
         }
         w.finish();
+        if (e.crop) {
+          // Page manager → Crop: only this part is shown and printed (nothing is deleted).
+          const [l, t] = w.u(e.crop.x, e.crop.y);
+          const [r, b] = w.u(e.crop.x + e.crop.w, e.crop.y + e.crop.h);
+          m.FPDFPage_SetCropBox(page, Math.min(l, r), Math.min(b, t), Math.max(l, r), Math.max(b, t));
+        }
         if (input.fillable) collectFields(out, i, e, box, fields);
       } finally {
         m.FPDF_ClosePage(page);
@@ -518,15 +524,16 @@ class Writer {
 
   watermark(wm: Watermark): void {
     if (!wm.text) return;
-    const { w: sw, h: sh } = shownSize(this.e);
+    const v = visibleShown(this.e);
+    const { w: sw, h: sh } = v;
     const width = measure(wm.text, 'sans', wm.size, true, false);
     const ang = wm.diagonal ? -Math.atan2(sh, sw) : 0;
     const c = Math.cos(ang);
     const s = Math.sin(ang);
-    // Baseline start in shown space, centred on the page.
+    // Baseline start in shown space, centred on the (visible part of the) page.
     // Glyph 'up' in shown space is (s, -c); the glyph middle sits 0.35 em above the baseline.
-    const bx = sw / 2 - (width / 2) * c - wm.size * 0.35 * s;
-    const by = sh / 2 - (width / 2) * s + wm.size * 0.35 * c;
+    const bx = v.x + sw / 2 - (width / 2) * c - wm.size * 0.35 * s;
+    const by = v.y + sh / 2 - (width / 2) * s + wm.size * 0.35 * c;
     const o = toPage(this.e, bx, by);
     const a = toPage(this.e, bx + c, by + s);
     const b = toPage(this.e, bx + s, by - c);
@@ -534,12 +541,12 @@ class Writer {
   }
 
   headerFooter(hf: HeaderFooter, num: number, total: number, file: string): void {
-    const { w: sw, h: sh } = shownSize(this.e);
-    for (const slot of hfSlots(hf, sw, sh)) {
+    const v = visibleShown(this.e);
+    for (const slot of hfSlots(hf, v.w, v.h)) {
       const text = fillTokens(slot.text, num, total, file);
       const width = measure(text, 'sans', hf.size, false, false);
       const x = slot.align === 'left' ? slot.x : slot.align === 'center' ? slot.x - width / 2 : slot.x - width;
-      const f = this.shownFrame(x, slot.y);
+      const f = this.shownFrame(v.x + x, v.y + slot.y);
       this.textRun(text, 'sans', false, false, hf.size, hf.color, 1, f.origin, f.dir, f.up);
     }
   }

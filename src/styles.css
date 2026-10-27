@@ -1334,6 +1334,30 @@ kbd {
 .band-field {
   border-style: solid;
 }
+.band-crop {
+  border: 2px solid var(--accent);
+  background: transparent;
+  box-shadow: 0 0 0 9999px rgba(20, 22, 32, 0.35);
+}
+/* Crop tool: the whole page shows; the part outside the current crop is dimmed. */
+.pages[data-tool='crop'] .paper {
+  overflow: hidden;
+  cursor: crosshair;
+}
+.crop-frame {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border: 1.5px dashed var(--accent);
+  box-shadow: 0 0 0 9999px rgba(20, 22, 32, 0.28);
+}
+.crop-frame.none {
+  border: 0;
+  box-shadow: none;
+}
+.paper.cropped {
+  box-shadow: none;
+}
 .note-pop {
   position: absolute;
   z-index: 6;
@@ -2033,6 +2057,11 @@ button.tool-row:hover .tool-ico {
 .seg .btn {
   flex: 1;
 }
+.seg .btn[aria-pressed='true'] {
+  background: var(--accent-soft, color-mix(in srgb, var(--accent) 14%, transparent));
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .seg-opt {
   flex: 1;
   cursor: pointer;
@@ -2382,6 +2411,24 @@ input[type="range"] {
 }
 .app.fullpage .pages {
   padding-top: 18px;
+}
+/* Full page: the tool bar hides and comes back when the pointer reaches the bottom edge (or on a tap there). */
+.app.fullpage .dock {
+  transform: translateY(calc(100% + 40px));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.app.fullpage.dock-peek .dock,
+.app.fullpage .dock:focus-within {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.fullpage .dock {
+    transition: none;
+  }
 }
 
 /* ---------- narrow top bar ----------

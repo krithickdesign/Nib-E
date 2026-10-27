@@ -15,6 +15,7 @@ import { engine, free, heap, malloc, openRaw, pdfium, PDF_ERR_PASSWORD, PdfOpenE
 import { saveFile, type FileRef, type SaveResult } from './platform/files';
 import { readBookData, type BookData } from './pdf/nibdata';
 import { flattenPdf } from './pdf/redact';
+import { uprightFieldText } from './pdf/formactions';
 import { checkSignatures, type SignatureReport } from './pdf/signatures';
 import { signPdf, type SignOptions } from './pdf/sign';
 import { ocrPdf, type OcrOptions, type OcrResult } from './pdf/ocr';
@@ -64,7 +65,14 @@ function entriesFor(src: Source): PageEntry[] {
   }));
 }
 
-async function load(name: string, bytes: Uint8Array) {
+async function load(name: string, original: Uint8Array) {
+  // Sideways answers in form boxes on turned pages: see uprightFieldText.
+  let bytes = original;
+  try {
+    bytes = await uprightFieldText(original);
+  } catch (e) {
+    console.warn('could not check the form boxes', e);
+  }
   const { doc, password } = await openInEngine(name, bytes);
   const source: Source = { id: doc.id, name, doc, bytes };
   passwords.set(doc.id, password);
@@ -298,6 +306,8 @@ export async function openBytes(name: string, bytes: Uint8Array, opts: OpenOptio
     store.activate(state);
     release(sample);
   } else store.addTab(state);
+  // A newly opened file starts with the Select tool, so nothing gets drawn on it by accident.
+  if (!store.study && !['select', 'hand'].includes(store.tool)) store.setTool('select');
   void detectSource(state, source.id);
   if (openHook) {
     try {
@@ -481,6 +491,8 @@ export async function redactNow(): Promise<RedactResult> {
   next.saveName = name;
   next.dirty = true;
   next.fieldsOn = state.fieldsOn;
+  // Stay on the page you were on (the redacted file has the same pages).
+  next.current = Math.min(state.current, Math.max(0, next.plan.pages.length - 1));
   store.replaceTab(state, next);
   release(state);
   void detectSource(next, loaded.source.id);
@@ -609,6 +621,8 @@ export async function ocrNow(opts: Omit<OcrOptions, 'pages'> & { pages?: number[
   next.file = state.file;
   next.dirty = true;
   next.fieldsOn = state.fieldsOn;
+  // Stay on the page you were on (the redacted file has the same pages).
+  next.current = Math.min(state.current, Math.max(0, next.plan.pages.length - 1));
   store.replaceTab(state, next);
   release(state);
   void detectSource(next, loaded.source.id);

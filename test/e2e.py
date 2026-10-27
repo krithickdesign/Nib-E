@@ -392,19 +392,19 @@ def main():
         check("boxes stay hidden until asked", page.locator("#pages .hot").count() == 0 and page.locator("#ask-fields").is_visible() and "9" in page.locator("#ask-fields").inner_text())
         page.screenshot(path=str(OUT / "04a-ask-fillable.png"))
         make_fillable(page)
-        check("Make fillable shows the boxes, opens Form filling & signature, hand tool", page.locator("#pages .hot").count() == 9 and page.evaluate("window.__nib.store.panel") == "fill" and page.evaluate("window.__nib.store.tool") == "hand" and page.locator("#ask-fields").is_hidden())
+        check("Make fillable shows the boxes, opens Form filling & signature, a tool that fills boxes", page.locator("#pages .hot").count() == 9 and page.evaluate("window.__nib.store.panel") == "fill" and page.evaluate("window.__nib.store.tool") in ("hand", "select") and page.locator("#ask-fields").is_hidden())
         hot = page.locator("#pages .sheet").nth(0).locator(".hot-text")
         hot.nth(0).click()
-        page.keyboard.type("Rao")
+        page.keyboard.type("Morgan")
         page.keyboard.press("Tab")
-        page.keyboard.type("Krithick")
+        page.keyboard.type("Alex")
         page.keyboard.press("Enter")
         page.keyboard.type("01.01.2000")
         page.keyboard.press("Tab")
         page.wait_for_timeout(200)
-        page.keyboard.type("Donauwörth")
+        page.keyboard.type("Göttingen")
         page.keyboard.press("Tab")
-        page.keyboard.type("Krithick R.")
+        page.keyboard.type("Alex M.")
         page.keyboard.press("Escape")
         page.wait_for_timeout(200)
         radios = page.locator("#pages .sheet").nth(0).locator(".hot-radio")
@@ -417,15 +417,15 @@ def main():
         its = items(page)
         texts = [i["text"] for i in its if i["type"] == "text"]
         marks = [i for i in its if i["type"] == "mark"]
-        check("typing + Tab/Enter fills boxes in order; Esc keeps the text", texts == ["Rao", "Krithick", "01.01.2000", "Donauwörth", "Krithick R."], str(texts))
+        check("typing + Tab/Enter fills boxes in order; Esc keeps the text", texts == ["Morgan", "Alex", "01.01.2000", "Göttingen", "Alex M."], str(texts))
         check("radio choice replaces the other; checkbox ticks", len(marks) == 2 and sorted(m["shape"] for m in marks) == ["check", "dot"], str([m["shape"] for m in marks]))
         page.screenshot(path=str(OUT / "04-form-filled.png"))
         pdf = export(page, {"fillable": False})
         (OUT / "form-filled.pdf").write_bytes(pdf)
         with pdfplumber.open(io.BytesIO(pdf)) as d:
-            w = [x for x in d.pages[0].extract_words(extra_attrs=["fontname", "size"]) if x["text"] == "Krithick"]
+            w = [x for x in d.pages[0].extract_words(extra_attrs=["fontname", "size"]) if x["text"] == "Alex"]
             check("answers use the label's font and size (Times 12)", w and w[0]["fontname"] == "Times-Roman" and abs(w[0]["size"] - 12) < 0.1, str([(x["fontname"], x["size"]) for x in w]))
-            check("umlauts saved", "Donauwörth" in (d.pages[0].extract_text() or ""))
+            check("umlauts saved", "Göttingen" in (d.pages[0].extract_text() or ""))
         pdf = export(page, {"fillable": True})
         (OUT / "form-fillable.pdf").write_bytes(pdf)
         with pikepdf.open(io.BytesIO(pdf)) as d:
@@ -433,10 +433,10 @@ def main():
             by = {str(f.T): f for f in fl}
             radio = [f for f in fl if str(f.get("/FT")) == "/Btn" and len(f.get("/Kids", [])) == 2]
             check("Make fillable: 8 fields (radios grouped)", len(fl) == 8, f"{len(fl)}: {list(by)}")
-            check("Make fillable: typed answers become values", str(by.get("Surname", {}).get("/V", "")) == "Rao" and str(by.get("City", {}).get("/V", "")) == "Donauwörth")
+            check("Make fillable: typed answers become values", str(by.get("Surname", {}).get("/V", "")) == "Morgan" and str(by.get("City", {}).get("/V", "")) == "Göttingen")
             check("Make fillable: radio group named after the question", len(radio) == 1 and str(radio[0].T) == "Student")
         with pdfplumber.open(io.BytesIO(pdf)) as d:
-            check("Make fillable: answers are not printed twice", (d.pages[0].extract_text() or "").count("Krithick") == 0)
+            check("Make fillable: answers are not printed twice", (d.pages[0].extract_text() or "").count("Alex") == 0)
 
         # ---- tabs: switching keeps each file's state ----
         page.locator(f'#tabbar [data-open="{sample_key}"]').click()
@@ -962,8 +962,8 @@ def main():
             hp.locator(".brand").click()
         np_ = newp.value
         np_.wait_for_selector(".app.ready", timeout=20000)
-        lu = hp.evaluate("[window.__nib.landingUrl('https://krithick.github.io/Nib-E/app/'), window.__nib.landingUrl('https://krithick.github.io/Nib-E/app/index.html#x'), window.__nib.landingUrl('file:///home/me/Nib-E.html')]")
-        check("on the website the logo leads to the landing page (one folder up from /app/)", lu == ["https://krithick.github.io/Nib-E/", "https://krithick.github.io/Nib-E/", None], str(lu))
+        lu = hp.evaluate("[window.__nib.landingUrl('https://example.github.io/Nib-E/app/'), window.__nib.landingUrl('https://example.github.io/Nib-E/app/index.html#x'), window.__nib.landingUrl('file:///home/me/Nib-E.html')]")
+        check("on the website the logo leads to the landing page (one folder up from /app/)", lu == ["https://example.github.io/Nib-E/", "https://example.github.io/Nib-E/", None], str(lu))
         check("logo opens the start page in a new tab", np_.locator("#empty").is_visible() and "nib-e" in (hp.locator(".brand-word").text_content() or ""))
         hctx.close()
 
@@ -1281,7 +1281,7 @@ def main():
         tool(v, "text")
         fld("FullName").click()
         check("Text tool on a field fills the field (no loose text)", "field-input" in v.evaluate("document.activeElement.className"))
-        v.keyboard.type("Krithick Naik")
+        v.keyboard.type("Jamie Rivera")
         v.keyboard.press("Tab")
         v.wait_for_timeout(900)
         check("...Tab opens the next field; comb boxes type into their cells", "field-input-comb" in v.evaluate("document.activeElement.className") and v.evaluate("document.activeElement.maxLength") == 10)
@@ -1317,12 +1317,12 @@ def main():
             da = str(af.get("/DA", ""))
             helv = "/DR" in af and "/Helv" in af.DR.Font
         check("saved: text, comb, radio, checkbox, dropdown, two list choices, two-line notes",
-              str(vals["FullName"]) == "Krithick Naik" and str(vals["ID"]) == "1234567890" and str(vals["Gender"]) == "/Female" and str(vals["Married"]) == "/Yes"
+              str(vals["FullName"]) == "Jamie Rivera" and str(vals["ID"]) == "1234567890" and str(vals["Gender"]) == "/Female" and str(vals["Married"]) == "/Yes"
               and str(vals["City"]) == "Paris" and [str(x) for x in vals["Language"]] == ["German", "French"] and str(vals["Notes"]).replace("\r\n", "\n").replace("\r", "\n") == "First line\nSecond line",
               str({k: str(x) for k, x in vals.items()}))
         check("saved: a form without default font settings gets Helvetica (/DA, /DR)", "/Helv" in da and helv, da)
         txt = subprocess.run(["pdftotext", "-layout", str(OUT / "form-fields-filled.pdf"), "-"], capture_output=True, text=True).stdout
-        check("...another PDF engine (poppler) shows the answers", "Krithick Naik" in txt and "Paris" in txt and "Second line" in txt)
+        check("...another PDF engine (poppler) shows the answers", "Jamie Rivera" in txt and "Paris" in txt and "Second line" in txt)
         fld("Reset the form").click()
         v.get_by_role("button", name="Reset", exact=True).click()
         v.wait_for_timeout(1200)
@@ -1330,6 +1330,119 @@ def main():
         with pikepdf.open(io.BytesIO(out)) as pdf:
             vals = {str(f.T): f.get("/V") for f in pdf.Root.AcroForm.Fields}
         check("Reset button clears the form (standard action, after a confirm)", not str(vals.get("FullName") or "") and str(vals.get("Married")) == "/Off" and not vals.get("City"), str({k: str(x) for k, x in vals.items()}))
+        close_tab(v)
+
+        # ---- 0.6.3 ----
+        # A new file opens with the Select tool (the Pen made people draw by accident); Study mode starts with the Pen.
+        tool(v, "pen")
+        open_fixture(v, SAMPLE, SAMPLE_NAME)
+        check("a newly opened file starts with the Select tool", v.evaluate("window.__nib.store.tool") == "select")
+        v.evaluate("window.__nib.store.setStudy(true)")
+        v.wait_for_timeout(300)
+        check("...Study mode starts with the Pen", v.evaluate("window.__nib.store.tool") == "pen")
+        v.evaluate("window.__nib.store.setStudy(false)")
+        v.wait_for_timeout(300)
+
+        # Crop: all pages from one drag, saved as a crop box; Undo brings the full pages back.
+        v.evaluate("window.__nib.store.setPrefs({ rightOpen: true })")
+        v.evaluate("window.__nib.store.setPanel('organize')")
+        v.wait_for_timeout(300)
+        v.click('#panel-body [data-act="crop-scope"][data-val="all"]')
+        check("Crop: choosing which pages switches to the Crop tool", v.evaluate("window.__nib.store.tool") == "crop")
+        drag(v, 0, [(0.1, 0.05), (0.9, 0.5)], steps=8)
+        crops = v.evaluate("window.__nib.store.pages.map(p => p.crop ? [p.crop.x, p.crop.y, p.crop.w, p.crop.h].map(Math.round) : null)")
+        check("...one drag crops every page at the same spot", len(crops) == 3 and all(c and c == crops[0] for c in crops) and 40 < crops[0][0] < 80, str(crops))
+        tool(v, "select")
+        v.wait_for_timeout(300)
+        shown = v.locator("#pages .sheet .paper").nth(0).evaluate("e => getComputedStyle(e).clipPath")
+        check("...the page shows only the cropped part", shown.startswith("inset("), shown)
+        out = export(v)
+        with pikepdf.open(io.BytesIO(out)) as pdf:
+            boxes = [[round(float(x)) for x in pg.obj.CropBox] if "/CropBox" in pg.obj else None for pg in pdf.pages]
+        A4H_ = 842
+        check("...saved with a crop box (nothing deleted)", all(b and b[2] - b[0] == crops[0][2] and b[3] == A4H_ - crops[0][1] for b in boxes), str(boxes))
+        v.keyboard.press("Control+z")
+        v.wait_for_timeout(300)
+        check("...Undo shows the full pages again", v.evaluate("window.__nib.store.pages.every(p => !p.crop)"))
+
+        # Redaction: the same area on all pages (off by default), and you stay on the page you were on.
+        v.evaluate("window.__nib.store.setPanel('redact')")
+        v.wait_for_timeout(300)
+        check("Redaction: 'Same area on all pages' is off by default", not v.locator("#pf-redact-all").is_checked())
+        v.check("#pf-redact-all")
+        drag(v, 0, [(0.05, 0.035), (0.95, 0.09)], steps=6)
+        per = v.evaluate("window.__nib.store.pages.map(p => p.items.filter(i => i.type === 'redact').length)")
+        check("...one mark lands on every page", per == [1, 1, 1], str(per))
+        v.evaluate("window.__nib.store.setCurrent(1)")
+        v.evaluate("document.querySelectorAll('#pages .sheet')[1].scrollIntoView()")
+        v.wait_for_timeout(400)
+        top0 = v.evaluate("document.getElementById('viewer').scrollTop")
+        v.click('#panel-body [data-act="redact-apply"]')
+        v.locator('#modal [data-i="1"]').click()
+        v.wait_for_function("window.__nib.store.doc && window.__nib.store.doc.name.includes('redacted')", timeout=30000)
+        v.wait_for_timeout(900)
+        check("...after redacting Nib-E stays on the same page and place", v.evaluate("window.__nib.store.current") == 1 and abs(v.evaluate("document.getElementById('viewer').scrollTop") - top0) < 30)
+        out = export(v)
+        with pdfplumber.open(io.BytesIO(out)) as pdf:
+            tops = [[c["text"] for c in pg.chars if c["top"] < 0.085 * pg.height] for pg in pdf.pages]
+        check("...the area is empty on every page (independent text extraction)", all(not t for t in tops), str([''.join(t)[:20] for t in tops]))
+        check("...the redaction panel has the 'check the saved copy' note", "Beta" in v.locator("#panel-body").inner_text())
+        close_tab(v)
+
+        # Full page: the tool bar hides and comes back at the bottom edge.
+        open_fixture(v, SAMPLE, SAMPLE_NAME)
+        v.evaluate("window.__nib.store.setFullpage(true)")
+        v.wait_for_timeout(500)
+        v.mouse.move(600, 400)
+        v.wait_for_timeout(1300)
+        hidden = v.evaluate("getComputedStyle(document.getElementById('dock')).opacity")
+        v.mouse.move(600, 990)
+        v.wait_for_timeout(500)
+        shown = v.evaluate("getComputedStyle(document.getElementById('dock')).opacity")
+        check("Full page: the tool bar hides and shows at the bottom edge", hidden == "0" and shown == "1", f"{hidden} / {shown}")
+        v.evaluate("window.__nib.store.setFullpage(false)")
+        v.wait_for_timeout(300)
+
+        # Editing text on a turned page: the typing box turns with the text.
+        tool(v, "text")
+        click_at(v, 0, 0.5, 0.6)
+        v.keyboard.type("Turn me")
+        v.keyboard.press("Escape")
+        v.wait_for_timeout(200)
+        v.evaluate("window.__nib.store.rotate([window.__nib.store.pages[0].key], 1)")
+        v.wait_for_timeout(600)
+        it = items(v)[-1]
+        v.evaluate("""(id) => { const s = window.__nib.store; s.select({ key: s.pages[0].key, id }); }""", it["id"])
+        bx = v.locator("#pages .sel-box").first.bounding_box()
+        v.evaluate("window.__nib.store.select(null)")
+        tool(v, "text")
+        v.mouse.click(bx["x"] + bx["width"] / 2, bx["y"] + bx["height"] / 2)
+        v.wait_for_timeout(300)
+        tf = v.evaluate("(() => { const t = document.querySelector('textarea.text-editor'); return t ? getComputedStyle(t).transform : 'no editor'; })()")
+        check("text box on a turned page: the editor is turned with it", tf not in ("none", ""), tf)
+        v.keyboard.press("Escape")
+        close_tab(v)
+
+        # Form boxes on a turned page without their own rotation: answers read like the labels.
+        open_fixture(v, FIX / "form-turned.pdf")
+        v.wait_for_timeout(600)
+        tool(v, "hand")
+        v.locator('#pages .layer-forms > [title="FullName"]').first.click()
+        v.keyboard.type("Jamie Rivera")
+        v.keyboard.press("Tab")
+        v.wait_for_timeout(800)
+        v.keyboard.type("1234567890")
+        full_scroll = v.evaluate("document.activeElement.scrollLeft")
+        v.keyboard.press("Enter")
+        v.wait_for_timeout(800)
+        check("number boxes: a full box doesn't scroll (first digit stays visible)", full_scroll == 0, str(full_scroll))
+        out = export(v)
+        (OUT / "form-turned-filled.pdf").write_bytes(out)
+        with pikepdf.open(io.BytesIO(out)) as pdf:
+            rs = {str(a.get("/T")): int(a.MK.R) for a in pdf.pages[0].Annots if "/MK" in a and "/R" in a.MK}
+            vals = {str(f.T): str(f.get("/V", "")) for f in pdf.Root.AcroForm.Fields}
+        check("turned page: form boxes get the direction of the printed text (/MK /R 90)", rs.get("FullName") == 90 and rs.get("Notes") == 90, str(rs))
+        check("...and keep the answers", vals.get("FullName") == "Jamie Rivera" and vals.get("ID") == "1234567890", str(vals))
         close_tab(v)
         vctx.close()
 

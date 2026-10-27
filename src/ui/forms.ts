@@ -229,8 +229,16 @@ export class FormLayer {
     anchor.replaceWith(input);
     this.editing = true;
     input.focus();
-    if (comb) input.setSelectionRange(input.value.length, input.value.length);
-    else input.select();
+    if (comb) {
+      input.setSelectionRange(input.value.length, input.value.length);
+      // Letter spacing after the last character makes a full box scroll by half a cell
+      // (the first digit then looks cut off): the boxes never scroll.
+      const pin = () => {
+        if (input.scrollLeft) input.scrollLeft = 0;
+      };
+      for (const ev of ['input', 'scroll', 'keyup', 'select', 'focus']) input.addEventListener(ev, pin);
+      pin();
+    } else input.select();
     let done = false;
     const finish = (commit: boolean) => {
       if (done) return;

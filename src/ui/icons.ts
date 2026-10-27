@@ -64,6 +64,7 @@ const P: Record<string, string> = {
   underline: '<path d="M7 5v6a5 5 0 0 0 10 0V5M5 20h14"/>',
   strike: '<path d="M16.5 7.5c-.6-1.4-2.3-2.5-4.5-2.5-2.5 0-4.4 1.4-4.4 3.2 0 1.6 1.2 2.4 3.3 3M4.5 12h15M8 16.3c.6 1.6 2.2 2.7 4.5 2.7 2.6 0 4.5-1.3 4.5-3.2 0-.8-.3-1.3-.8-1.8"/>',
   stamp: '<path d="M9.5 10.5V7a2.5 2.5 0 0 1 5 0v3.5l3.5 2V15H6v-2.5z"/><path d="M5 19h14"/>',
+  crop: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
   redact: '<rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><rect x="6.5" y="9.5" width="11" height="5" fill="currentColor" stroke="none"/>',
   form: '<rect x="3.5" y="5" width="17" height="5" rx="1"/><rect x="3.5" y="14" width="5" height="5" rx="1"/><path d="m5 16.5 1 1 1.6-2M11 16.5h9"/>',
   organize: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',

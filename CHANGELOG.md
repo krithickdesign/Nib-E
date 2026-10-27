@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.3
+
+**New**
+- Crop pages (Page manager → Crop): drag over the part of the page to keep, for this page, the selected pages or all pages. Other pages get the same area at the same spot as seen on screen (pages of other sizes or turned differently included). Nothing is deleted: saving sets the page's crop box, so the rest is hidden and not printed. "Show full pages again" and Undo bring the full pages back. Header, footer and watermark sit on the visible part.
+- Redaction: "Same area on all pages" places each new mark on every page at the same spot (headers, footers, logos). Off by default and off again for every file.
+- Microsoft Store edition: asks once for a Store rating after a few minutes of use, from the second start on ("Later" asks again after a week, "Don't ask again" never). Help → Rate Nib-E stays.
+
+**Fixed**
+- Form answers ran sideways on turned pages (landscape pages saved turned, or pages turned in Nib-E) while the labels were upright. When a page's printed text runs sideways and its form boxes have no rotation of their own, Nib-E gives them the direction of the text around them when the file opens, so answers read like the labels, also in other apps after saving. Answers already in such a file are drawn again the same way. Signed and encrypted files are not changed.
+- Editing text on a turned page: the typing box now turns with the text instead of showing a narrow upright box.
+- Nib-E opens with the Select tool (it started with the Pen, so people drew on their PDF by accident). Opening a file switches back to Select; Study mode still starts with the Pen.
+- After applying redaction Nib-E stays on the same page, zoom and position (it jumped to page 1).
+- Full page mode: the bottom tool bar hides and comes back when the pointer reaches the bottom edge (or after a tap there).
+- Number boxes (comb fields): the first digit looked cut off when every box was full.
+
+**Changed**
+- Redaction and certificate signing show a "Beta" note: check the saved copy before you share it.
+
 ## 0.6.2
 
 **New**

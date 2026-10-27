@@ -14,6 +14,13 @@ The Help tour (top right, **?**) explains the basics in a minute.
 
 ## Things to try
 
+**New in 0.6.3**
+- [ ] Open a PDF: the Select tool is active (no accidental pen strokes).
+- [ ] Page manager → Crop: crop one page, then all pages. Save and open in another reader: is only the kept part shown and printed?
+- [ ] Redaction → "Same area on all pages": mark a header once, apply, save. Is it gone on every page? Do you stay on the same page?
+- [ ] A form on a landscape or turned page: are your answers upright, like the labels? Also after saving, in Edge or Acrobat?
+- [ ] Full page (F): does the tool bar hide, and come back at the bottom edge?
+
 **New in 0.6.2**
 - [ ] Select tool: drag across text, Ctrl+C, paste somewhere. Double-click a word, triple-click a line.
 - [ ] A real form (from an authority, a bank): fill every field with the Text tool, save, open in Edge or Acrobat.

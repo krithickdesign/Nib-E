@@ -53,6 +53,11 @@
     <category>Office</category>
   </categories>
   <releases>
+    <release version="0.6.3" date="2026-10-27">
+      <description>
+        <p>Crop pages, redact the same area on all pages, form answers read the right way on turned pages, opens with the Select tool, tool bar hides in full page mode.</p>
+      </description>
+    </release>
     <release version="0.6.2" date="2026-10-18">
       <description>
         <p>Select and copy text, all kinds of form fields (character boxes, dropdowns, lists, multi-line, Reset), rename the file from the title, page layout button.</p>

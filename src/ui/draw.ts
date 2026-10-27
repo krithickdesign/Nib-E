@@ -19,6 +19,7 @@ import {
   type StampItem,
   type TextItem,
   type Watermark,
+  visibleShown,
 } from '../model';
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -430,7 +431,13 @@ export function hfSlots(hf: HeaderFooter, shownW: number, shownH: number): { tex
  * Draws header/footer and watermark. The context must map *shown* page space
  * (upright, as on screen) to pixels.
  */
-export function drawDecor(ctx: Ctx, p: PageEntry, num: number, total: number, file: string, hf: HeaderFooter | null, wm: Watermark | null, shownW: number, shownH: number): void {
+export function drawDecor(ctx: Ctx, p: PageEntry, num: number, total: number, file: string, hf: HeaderFooter | null, wm: Watermark | null, fullW: number, fullH: number): void {
+  // Header, footer and watermark sit on the visible part of a cropped page.
+  const v = p.crop ? visibleShown(p) : { x: 0, y: 0, w: fullW, h: fullH };
+  const shownW = v.w;
+  const shownH = v.h;
+  ctx.save();
+  ctx.translate(v.x, v.y);
   if (wm && wm.text) {
     ctx.save();
     ctx.globalAlpha = wm.opacity;
@@ -454,5 +461,5 @@ export function drawDecor(ctx: Ctx, p: PageEntry, num: number, total: number, fi
     }
     ctx.restore();
   }
-  void p;
+  ctx.restore();
 }

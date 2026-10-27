@@ -19,6 +19,9 @@ docs/de/
 # trailer: captured footage and rendered videos (regenerate with store/trailer/*.py)
 store/trailer/frames/*.png
 store/trailer/out/
+# promo ("we listened"): same
+store/promo/frames/*.png
+store/promo/out/
 
 # Store marketing slides: generated (regenerate with store/marketing/*.py)
 store/marketing/frames/*.png

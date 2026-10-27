@@ -32,6 +32,7 @@ import { exportBackup, exportFlattened, exportNotesOnly, exportText, exportWithN
 import { LibraryView } from './ui/libraryview';
 import { askPrint, saveHint, SaveMenu, type MenuAction } from './ui/savemenu';
 import { HelpMenu } from './ui/helpmenu';
+import { startRatePrompt } from './ui/rateprompt';
 import { APP_NAME, landingUrl } from './config';
 import { MAX_TABS, store, type DocState, type Tool } from './store';
 import { ContextBar } from './ui/contextbar';
@@ -125,6 +126,7 @@ function setupChrome(): void {
   $('btn-full').addEventListener('click', () => store.setFullpage(true));
   $('btn-tools').addEventListener('click', () => store.setPrefs({ rightOpen: !store.prefs.rightOpen }));
   const helpMenu = new HelpMenu($('btn-help'), $('help-menu'));
+  startRatePrompt();
   $('btn-help').setAttribute('aria-haspopup', 'menu');
   $('btn-help').setAttribute('aria-expanded', 'false');
   $('btn-help').addEventListener('click', () => helpMenu.toggle());
@@ -339,6 +341,42 @@ function setupLayout(): void {
   document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && store.fullpage) store.setFullpage(false);
   });
+  // Full page: the tool bar shows while the pointer is near the bottom edge (or after a tap there).
+  {
+    const shell = app;
+    let hideT = 0;
+    const peek = (on: boolean) => {
+      clearTimeout(hideT);
+      if (on) shell.classList.add('dock-peek');
+      else hideT = window.setTimeout(() => shell.classList.remove('dock-peek'), 900);
+    };
+    document.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!store.fullpage || e.pointerType === 'touch' || e.buttons) return;
+        const nearBottom = e.clientY > window.innerHeight - 110;
+        const onDock = !!(e.target as HTMLElement).closest?.('.dock, .view-pop');
+        peek(nearBottom || onDock);
+      },
+      { passive: true },
+    );
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!store.fullpage || e.pointerType !== 'touch') return;
+        if ((e.target as HTMLElement).closest?.('.dock, .view-pop')) return;
+        if (e.clientY > window.innerHeight - 90) {
+          shell.classList.add('dock-peek');
+          clearTimeout(hideT);
+          hideT = window.setTimeout(() => shell.classList.remove('dock-peek'), 4000);
+        } else shell.classList.remove('dock-peek');
+      },
+      { passive: true },
+    );
+    store.on((why) => {
+      if (why === 'mode' && !store.fullpage) shell.classList.remove('dock-peek');
+    });
+  }
   // Notebook splitter.
   const split = $('splitter');
   let dragging = false;
@@ -669,8 +707,13 @@ async function applyRedactions(): Promise<void> {
     ],
   });
   if (!res?.value) return;
+  const pos = viewer.scrollPos;
+  const zoom = { z: store.zoom, fit: store.fitMode };
   const result = await withBusy('Redacting…', () => redactNow());
   if (!result) return;
+  // Same page, same zoom, same place as before.
+  if (!zoom.fit) store.setZoom(zoom.z, null);
+  viewer.restoreScroll(pos);
   store.setTool('select');
   store.setPanel('redact');
   panel.showResult(`Redacted ${result.pages} page${result.pages === 1 ? '' : 's'}: ${result.removedChars} characters removed, photos under the boxes erased. Check passed: no text left under any box. Save to keep it.`);

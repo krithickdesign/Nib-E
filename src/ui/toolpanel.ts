@@ -76,7 +76,7 @@ const GROUPS: ToolGroup[] = [
   {
     title: 'Pages',
     tools: [
-      { view: 'organize', label: 'Page manager', icon: 'organize', desc: 'Insert, rotate, move, delete, extract' },
+      { view: 'organize', label: 'Page manager', icon: 'organize', desc: 'Insert, rotate, crop, move, delete, extract' },
       { view: 'combine', label: 'File merger', icon: 'combine', desc: 'Add PDFs or images as pages' },
       { view: 'compress', label: 'Size reducer', icon: 'compress', desc: 'Shrink large photos' },
       { view: 'attachments', label: 'Attachments', icon: 'attach', desc: 'Files inside this PDF, portfolios' },
@@ -325,7 +325,10 @@ export class ToolPanel {
             '1 · Mark',
             toolBtn('redact', 'Mark an area', 'Drag over text, images or anything else') +
               `<form class="inline-form" id="pf-find-form"><input class="text-input" id="pf-find" placeholder="Find text, e.g. a name or number" autocomplete="off"/><button class="btn" type="submit" data-act="find-mark">${icon('search')}Mark all</button></form>` +
-              actBtn('mark-page', 'blank', 'Mark the current page', 'Blacks out the whole page'),
+              actBtn('mark-page', 'blank', 'Mark the current page', 'Blacks out the whole page') +
+              (store.pages.length > 1
+                ? `<label class="check-row"><input type="checkbox" id="pf-redact-all" ${store.redactAllPages ? 'checked' : ''}/><span><strong>Same area on all pages</strong><small>Each new mark is also placed on every other page, at the same spot (for headers, footers, logos). Off again for the next file.</small></span></label>`
+                : ''),
           ) +
           section(
             '2 · Options',
@@ -337,7 +340,8 @@ export class ToolPanel {
             '3 · Apply',
             `<button class="btn btn-danger wide" type="button" data-act="redact-apply" ${n ? '' : 'disabled'}>Apply ${n || ''} redaction${n === 1 ? '' : 's'}</button>
              ${n ? `<button class="btn btn-quiet wide" type="button" data-act="redact-clear">Remove all marks</button>` : ''}
-             <p class="muted small">Your ink, text and stamps are flattened into the pages at the same time. Afterwards Nib-E checks that no text is left under any box.</p>`,
+             <p class="muted small">Your ink, text and stamps are flattened into the pages at the same time. Afterwards Nib-E checks that no text is left under any box.</p>
+             <p class="note-warn">${icon('info')}<span><strong>Beta:</strong> before you share a redacted file, open the saved copy and check that everything you marked is gone (also try selecting or searching the text).</span></p>`,
           ) +
           (this.lastResult ? `<div class="callout ok">${icon('check')}<p>${this.lastResult}</p></div>` : '')
         );
@@ -359,6 +363,21 @@ export class ToolPanel {
               <button class="icon-btn danger" type="button" data-act="delete" title="Delete">${icon('trash')}</button>
             </div>
             <button class="btn btn-quiet" type="button" data-act="select-all">Select all pages</button>`,
+          ) +
+          section(
+            'Crop',
+            toolBtn('crop', 'Crop pages', 'Drag over the part to keep') +
+              `<div class="seg" role="radiogroup" aria-label="Crop which pages">${(
+                [
+                  ['page', 'This page'],
+                  ['selected', 'Selected'],
+                  ['all', 'All pages'],
+                ] as const
+              )
+                .map(([v, l]) => `<button type="button" class="btn" data-act="crop-scope" data-val="${v}" aria-pressed="${store.cropScope === v}" ${v === 'selected' && !store.selected.size ? 'disabled' : ''}>${l}</button>`)
+                .join('')}</div>` +
+              (store.pages.some((p) => p.crop) ? `<button class="btn btn-quiet wide" type="button" data-act="uncrop">Show full pages again</button>` : '') +
+              `<p class="muted small">Nothing is deleted: the rest of the page is hidden and not printed. Other pages get the same area at the same spot.</p>`,
           ) +
           `<p class="muted small">Tip: drag thumbnails in the left panel to reorder. Ctrl-click or Shift-click selects several pages.</p>`
         );
@@ -629,6 +648,7 @@ export class ToolPanel {
       `<label class="field-label">Place (optional)<input class="text-input" id="pf-sigloc" maxlength="80"/></label>` +
       section('Visible box', `<div class="seg wrap">${pos('br', 'Bottom right', true)}${pos('bl', 'Bottom left')}${pos('tr', 'Top right')}${pos('none', 'Invisible')}</div><p class="muted small">On page ${store.current + 1} (the page you are on).</p>`) +
       `<button class="btn btn-primary wide" type="submit" data-act="sig-sign">${icon('certificate')}Sign and save copy</button>` +
+      `<p class="muted small"><strong>Beta:</strong> check the signed copy once in the app the other side uses (for example Adobe Reader) before you rely on it.</p>` +
       `</form>` +
       (has ? `<div class="callout warn">${icon('info')}<p>Signing saves a new copy. The signatures already in this file will not be valid in that copy.</p></div>` : '') +
       (this.signedCopy ? `<div class="callout ok">${icon('check')}<p>Saved “${esc(this.signedCopy.name)}”. Any change to that copy breaks the signature.</p></div><button class="btn wide" type="button" data-act="sig-open">${icon('open')}Open the signed copy</button>` : '') +
@@ -767,6 +787,10 @@ export class ToolPanel {
       case 'pf-raster':
         store.setPrefs({ rasterize: el.checked });
         break;
+      case 'pf-redact-all':
+        store.setRedactAll(el.checked);
+        if (el.checked && store.tool !== 'redact') store.setTool('redact');
+        break;
       case 'pf-stamp-date':
         store.setPrefs({ stampDate: el.checked });
         break;
@@ -860,6 +884,14 @@ export class ToolPanel {
     switch (act) {
       case 'rotL':
         store.rotate(keys, -1);
+        break;
+      case 'crop-scope':
+        store.setCropScope(b.dataset.val as 'page' | 'selected' | 'all');
+        if (store.tool !== 'crop') store.setTool('crop');
+        break;
+      case 'uncrop':
+        store.uncrop();
+        toast('Full pages are shown again.', 'ok');
         break;
       case 'rotR':
         store.rotate(keys, 1);

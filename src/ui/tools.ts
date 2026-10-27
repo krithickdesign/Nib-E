@@ -17,6 +17,7 @@ export const TOOL_INFO: Record<Tool, { label: string; icon: string; key?: string
   image: { label: 'Image', icon: 'image' },
   link: { label: 'Link', icon: 'link' },
   redact: { label: 'Mark for redaction', icon: 'redact' },
+  crop: { label: 'Crop pages', icon: 'crop' },
   field: { label: 'Form field', icon: 'form' },
 };
 

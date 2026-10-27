@@ -461,6 +461,37 @@ def make_form_fields():
         pdf.save(path)
 
 
+def make_form_turned():
+    """form-fields.pdf saved the way many landscape exports are: a portrait sheet with
+    /Rotate 90 and the content drawn turned, so it shows upright. Its form boxes have no
+    rotation of their own (no /MK /R), so answers would run sideways next to the labels."""
+    import pikepdf
+
+    src = FIX / "form-fields.pdf"
+    if not src.exists():
+        make_form_fields()
+    pdf = pikepdf.open(src)
+    pg = pdf.pages[0]
+    w, h = float(pg.MediaBox[2]), float(pg.MediaBox[3])
+    pg.contents_coalesce()
+    data = pg.Contents.read_bytes()
+    pg.Contents = pdf.make_stream(b"q 0 1 -1 0 %.2f 0 cm\n" % h + data + b"\nQ")
+    pg.MediaBox = [0, 0, h, w]
+    if "/CropBox" in pg.obj:
+        del pg.obj["/CropBox"]
+    pg.Rotate = 90
+    for a in pg.Annots:
+        x0, y0, x1, y1 = [float(v) for v in a.Rect]
+        pts = [(h - y, x) for (x, y) in ((x0, y0), (x1, y1))]
+        a.Rect = [min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts)]
+        if "/AP" in a:
+            del a["/AP"]
+        if "/MK" in a and "/R" in a.MK:
+            del a.MK["/R"]
+    pdf.save(FIX / "form-turned.pdf")
+    print("wrote", FIX / "form-turned.pdf")
+
+
 if __name__ == "__main__":
     make_sample()
     make_retype()
@@ -471,6 +502,7 @@ if __name__ == "__main__":
     make_photos()
     make_form()
     make_form_fields()
+    make_form_turned()
     make_mixed()
     for p in [SAMPLE, *sorted(FIX.glob("*.pdf"))]:
         print(p.relative_to(ROOT), p.stat().st_size, "bytes")

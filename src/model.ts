@@ -172,6 +172,8 @@ export interface PageEntry {
   rot: Rot;
   template: Template;
   items: Item[];
+  /** Visible part of the page (Page manager → Crop), in page points. Items keep their place; saving sets the crop box. */
+  crop?: Rect;
 }
 
 export interface HeaderFooter {
@@ -241,6 +243,36 @@ export function toScreen(p: PageEntry, ux: number, uy: number): [number, number]
     default:
       return [ux, uy];
   }
+}
+
+/** The visible part of a page in shown coordinates (all of it unless cropped). */
+export function visibleShown(p: PageEntry): Rect {
+  if (p.crop) return rectToScreen(p, p.crop);
+  const { w, h } = shownSize(p);
+  return { x: 0, y: 0, w, h };
+}
+
+/** Size of the visible part of a page as shown (after crop and rotation). */
+export function visibleSize(p: PageEntry): { w: number; h: number } {
+  const v = visibleShown(p);
+  return { w: v.w, h: v.h };
+}
+
+/**
+ * The same spot on another page: a rect drawn on `from` (page points) moved to
+ * `to` at the same relative position as it is seen on screen (pages of other
+ * sizes or turned differently get the spot where it looks the same).
+ */
+export function sameSpot(from: PageEntry, r: Rect, to: PageEntry): Rect {
+  if (from === to) return { ...r };
+  const a = visibleShown(from);
+  const s = rectToScreen(from, r);
+  const fx = (s.x - a.x) / a.w;
+  const fy = (s.y - a.y) / a.h;
+  const fw = s.w / a.w;
+  const fh = s.h / a.h;
+  const b = visibleShown(to);
+  return rectToPage(to, { x: b.x + fx * b.w, y: b.y + fy * b.h, w: fw * b.w, h: fh * b.h });
 }
 
 /** Page rect -> screen rect (points, shown orientation). */
