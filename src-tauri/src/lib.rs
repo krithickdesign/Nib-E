@@ -367,6 +367,16 @@ fn startup_files(files: State<'_, Files>) -> Vec<String> {
 }
 
 #[tauri::command]
+fn set_fullscreen(
+    window: WebviewWindow,
+    fullscreen: bool,
+) -> Result<(), String> {
+    window
+        .set_fullscreen(fullscreen)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn print_page(window: WebviewWindow) -> Result<(), String> {
     window.print().map_err(|e| e.to_string())
 }
@@ -482,7 +492,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, rename_file, startup_files, print_page, open_website, open_review, open_form, close_app, new_window])
+        .invoke_handler(tauri::generate_handler![pick_open, pick_save, read_file, write_file, rename_file, startup_files, print_page, set_fullscreen, open_website, open_review, open_form, close_app, new_window])
         .build(tauri::generate_context!())
         .expect("error while starting Nib-E")
         .run(|app, event| {

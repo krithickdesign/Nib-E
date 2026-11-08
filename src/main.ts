@@ -55,6 +55,8 @@ function esc(s: string): string {
 }
 
 let busy = false;
+const pendingPaths: string[] = [];
+let openingPaths = false;
 async function withBusy<T>(label: string, fn: () => Promise<T>): Promise<T | undefined> {
   if (busy) return undefined;
   busy = true;
@@ -75,6 +77,7 @@ async function withBusy<T>(label: string, fn: () => Promise<T>): Promise<T | und
     busy = false;
     app.classList.remove('busy');
     saveBtn.innerHTML = old;
+    if (!openingPaths && pendingPaths.length) void openPaths([]);
   }
 }
 
@@ -82,6 +85,8 @@ let viewer: Viewer;
 let notebook: Viewer;
 let panel: ToolPanel;
 let saveMenu: SaveMenu;
+let helpMenu: HelpMenu;
+let dock: Dock;
 
 /** The viewer that holds the current selection or edit, if any. */
 function activeViewer(): Viewer {
@@ -102,7 +107,7 @@ function setupChrome(): void {
   label('btn-merge', 'addfile', 'Add PDF', 'Add pages from another PDF to the end of this one');
   label('btn-save', 'save', 'Save', 'Save as PDF (Ctrl+S)');
   label('btn-study', 'study', 'Study', 'Study mode: PDF beside a notebook');
-  label('btn-full', 'fullscreen', 'Full page', 'Full page (F)');
+  label('btn-full', 'fullscreen', 'Full page', 'Full page (F / F11)');
   label('btn-tools', 'tools', 'Toolbox', 'Show or hide the toolbox');
   label('btn-help', 'help', 'Help', 'Help, shortcuts and feedback');
   $('exit-full').innerHTML = `${icon('exitFull')}<span>Exit full page</span>`;
@@ -125,7 +130,7 @@ function setupChrome(): void {
   $('btn-study').addEventListener('click', () => store.setStudy(!store.study));
   $('btn-full').addEventListener('click', () => store.setFullpage(true));
   $('btn-tools').addEventListener('click', () => store.setPrefs({ rightOpen: !store.prefs.rightOpen }));
-  const helpMenu = new HelpMenu($('btn-help'), $('help-menu'));
+  helpMenu = new HelpMenu($('btn-help'), $('help-menu'));
   startRatePrompt();
   $('btn-help').setAttribute('aria-haspopup', 'menu');
   $('btn-help').setAttribute('aria-expanded', 'false');
@@ -137,9 +142,9 @@ function setupChrome(): void {
   // Web: the Nib-E website's landing page. Desktop app and the single offline
   // file have no landing page, so they open a fresh Nib-E start screen.
   const landing = isDesktop() ? null : landingUrl(location.href);
-  brand.title = landing ? `${APP_NAME} home page (new tab)` : `New ${APP_NAME} ${isDesktop() ? 'window' : 'tab'}`;
+  brand.title = isDesktop() ? 'Open a PDF in a new tab (Ctrl+O)' : landing ? `${APP_NAME} home page (new tab)` : `New ${APP_NAME} tab`;
   const openStart = () => {
-    if (isDesktop()) void invoke('new_window').catch((e) => toast(String(e), 'error'));
+    if (isDesktop()) void openDialog();
     else window.open(landing ?? location.href.split('#')[0], '_blank');
   };
   brand.addEventListener('click', openStart);
@@ -151,6 +156,8 @@ function setupChrome(): void {
   });
   $('exit-full').addEventListener('click', () => store.setFullpage(false));
   $('full-study').addEventListener('click', () => store.setStudy(!store.study));
+  $('dock-show').innerHTML = icon('chevU');
+  $('dock-show').addEventListener('click', () => setDockHidden(false));
   $('btn-check').addEventListener('click', () => store.setPanel(store.panel === 'check' && store.prefs.rightOpen ? 'home' : 'check'));
   $('nb-add').addEventListener('click', () => {
     const last = store.notes[store.notes.length - 1];
@@ -307,7 +314,41 @@ function setupNotebookBar(): void {
   renderNotebookBar();
 }
 
+/** Hide the toolbar without changing the active tool or the PDF. */
+function setDockHidden(hidden: boolean): void {
+  if (hidden) dock.closePopup();
+  app.classList.toggle('dock-hidden', hidden);
+  app.classList.toggle('dock-peek', !hidden && store.fullpage);
+}
+
+/** Dismiss temporary UI without deleting PDF annotations. */
+function dismissPopups(): void {
+  (document.activeElement as HTMLElement | null)?.blur();
+  viewer.dismissPopups();
+  notebook.dismissPopups();
+  store.select(null);
+  saveMenu.close();
+  helpMenu.close();
+  const insertMenu =
+    document.querySelector<HTMLElement>('#side-actions .menu');
+  if (insertMenu) insertMenu.hidden = true;
+
+  document.querySelector('#side-actions [data-act="insert"]')?.setAttribute('aria-expanded', 'false');
+  setDockHidden(true);
+  if (store.doc?.fieldsOn === null) store.setFieldsOn(false);
+  for (
+    const dlg of [
+    ...document.querySelectorAll<HTMLDialogElement>('dialog[open]'),
+  ].reverse()
+    ) {
+    dlg.close();
+  }
+
+  $('toasts').replaceChildren();
+}
+
 function setupLayout(): void {
+  let lastFullpage = store.fullpage;
   store.on((why) => {
     if (why === 'prefs' || why === 'mode' || why === 'notes' || why === 'doc' || why === 'tabs') renderLayout();
     if (why === 'prefs') {
@@ -320,14 +361,24 @@ function setupLayout(): void {
       store.addNote('lined', uid('n'), { quiet: true });
     }
     if (why === 'mode') {
-      if (store.fullpage) {
-        document.documentElement.requestFullscreen?.().catch(() => undefined);
-        requestAnimationFrame(() => viewer.fit('page'));
-      } else {
-        if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-        requestAnimationFrame(() => viewer.fit('width'));
+      if (store.fullpage !== lastFullpage) {
+        lastFullpage = store.fullpage;
+        if (isDesktop()) {
+          void invoke('set_fullscreen', {
+            fullscreen: store.fullpage,
+          }).catch((e) => toast(String(e), 'error'));
+        } else if (store.fullpage) {
+          document.documentElement.requestFullscreen?.().catch(() => undefined);
+        } else if (document.fullscreenElement) {
+          void document.exitFullscreen().catch(() => undefined);
+        }
+        requestAnimationFrame(() =>
+          viewer.fit(store.fullpage ? 'page' : 'width')
+        );
       }
-      if (store.study) requestAnimationFrame(() => notebook.fit('width'));
+      if (store.study) {
+        requestAnimationFrame(() => notebook.fit('width'));
+      }
     }
   });
   let resizeT = 0;
@@ -606,17 +657,23 @@ async function openMany(files: File[], refs: (FileRef | null)[] = []): Promise<v
 
 /** Files opened by path in the desktop app (Open with…, drag and drop, double-click). */
 async function openPaths(paths: string[]): Promise<void> {
-  for (const p of paths) {
-    if (!/\.pdf$/i.test(p)) {
-      toast(`${p.split(/[\\/]/).pop()} is not a PDF.`, 'error');
-      continue;
+  pendingPaths.push(...paths);
+  if (openingPaths || busy) return;
+  openingPaths = true;
+  try {
+    while (pendingPaths.length && !busy) {
+      const p = pendingPaths.shift()!;
+      if (!/\.pdf$/i.test(p)) {toast(`${p.split(/[\\/]/).pop()} is not a PDF.`, 'error',);
+        continue;
+      }
+      const state = await withBusy('Opening…', async () => {
+        const f = await readPath(p);
+        return openBytes(f.name, f.bytes, {ref: f.ref,});
+      });
+      if (state) afterOpened();
     }
-    const state = await withBusy('Opening…', async () => {
-      const f = await readPath(p);
-      return openBytes(f.name, f.bytes, { ref: f.ref });
-    });
-    if (!state) break;
-    afterOpened();
+  } finally {
+    openingPaths = false;
   }
 }
 
@@ -889,6 +946,18 @@ function setupDrop(): void {
 }
 
 function setupKeys(): void {
+  // Capture also receives keys from dialogs and inline editors.
+  window.addEventListener('keydown', (e) => {
+    const mod = e.ctrlKey || e.metaKey;
+    const hide = mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'h';
+    const full = e.key === 'F11' && !mod && !e.altKey && !!store.doc;
+    if (!hide && !full) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.repeat) return;
+    if (hide) dismissPopups();
+    else store.setFullpage(!store.fullpage);
+  }, true);
   const toolKeys: Record<string, Tool> = { v: 'select', h: 'hand', t: 'text', p: 'pen', m: 'highlighter', e: 'eraser', s: 'sign', n: 'note', r: 'shape', u: 'markup' };
   window.addEventListener('keydown', (e) => {
     const t = e.target as HTMLElement;
@@ -1048,7 +1117,7 @@ async function closeApp(): Promise<void> {
 async function setupDesktop(): Promise<void> {
   if (!isDesktop()) return;
   app.classList.add('desktop');
-  listen<string[]>('nib://open-paths', (paths) => void openPaths(paths));
+  await listen<string[]>('nib://open-paths', (paths) => void openPaths(paths));
   // Dropped files arrive as nib://open-paths (the app first allows Nib-E to read them).
   listen('tauri://drag-drop', () => ($('dropzone').hidden = true));
   listen('tauri://drag-enter', () => ($('dropzone').hidden = false));
@@ -1086,7 +1155,8 @@ async function boot(): Promise<void> {
   viewer = new Viewer($('viewer'), $('pages'), 'pages');
   notebook = new Viewer($('nb-viewer'), $('nb-pages'), 'notes');
   new Sidebar($('sidebar'), viewer, withBusy);
-  new Dock($('dock'), {
+  dock = new Dock($('dock'), {
+    hide: () => setDockHidden(true),
     zoomBy: (f) => activeViewer().zoomBy(f),
     zoomTo: (z) => viewer.zoomBy(z / Math.max(0.01, store.zoom)),
     fit: (m) => {

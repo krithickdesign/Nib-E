@@ -26,6 +26,7 @@ export function saveHint(doc: DocState | null): string {
 
 export class SaveMenu {
   private isOpen = false;
+  private request = 0;
 
   constructor(
     private anchor: HTMLElement,
@@ -66,7 +67,9 @@ export class SaveMenu {
   async open(): Promise<void> {
     const doc = store.doc;
     if (!doc) return;
+    const request = ++this.request;
     const backup = await hasBackup(doc);
+    if (request !== this.request) return;
     const notes = writtenNotes(doc) > 0;
     const item = (a: MenuAction, ic: string, label: string, sub = '', key = '', disabled = false) =>
       `<button type="button" role="menuitem" class="menu-item" data-menu="${a}" ${disabled ? 'disabled' : ''}>${icon(ic)}<span class="mi-text"><span class="mi-label">${label}</span>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${key ? `<kbd>${key}</kbd>` : ''}</button>`;
@@ -96,6 +99,7 @@ export class SaveMenu {
   }
 
   close(): void {
+    ++this.request;
     if (!this.isOpen) return;
     this.isOpen = false;
     this.menu.hidden = true;
