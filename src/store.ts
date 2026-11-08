@@ -215,7 +215,7 @@ const BASE_PREFS: Prefs = {
   rasterize: false,
   leftOpen: true,
   rightOpen: true,
-  uiScale: 1.5,
+  uiScale: 1,
   spellcheck: true,
   spellLang: '',
   keepBackup: true,

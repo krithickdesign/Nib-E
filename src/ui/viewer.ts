@@ -886,6 +886,12 @@ export class Viewer {
     requestAnimationFrame(() => ta.focus());
   }
 
+  dismissPopups(): void {
+    this.finishEdit(true);
+    this.notePop?.querySelector<HTMLButtonElement>('[data-a="ok"]')?.click();
+    this.clearTextSelection();
+  }
+
   private closeNote(): void {
     this.notePop?.remove();
     this.notePop = null;

@@ -38,7 +38,7 @@
   --side-w: 212px;
   --panel-w: 316px;
   /* Interface size (Settings). The app chrome is drawn at this zoom; pages are not. */
-  --ui: 1.5;
+  --ui: 1;
 }
 /* Phones start at 100 % (main.ts sets the final value). */
 @media (max-width: 599px), (max-height: 599px) {
@@ -1509,6 +1509,31 @@ kbd {
   scrollbar-width: none;
   z-index: 10;
 }
+
+.dock-show {
+    display: none;
+    position: absolute;
+    left: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    z-index: 11;
+    background: var(--raised);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+}
+
+.app.dock-hidden .dock,
+.app.dock-hidden .view-pop {
+    display: none;
+}
+
+.app.dock-hidden .dock-show {
+    display: inline-flex;
+}
+
+.app.no-doc .dock-show {
+    display: none;
+}
+
 .dock::-webkit-scrollbar,
 .ctxbar::-webkit-scrollbar {
   display: none;

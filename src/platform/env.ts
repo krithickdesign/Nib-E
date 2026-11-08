@@ -23,8 +23,8 @@ export function invoke<T>(cmd: string, args?: unknown, opts?: { headers?: Record
   return t.core.invoke<T>(cmd, args, opts);
 }
 
-export function listen<T>(name: string, fn: (payload: T) => void): void {
-  void window.__TAURI__?.event.listen<T>(name, (e) => fn(e.payload));
+export function listen<T>(name: string, fn: (payload: T) => void,): Promise<() => void> {
+  return (window.__TAURI__?.event.listen<T>(name, (e) => fn(e.payload),) ?? Promise.resolve(() => undefined));
 }
 
 export function inFrame(): boolean {

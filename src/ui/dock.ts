@@ -19,6 +19,7 @@ export interface DockHost {
   zoomTo(z: number): void;
   fit(mode: 'width' | 'page'): void;
   applyRedactions(): void;
+  hide(): void;
 }
 
 function swatches(colors: string[], current: string, prop: string): string {
@@ -47,6 +48,7 @@ export class Dock {
 
   constructor(root: HTMLElement, private host: DockHost) {
     root.innerHTML = `
+      <button class="icon-btn dock-close" type="button" data-act="hide" title="Hide toolbar (Ctrl+H)" aria-label="Hide toolbar">${icon('close')}</button>
       <div class="dock-group dock-tools" role="toolbar" aria-label="Tools"></div>
       <span class="dock-sep" aria-hidden="true"></span>
       <div class="dock-group dock-opts"></div>
@@ -108,6 +110,9 @@ export class Dock {
         return;
       }
       switch (b.dataset.act) {
+        case 'hide':
+          this.host.hide();
+          break;
         case 'undo':
           store.undo();
           break;
@@ -177,6 +182,10 @@ export class Dock {
   }
 
   private pop: HTMLDivElement;
+
+  closePopup(): void {
+    this.togglePop(false);
+  }
 
   private togglePop(open: boolean): void {
     this.pop.hidden = !open;
